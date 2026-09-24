@@ -1,0 +1,86 @@
+{
+  "nav": {
+    "how_it_works": "How it works",
+    "features": "Features",
+    "benefits": "Benefits",
+    "login": "Log in",
+    "get_started": "Get started"
+  },
+  "auth": {
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Start growing your business with creator marketing.",
+      "business_name": "Business name",
+      "business_name_placeholder": "e.g. Brew & Bite Café",
+      "email": "Work email",
+      "email_placeholder": "you@company.com",
+      "phone": "Phone number",
+      "phone_placeholder": "9XXXXXXXXX",
+      "password": "Password",
+      "password_placeholder": "Min 8 characters",
+      "cta": "Create account",
+      "creating": "Creating…",
+      "google": "Continue with Google",
+      "have_account": "Already have an account?",
+      "sign_in": "Sign in",
+      "consent": "I agree to the",
+      "terms": "Terms of Service",
+      "and": "and",
+      "privacy": "Privacy Policy",
+      "success_title": "Account created!",
+      "success_body": "Your Influnz business account is ready. Sign in to start your first campaign."
+    },
+    "login": {
+      "title": "Welcome back! 👋",
+      "subtitle": "Sign in to manage your campaigns.",
+      "email": "Email or phone",
+      "email_placeholder": "Email or +91 phone",
+      "password": "Password",
+      "password_placeholder": "Enter your password",
+      "forgot": "Forgot password?",
+      "remember": "Remember me",
+      "cta": "Log in",
+      "signing_in": "Signing in…",
+      "google": "Continue with Google",
+      "no_account": "Don't have an account?",
+      "sign_up": "Sign up"
+    },
+    "otp": {
+      "title": "Verify your account",
+      "subtitle_email": "We sent a 6-digit code to {{email}}",
+      "subtitle_phone": "We sent a 6-digit code to {{phone}}",
+      "cta": "Verify",
+      "verifying": "Verifying…",
+      "resend": "Resend code",
+      "resend_in": "Resend in {{seconds}}s",
+      "wrong_contact": "Wrong address?"
+    },
+    "forgot": {
+      "title": "Forgot password?",
+      "subtitle": "Enter your email or phone number and we'll send you a reset link.",
+      "cta": "Send reset link",
+      "sending": "Sending…",
+      "back": "Back to log in"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "invalid_credentials": "Incorrect email or password.",
+      "account_exists": "An account with this email already exists.",
+      "rate_limited": "Too many attempts. Please wait a few minutes.",
+      "google_cancelled": "Google sign-in was cancelled.",
+      "network": "No internet connection. Please check your network."
+    },
+    "panel": {
+      "headline_login": "Creator marketing,\nsimplified.",
+      "headline_signup": "Your goal.\nOur AI. Your results.",
+      "body_login": "Sign in to manage your campaigns, creators, and performance in one place.",
+      "body_signup": "Join thousands of Indian businesses running smarter, measurable creator campaigns.",
+      "feature_1": "AI campaign planning in minutes",
+      "feature_2": "Verified Indian creators",
+      "feature_3": "Protected payments & contracts",
+      "feature_4": "Real performance analytics",
+      "badge_1": "₹12.5L saved this week",
+      "badge_2": "2,400+ active campaigns"
+    }
+  }
+}

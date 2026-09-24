@@ -1,0 +1,45 @@
+/* ============================================================
+   Influnz Design System — Color & Style Tokens
+   Warm Peach & Coral palette  (prefix: --in-)
+   ============================================================ */
+
+:root {
+  /* Primary palette */
+  --in-coral:       #f2846b;
+  --in-coral-dark:  #e06a4f;
+  --in-coral-text:  #b94a33;   /* WCAG AA on light backgrounds */
+  --in-rose:        #f5a08a;
+  --in-peach:       #fce4d6;
+  --in-blush:       #f8d0c4;
+  --in-cream:       #fef9f5;
+  --in-warm-white:  #fffaf7;
+
+  /* Neutrals */
+  --in-charcoal:    #2d2d2d;
+  --in-dark:        #1a1a1a;
+  --in-gray:        #6b6b6b;
+  --in-gray-light:  #a8a8a8;
+
+  /* Semantic */
+  --in-success:     #2e7d32;
+  --in-success-fill:#7cc4a4;
+  --in-warn:        #b76b3e;
+  --in-warn-fill:   #f5a08a;
+  --in-danger:      #e05252;
+  --in-danger-dark: #c74343;
+  --in-info:        #5a9bd4;
+
+  /* Borders & Shadows */
+  --in-border:      rgba(242,132,107,0.15);
+  --in-shadow:      0 4px 24px rgba(242,132,107,0.12);
+  --in-shadow-lg:   0 12px 48px rgba(242,132,107,0.18);
+
+  /* Radii */
+  --in-radius:      20px;
+  --in-radius-lg:   28px;
+  --in-radius-xl:   36px;
+
+  /* Typography */
+  --font-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Playfair Display', 'Georgia', serif;
+}

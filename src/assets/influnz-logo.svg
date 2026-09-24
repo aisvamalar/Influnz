@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" fill="none">
+  <!-- Flame/leaf mark -->
+  <circle cx="68" cy="22" r="14" fill="url(#grad_ball)"/>
+  <path d="M52 108 C30 85 28 58 44 42 C50 36 58 32 68 30 C58 50 62 68 72 80 C80 90 78 102 68 110 C62 112 56 112 52 108Z" fill="url(#grad_flame)"/>
+  <path d="M84 108 C106 85 108 58 92 42 C86 36 78 32 68 30 C78 50 74 68 64 80 C56 90 58 102 68 110 C74 112 80 112 84 108Z" fill="url(#grad_leaf)" opacity="0.75"/>
+
+  <!-- Wordmark "influnz" -->
+  <!-- i -->
+  <circle cx="118" cy="46" r="6" fill="#1e2235"/>
+  <rect x="113" y="58" width="10" height="46" rx="5" fill="#1e2235"/>
+  <!-- n -->
+  <rect x="131" y="58" width="10" height="46" rx="5" fill="#1e2235"/>
+  <path d="M141 75 C141 65 148 58 158 58 C168 58 175 65 175 75 L175 104" stroke="#1e2235" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <!-- f -->
+  <path d="M192 104 L192 72 C192 63 198 58 206 58" stroke="#1e2235" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <line x1="184" y1="78" x2="210" y2="78" stroke="#1e2235" stroke-width="9" stroke-linecap="round"/>
+  <!-- l -->
+  <rect x="218" y="38" width="10" height="66" rx="5" fill="#1e2235"/>
+  <!-- u -->
+  <path d="M236 58 L236 85 C236 96 242 104 253 104 C264 104 270 96 270 85 L270 58" stroke="#1e2235" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <!-- n -->
+  <rect x="278" y="58" width="10" height="46" rx="5" fill="#1e2235"/>
+  <path d="M288 75 C288 65 295 58 305 58 C315 58 322 65 322 75 L322 104" stroke="#1e2235" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <!-- z -->
+  <path d="M334 58 L362 58 L334 104 L362 104" stroke="#1e2235" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <defs>
+    <radialGradient id="grad_ball" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#ffb38a"/>
+      <stop offset="100%" stop-color="#f2846b"/>
+    </radialGradient>
+    <linearGradient id="grad_flame" x1="68" y1="30" x2="52" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f97f5a"/>
+      <stop offset="100%" stop-color="#f25c6e"/>
+    </linearGradient>
+    <linearGradient id="grad_leaf" x1="68" y1="30" x2="84" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffb38a"/>
+      <stop offset="100%" stop-color="#f2846b"/>
+    </linearGradient>
+  </defs>
+</svg>
