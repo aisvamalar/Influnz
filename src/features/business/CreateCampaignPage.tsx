@@ -1,289 +1,522 @@
 /**
- * Screen 04 — AI Campaign Brief (Create Campaign)
- * Two-panel AI chat interface with thinking animation
+ * CreateCampaignPage — 3-stage AI chat flow
+ * Stage 1: initial (greeting + suggestion chips)
+ * Stage 2: thinking (user message + animated chain-of-thought)
+ * Stage 3: results (user message + AI response with editable fields + right panel strategy)
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BusinessLayout from './BusinessLayout';
 
-type ActiveTab = 'ai' | 'manual';
-type ThinkingState = 'thinking' | 'done';
+type ConversationStage = 'initial' | 'thinking' | 'results';
 type RightTab = 'strategy' | 'creators' | 'content' | 'budget' | 'timeline';
 
-const EXAMPLE_BRIEF = 'I have ₹1,50,000. I am launching a café in Chennai and want more local customers through Tamil-speaking food creators on Instagram.';
+interface ThinkingStep {
+  id: number;
+  title: string;
+  detail: string;
+  timing: string;
+  expanded: boolean;
+}
+
+const THINKING_STEPS: ThinkingStep[] = [
+  { id: 1, title: 'Understanding campaign objective', detail: 'Identified goal: Drive local store visits for a new café launch in Chennai. Primary KPI will be footfall and brand awareness among local food lovers.', timing: '1.2s', expanded: false },
+  { id: 2, title: 'Analysing budget & location', detail: 'Budget ₹1,50,000 allocated. Chennai with 15km radius targeting. Cost per creator estimated at ₹15,000–₹25,000 for nano/micro tier.', timing: '0.8s', expanded: false },
+  { id: 3, title: 'Matching creator profiles', detail: 'Filtering Tamil-speaking food creators on Instagram in Chennai. Nano creators (10k–50k) provide higher engagement; micro (50k–200k) add reach.', timing: '1.5s', expanded: false },
+  { id: 4, title: 'Building campaign strategy', detail: 'Recommending 6 nano + 2 micro creators. 15-day campaign with Reels + Stories. Projected reach 1.2M+, estimated 2,400+ store visits.', timing: '2.1s', expanded: false },
+];
 
 const FIELDS = [
-  { key: 'budget', label: 'Budget', value: '₹1,50,000' },
-  { key: 'location', label: 'Location', value: 'Chennai, 15 km radius' },
-  { key: 'duration', label: 'Duration', value: '15 days' },
-  { key: 'category', label: 'Category', value: 'Food & Beverage' },
-  { key: 'audience', label: 'Target Audience', value: 'Local food lovers, age 18–34' },
-  { key: 'language', label: 'Language', value: 'Tamil / Tanglish' },
-  { key: 'platform', label: 'Platform', value: 'Instagram' },
+  { key: 'budget',   label: 'Budget',          value: '₹1,50,000' },
+  { key: 'location', label: 'Location',        value: 'Chennai 15 km' },
+  { key: 'duration', label: 'Duration',        value: '15 days' },
+  { key: 'category', label: 'Category',        value: 'Food & Beverage' },
+  { key: 'audience', label: 'Target Audience', value: 'Local food lovers, 18–34' },
+  { key: 'language', label: 'Language',        value: 'Tamil / Tanglish' },
+  { key: 'platform', label: 'Platform',        value: 'Instagram' },
+];
+
+const SUGGESTION_CHIPS = [
+  'Launch a café in Chennai',
+  'Promote a new product',
+  'Event coverage',
+  'Increase brand awareness',
 ];
 
 export default function CreateCampaignPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('ai');
-  const [thinkingState, setThinkingState] = useState<ThinkingState>('thinking');
-  const [userInput, setUserInput] = useState('');
+
+  const [stage, setStage] = useState<ConversationStage>('initial');
+  const [userMessage, setUserMessage] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
+  const [visibleStepCount, setVisibleStepCount] = useState(0);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>(
     Object.fromEntries(FIELDS.map(f => [f.key, f.value]))
   );
   const [rightTab, setRightTab] = useState<RightTab>('strategy');
 
+  // Progressive step reveal when entering thinking stage
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setThinkingState('done');
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (stage !== 'thinking') return;
+    setVisibleStepCount(0);
+    const timers = [
+      setTimeout(() => setVisibleStepCount(1), 400),
+      setTimeout(() => setVisibleStepCount(2), 900),
+      setTimeout(() => setVisibleStepCount(3), 1400),
+      setTimeout(() => setVisibleStepCount(4), 2000),
+    ];
+    return () => timers.forEach(t => clearTimeout(t));
+  }, [stage]);
 
   const handleSend = () => {
-    if (userInput.trim()) {
-      setUserInput('');
-      // Handle sending logic
-    }
+    if (!inputValue.trim()) return;
+    setUserMessage(inputValue);
+    setInputValue('');
+    setStage('thinking');
+    setThinkingSteps(THINKING_STEPS.map(s => ({ ...s, expanded: false })));
+    setTimeout(() => setStage('results'), 3500);
+  };
+
+  const handleChipClick = (text: string) => {
+    setInputValue(text);
+  };
+
+  const toggleStepExpanded = (id: number) => {
+    setThinkingSteps(prev => prev.map(s => s.id === id ? { ...s, expanded: !s.expanded } : s));
   };
 
   const handleFieldEdit = (key: string, value: string) => {
     setFieldValues(prev => ({ ...prev, [key]: value }));
-    setEditingField(null);
   };
 
   return (
     <BusinessLayout breadcrumb="New Campaign">
       <style>{`
-        @keyframes thinkingBounce {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-          30% { transform: translateY(-8px); opacity: 1; }
+        @keyframes thinkDot {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
+          30% { transform: translateY(-6px); opacity: 1; }
         }
-        .thinking-dot {
+        .think-dot {
           display: inline-block;
-          width: 8px;
-          height: 8px;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
           background: #9ca3af;
-          animation: thinkingBounce 1.4s infinite ease-in-out both;
+          animation: thinkDot 1.4s infinite ease-in-out;
         }
-        .thinking-dot:nth-child(1) { animation-delay: 0s; }
-        .thinking-dot:nth-child(2) { animation-delay: 0.15s; }
-        .thinking-dot:nth-child(3) { animation-delay: 0.3s; }
+        .think-dot:nth-child(1) { animation-delay: 0s; }
+        .think-dot:nth-child(2) { animation-delay: 0.2s; }
+        .think-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .step-appear {
+          animation: fadeSlideIn 0.4s ease forwards;
+        }
+        @keyframes slideDown {
+          from { opacity: 0; max-height: 0; }
+          to { opacity: 1; max-height: 200px; }
+        }
+        .step-detail {
+          animation: slideDown 0.25s ease forwards;
+          overflow: hidden;
+        }
       `}</style>
 
-      <div className="biz-page-head">
-        <div>
-          <h1 className="biz-page-head__title">Create Campaign</h1>
-          <p className="biz-page-head__sub">Tell the AI your goal and budget — or set it up manually.</p>
-        </div>
-      </div>
-
-      {/* Mode toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {(['ai', 'manual'] as ActiveTab[]).map(m => (
-          <button
-            key={m}
-            className={`biz-chip${activeTab === m ? ' biz-chip--active' : ''}`}
-            style={{ height: 38, fontSize: '0.875rem', fontWeight: 700 }}
-            onClick={() => setActiveTab(m)}
-          >
-            {m === 'ai' ? '✨ AI Assistant' : '⚙️ Manual Setup'}
-          </button>
-        ))}
-      </div>
-
       {/* Two-panel layout */}
-      {activeTab === 'ai' && (
-        <div style={{ display: 'flex', gap: 24, height: 'calc(100vh - 280px)', minHeight: 600 }}>
-          {/* LEFT PANEL - Chat */}
+      <div style={{
+        display: 'flex',
+        gap: 20,
+        height: 'calc(100vh - 200px)',
+        minHeight: 600,
+      }}>
+        {/* LEFT PANEL — Chat */}
+        <div style={{
+          flex: '0 0 55%',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'white',
+          borderRadius: 16,
+          border: '1px solid #e5e7eb',
+          overflow: 'hidden',
+        }}>
+          {/* Bot header */}
           <div style={{
-            flex: '0 0 55%',
-            background: 'white',
-            borderRadius: 16,
-            border: '1px solid #e5e7eb',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: 24,
+            background: '#f9f9f7',
+            borderBottom: '1px solid #e5e7eb',
+          }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: '#1a1a1a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 20,
+            }}>
+              🤖
+            </div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a' }}>
+                Campaign Assistant
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>
+                Powered by AI
+              </div>
+            </div>
+          </div>
+
+          {/* Message area */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: 24,
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            gap: 16,
           }}>
-            {/* Chat Header */}
-            <div style={{
-              padding: '20px 24px',
-              borderBottom: '1px solid #e5e7eb'
-            }}>
-              <h2 style={{
-                fontSize: 18,
-                fontWeight: 700,
-                color: '#1f2937',
-                margin: '0 0 4px 0'
-              }}>
-                AI Campaign Brief
-              </h2>
-              <p style={{
-                fontSize: 14,
-                color: '#6b7280',
-                margin: 0
-              }}>
-                Describe your campaign naturally and AI will structure it for you
-              </p>
-            </div>
-
-            {/* Chat Messages Area */}
-            <div style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12
-            }}>
-              {/* User Message */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                marginBottom: 4
-              }}>
-                <div>
-                  <div style={{
-                    background: '#1f2937',
-                    color: 'white',
-                    padding: '12px 16px',
-                    borderRadius: 16,
-                    borderBottomRightRadius: 4,
-                    maxWidth: 400,
-                    fontSize: 14,
-                    lineHeight: 1.5
-                  }}>
-                    {EXAMPLE_BRIEF}
-                  </div>
-                  <div style={{
-                    fontSize: 11,
-                    color: '#9ca3af',
-                    textAlign: 'right',
-                    marginTop: 4
-                  }}>
-                    10:42 AM
-                  </div>
-                </div>
-              </div>
-
-              {/* AI Thinking or Response */}
-              {thinkingState === 'thinking' ? (
+            {stage === 'initial' && (
+              <>
+                {/* Greeting card */}
                 <div style={{
-                  display: 'flex',
-                  justifyContent: 'flex-start'
+                  background: 'white',
+                  borderRadius: 12,
+                  border: '1px solid #e5e7eb',
+                  padding: 20,
                 }}>
                   <div style={{
-                    background: '#f3f4f6',
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: '#1a1a1a',
+                    marginBottom: 8,
+                  }}>
+                    Hi! I'm your campaign assistant 👋
+                  </div>
+                  <div style={{
+                    fontSize: 14,
+                    color: '#6b7280',
+                    lineHeight: 1.5,
+                  }}>
+                    Tell me what you want to achieve, and I'll help you create the best campaign.
+                  </div>
+                </div>
+
+                {/* Suggestion chips */}
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}>
+                  {SUGGESTION_CHIPS.map(chip => (
+                    <button
+                      key={chip}
+                      onClick={() => handleChipClick(chip)}
+                      style={{
+                        background: 'white',
+                        border: '1.5px solid #e5e7eb',
+                        borderRadius: 20,
+                        padding: '8px 16px',
+                        fontSize: 13,
+                        color: '#374151',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#f3f4f6')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {(stage === 'thinking' || stage === 'results') && (
+              <>
+                {/* User message bubble */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'flex-start',
+                  gap: 8,
+                }}>
+                  <div style={{
+                    background: '#f5f0e8',
+                    borderRadius: '16px 16px 4px 16px',
                     padding: '12px 16px',
-                    borderRadius: 16,
-                    borderBottomLeftRadius: 4,
+                    maxWidth: '80%',
+                    fontSize: 14,
+                    color: '#1a1a1a',
+                    lineHeight: 1.4,
+                  }}>
+                    {userMessage}
+                  </div>
+                  <div style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: '#1a1a1a',
+                    color: 'white',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    flexShrink: 0,
                   }}>
-                    <span style={{ fontSize: 16 }}>✨</span>
-                    <span style={{ fontSize: 13, color: '#6b7280', marginRight: 8 }}>AI is thinking</span>
-                    <div className="thinking-dot"></div>
-                    <div className="thinking-dot"></div>
-                    <div className="thinking-dot"></div>
+                    U
                   </div>
                 </div>
-              ) : (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'flex-start'
-                }}>
-                  <div style={{
-                    background: '#f3f4f6',
-                    padding: '16px 18px',
-                    borderRadius: 16,
-                    borderBottomLeftRadius: 4,
-                    maxWidth: 480,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 14
-                  }}>
-                    <p style={{
-                      fontSize: 14,
-                      color: '#1f2937',
-                      fontWeight: 500,
-                      margin: 0
-                    }}>
-                      Here's what I understood from your brief 🤝
-                    </p>
 
-                    {/* Campaign Goal Card */}
+                {stage === 'thinking' && (
+                  /* AI Thinking block */
+                  <div style={{
+                    background: '#f8f8f6',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 16,
+                    padding: 20,
+                    maxWidth: '90%',
+                  }}>
+                    {/* Header */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 16,
+                    }}>
+                      <span style={{ fontSize: 16 }}>✨</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#374151' }}>
+                        Thinking...
+                      </span>
+                      <div style={{ display: 'flex', gap: 3, marginLeft: 4 }}>
+                        <div className="think-dot" />
+                        <div className="think-dot" />
+                        <div className="think-dot" />
+                      </div>
+                    </div>
+
+                    {/* Chain-of-thought steps */}
+                    <div style={{ position: 'relative', paddingLeft: 20 }}>
+                      {/* Vertical connector line */}
+                      <div style={{
+                        position: 'absolute',
+                        left: 9,
+                        top: 10,
+                        bottom: 10,
+                        width: 2,
+                        background: '#e5e7eb',
+                      }} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {thinkingSteps.filter(s => s.id <= visibleStepCount).map(step => (
+                          <div key={step.id} className="step-appear" style={{ position: 'relative' }}>
+                            {/* Step row */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 10,
+                            }}>
+                              {/* Step number badge */}
+                              <div style={{
+                                position: 'absolute',
+                                left: -20,
+                                top: 2,
+                                width: 18,
+                                height: 18,
+                                borderRadius: '50%',
+                                background: '#1a1a1a',
+                                color: 'white',
+                                fontSize: 10,
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 1,
+                              }}>
+                                {step.id}
+                              </div>
+
+                              {/* Step content */}
+                              <div style={{ flex: 1 }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  flexWrap: 'wrap',
+                                }}>
+                                  <span style={{ fontSize: 14, color: '#374151', fontWeight: 500 }}>
+                                    {step.title}
+                                  </span>
+                                  <span style={{
+                                    background: '#f3f4f6',
+                                    color: '#6b7280',
+                                    fontSize: 11,
+                                    padding: '2px 8px',
+                                    borderRadius: 10,
+                                  }}>
+                                    {step.timing}
+                                  </span>
+                                  <button
+                                    onClick={() => toggleStepExpanded(step.id)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#9ca3af',
+                                      cursor: 'pointer',
+                                      fontSize: 12,
+                                      padding: 4,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      transform: step.expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                      transition: 'transform 0.2s',
+                                    }}
+                                    aria-label={step.expanded ? 'Collapse' : 'Expand'}
+                                  >
+                                    ▼
+                                  </button>
+                                </div>
+
+                                {/* Expanded detail */}
+                                {step.expanded && (
+                                  <div
+                                    className="step-detail"
+                                    style={{
+                                      background: 'white',
+                                      border: '1px solid #f0f0f0',
+                                      borderRadius: 8,
+                                      padding: '10px 12px',
+                                      fontSize: 13,
+                                      color: '#6b7280',
+                                      marginTop: 8,
+                                      lineHeight: 1.5,
+                                    }}
+                                  >
+                                    {step.detail}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {stage === 'results' && (
+                  /* AI Response block */
+                  <div style={{
+                    background: '#f8f8f6',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 16,
+                    padding: 20,
+                    maxWidth: '95%',
+                  }}>
+                    {/* Header */}
+                    <div style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: '#1a1a1a',
+                      marginBottom: 4,
+                    }}>
+                      Here's what I understood from your brief 👍
+                    </div>
+                    <div style={{
+                      fontSize: 13,
+                      color: '#6b7280',
+                      marginBottom: 14,
+                      lineHeight: 1.4,
+                    }}>
+                      I've extracted the key details. Please review and edit if needed before I generate the campaign strategy.
+                    </div>
+
+                    {/* Campaign Goal card */}
                     <div style={{
                       background: 'white',
-                      padding: '12px 16px',
+                      border: '1px solid #e5e7eb',
                       borderRadius: 10,
-                      border: '1px solid #e5e7eb'
+                      padding: '12px 14px',
+                      marginBottom: 12,
                     }}>
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        marginBottom: 6
+                        marginBottom: 6,
                       }}>
                         <span style={{
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           color: '#9ca3af',
-                          letterSpacing: '0.5px'
+                          letterSpacing: '0.5px',
                         }}>
-                          🎯 Campaign Goal
+                          🎯 CAMPAIGN GOAL
                         </span>
                         <button style={{
                           background: 'none',
                           border: 'none',
-                          color: '#ef4444',
+                          color: '#9ca3af',
                           cursor: 'pointer',
                           fontSize: 14,
-                          padding: 0
+                          padding: 0,
                         }}>
                           ✏️
                         </button>
                       </div>
-                      <p style={{
-                        fontSize: 15,
-                        fontWeight: 600,
-                        color: '#1f2937',
-                        margin: 0
+                      <div style={{
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: '#1a1a1a',
+                        marginBottom: 4,
                       }}>
                         Drive local store visits
-                      </p>
+                      </div>
+                      <div style={{
+                        fontSize: 12,
+                        color: '#6b7280',
+                      }}>
+                        (Café launch, Chennai)
+                      </div>
                     </div>
 
-                    {/* Fields Grid */}
+                    {/* Fields grid */}
                     <div style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 1fr',
-                      gap: 10
+                      gap: 8,
                     }}>
                       {FIELDS.map(field => (
                         <div
                           key={field.key}
                           style={{
                             background: 'white',
-                            padding: '10px 12px',
+                            border: '1px solid #e5e7eb',
                             borderRadius: 8,
-                            border: '1px solid #e5e7eb'
+                            padding: '10px 12px',
                           }}
                         >
                           <div style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            marginBottom: 4
+                            marginBottom: 4,
                           }}>
                             <span style={{
                               fontSize: 10,
                               fontWeight: 700,
                               textTransform: 'uppercase',
                               color: '#9ca3af',
-                              letterSpacing: '0.5px'
+                              letterSpacing: '0.5px',
                             }}>
                               {field.label}
                             </span>
@@ -293,10 +526,10 @@ export default function CreateCampaignPage() {
                                 style={{
                                   background: 'none',
                                   border: 'none',
-                                  color: '#ef4444',
+                                  color: '#9ca3af',
                                   cursor: 'pointer',
-                                  fontSize: 12,
-                                  padding: 0
+                                  fontSize: 14,
+                                  padding: 0,
                                 }}
                               >
                                 ✏️
@@ -307,381 +540,502 @@ export default function CreateCampaignPage() {
                             <input
                               type="text"
                               value={fieldValues[field.key]}
-                              onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                              onChange={e => handleFieldEdit(field.key, e.target.value)}
                               onBlur={() => setEditingField(null)}
-                              onKeyDown={e => e.key === 'Enter' && handleFieldEdit(field.key, fieldValues[field.key])}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') setEditingField(null);
+                              }}
                               autoFocus
                               style={{
                                 width: '100%',
-                                border: '1px solid #ef4444',
+                                border: '1px solid #1a1a1a',
                                 borderRadius: 4,
                                 padding: '4px 6px',
                                 fontSize: 13,
-                                fontWeight: 600,
-                                outline: 'none'
+                                fontWeight: 700,
+                                color: '#1a1a1a',
+                                outline: 'none',
+                                fontFamily: 'inherit',
                               }}
                             />
                           ) : (
-                            <p style={{
+                            <div style={{
                               fontSize: 13,
-                              fontWeight: 600,
-                              color: '#1f2937',
-                              margin: 0
+                              fontWeight: 700,
+                              color: '#1a1a1a',
                             }}>
                               {fieldValues[field.key]}
-                            </p>
+                            </div>
                           )}
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </>
+            )}
+          </div>
 
-            {/* Input Bar */}
+          {/* Input bar */}
+          <div style={{
+            padding: '16px 20px',
+            borderTop: '1px solid #e5e7eb',
+            background: 'white',
+          }}>
             <div style={{
-              padding: '16px 20px',
-              borderTop: '1px solid #e5e7eb',
               display: 'flex',
-              gap: 10
+              alignItems: 'center',
+              gap: 10,
             }}>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  fontSize: 20,
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                aria-label="Attach file"
+              >
+                📎
+              </button>
               <input
                 type="text"
-                value={userInput}
-                onChange={e => setUserInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSend()}
-                placeholder="Ask anything or refine your brief..."
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSend();
+                }}
+                placeholder="Type your campaign goal..."
                 style={{
                   flex: 1,
-                  padding: '10px 14px',
                   border: '1px solid #e5e7eb',
-                  borderRadius: 8,
+                  borderRadius: 24,
+                  padding: '10px 16px',
                   fontSize: 14,
                   outline: 'none',
-                  fontFamily: 'inherit'
+                  fontFamily: 'inherit',
                 }}
               />
               <button
                 onClick={handleSend}
                 style={{
-                  padding: '10px 18px',
-                  background: '#1f2937',
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  background: '#1a1a1a',
                   border: 'none',
-                  borderRadius: 8,
                   color: 'white',
-                  fontWeight: 600,
-                  fontSize: 14,
                   cursor: 'pointer',
-                  fontFamily: 'inherit'
+                  fontSize: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
+                aria-label="Send message"
               >
-                Send
+                ➤
               </button>
             </div>
           </div>
-
-          {/* RIGHT PANEL - Strategy */}
-          <div style={{
-            flex: '0 0 45%',
-            background: 'white',
-            borderRadius: 16,
-            border: '1px solid #e5e7eb',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
-            {/* Strategy Header */}
-            <div style={{
-              padding: '20px 24px',
-              borderBottom: '1px solid #e5e7eb'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 12
-              }}>
-                <h2 style={{
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: '#1f2937',
-                  margin: 0
-                }}>
-                  Your Campaign Strategy
-                </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    color: '#10b981',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    padding: '4px 10px',
-                    borderRadius: 12,
-                    letterSpacing: '0.5px'
-                  }}>
-                    ✨ AI Generated
-                  </span>
-                  <button style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#6b7280',
-                    cursor: 'pointer',
-                    fontSize: 18,
-                    padding: 4
-                  }}>
-                    🔄
-                  </button>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div style={{
-                display: 'flex',
-                gap: 2,
-                overflowX: 'auto'
-              }}>
-                {[
-                  { key: 'strategy', label: 'Strategy Overview' },
-                  { key: 'creators', label: 'Creators (8)' },
-                  { key: 'content', label: 'Content Plan' },
-                  { key: 'budget', label: 'Budget' },
-                  { key: 'timeline', label: 'Timeline' }
-                ].map(tab => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setRightTab(tab.key as RightTab)}
-                    style={{
-                      padding: '8px 14px',
-                      background: rightTab === tab.key ? '#f3f4f6' : 'transparent',
-                      border: 'none',
-                      borderRadius: 8,
-                      fontSize: 12,
-                      fontWeight: rightTab === tab.key ? 600 : 500,
-                      color: rightTab === tab.key ? '#1f2937' : '#6b7280',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Strategy Content */}
-            {rightTab === 'strategy' && (
-              <div style={{
-                flex: 1,
-                overflowY: 'auto',
-                padding: 24
-              }}>
-                {/* Recommended Badge */}
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  background: '#fef3c7',
-                  color: '#92400e',
-                  padding: '6px 12px',
-                  borderRadius: 20,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  marginBottom: 16
-                }}>
-                  ✦ RECOMMENDED STRATEGY
-                </div>
-
-                {/* Strategy Name */}
-                <h3 style={{
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: '#1f2937',
-                  margin: '0 0 12px 0'
-                }}>
-                  Hyperlocal Creator Campaign
-                </h3>
-
-                {/* Description */}
-                <p style={{
-                  fontSize: 14,
-                  color: '#6b7280',
-                  lineHeight: 1.6,
-                  marginBottom: 20
-                }}>
-                  This strategy focuses on partnering with 8 nano and micro Tamil-speaking food creators in Chennai to drive authentic local engagement and maximize store footfall within your budget.
-                </p>
-
-                {/* Metrics */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 12,
-                  marginBottom: 24
-                }}>
-                  {[
-                    { label: 'Creators', value: '8' },
-                    { label: 'Estimated Reach', value: '1.2M+' },
-                    { label: 'Total Budget', value: '₹1,50,000' }
-                  ].map((metric, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        background: '#f9fafb',
-                        padding: '14px 16px',
-                        borderRadius: 10,
-                        border: '1px solid #e5e7eb'
-                      }}
-                    >
-                      <p style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        color: '#9ca3af',
-                        letterSpacing: '0.5px',
-                        margin: '0 0 6px 0'
-                      }}>
-                        {metric.label}
-                      </p>
-                      <p style={{
-                        fontSize: 20,
-                        fontWeight: 700,
-                        color: '#1f2937',
-                        margin: 0
-                      }}>
-                        {metric.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Key Strategy Highlights */}
-                <div style={{ marginBottom: 24 }}>
-                  <h4 style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: '#1f2937',
-                    margin: '0 0 12px 0',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    Key Strategy Highlights
-                  </h4>
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10
-                  }}>
-                    {[
-                      'Tamil language content for authentic local connection',
-                      'Food & lifestyle creators with strong community engagement',
-                      'Mix of nano (6) and micro (2) creators for balanced reach',
-                      'Instagram-focused campaign with Reels and Stories',
-                      'Estimated 2,400+ store visits within 15-day campaign'
-                    ].map((highlight, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          gap: 10,
-                          alignItems: 'flex-start'
-                        }}
-                      >
-                        <span style={{
-                          color: '#10b981',
-                          fontSize: 16,
-                          flexShrink: 0,
-                          marginTop: 2
-                        }}>
-                          ✓
-                        </span>
-                        <span style={{
-                          fontSize: 13,
-                          color: '#374151',
-                          lineHeight: 1.5
-                        }}>
-                          {highlight}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div style={{
-                  display: 'flex',
-                  gap: 10,
-                  paddingTop: 16,
-                  borderTop: '1px solid #e5e7eb'
-                }}>
-                  <button style={{
-                    flex: 1,
-                    padding: '12px 20px',
-                    background: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 8,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit'
-                  }}>
-                    Regenerate strategy
-                  </button>
-                  <button
-                    onClick={() => navigate('/business/campaigns/creators')}
-                    style={{
-                      flex: 1,
-                      padding: '12px 20px',
-                      background: '#1f2937',
-                      border: 'none',
-                      borderRadius: 8,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit'
-                    }}
-                  >
-                    Continue to creators →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Placeholder for other tabs */}
-            {rightTab !== 'strategy' && (
-              <div style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#9ca3af',
-                fontSize: 14
-              }}>
-                {rightTab.charAt(0).toUpperCase() + rightTab.slice(1)} content coming soon...
-              </div>
-            )}
-          </div>
         </div>
-      )}
 
-      {/* Manual Setup (placeholder) */}
-      {activeTab === 'manual' && (
+        {/* RIGHT PANEL */}
         <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
           background: 'white',
           borderRadius: 16,
           border: '1px solid #e5e7eb',
-          padding: 40,
-          textAlign: 'center'
+          overflow: 'hidden',
         }}>
-          <p style={{ color: '#6b7280', fontSize: 14 }}>Manual setup form coming soon...</p>
+          {stage === 'initial' && (
+            <>
+              {/* Empty state header */}
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #e5e7eb',
+              }}>
+                <div style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: '#1a1a1a',
+                  marginBottom: 4,
+                }}>
+                  Your Campaign
+                </div>
+                <div style={{
+                  fontSize: 13,
+                  color: '#6b7280',
+                }}>
+                  Fill in the details below
+                </div>
+              </div>
+
+              {/* Empty fields */}
+              <div style={{
+                flex: 1,
+                padding: 24,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+              }}>
+                {[
+                  'Campaign Goal',
+                  'Budget',
+                  'Duration',
+                  'Location',
+                  'Category',
+                  'Platform',
+                ].map(label => (
+                  <div
+                    key={label}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingBottom: 10,
+                      borderBottom: '1px dashed #e5e7eb',
+                    }}
+                  >
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: '#9ca3af',
+                      letterSpacing: '0.5px',
+                    }}>
+                      {label}
+                    </span>
+                    <span style={{
+                      fontSize: 13,
+                      color: '#d1d5db',
+                    }}>
+                      ─────
+                    </span>
+                  </div>
+                ))}
+
+                {/* Tip section */}
+                <div style={{
+                  marginTop: 'auto',
+                  background: '#fef9f0',
+                  border: '1px solid #fed7aa',
+                  borderRadius: 10,
+                  padding: 14,
+                }}>
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#1a1a1a',
+                    marginBottom: 6,
+                  }}>
+                    💡 Tip
+                  </div>
+                  <div style={{
+                    fontSize: 12,
+                    color: '#6b7280',
+                    lineHeight: 1.5,
+                  }}>
+                    Try: "I have ₹1,50,000. I am launching a café in Chennai and want more local customers through Tamil-speaking food creators on Instagram."
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {(stage === 'thinking' || stage === 'results') && (
+            <>
+              {/* Strategy header */}
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #e5e7eb',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 16,
+                }}>
+                  <div style={{
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: '#1a1a1a',
+                  }}>
+                    Your Campaign Strategy
+                  </div>
+                  <div style={{
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    border: '1px solid #a7f3d0',
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px',
+                  }}>
+                    ✨ AI Generated
+                  </div>
+                </div>
+
+                {/* Tabs */}
+                <div style={{
+                  display: 'flex',
+                  gap: 4,
+                  overflowX: 'auto',
+                }}>
+                  {[
+                    { key: 'strategy', label: 'Strategy Overview' },
+                    { key: 'creators', label: 'Creators (8)' },
+                    { key: 'content', label: 'Content Plan' },
+                    { key: 'budget', label: 'Budget' },
+                    { key: 'timeline', label: 'Timeline' },
+                  ].map(tab => {
+                    const active = rightTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        onClick={() => setRightTab(tab.key as RightTab)}
+                        style={{
+                          padding: '8px 12px',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: active ? '2px solid #1a1a1a' : '2px solid transparent',
+                          fontSize: 12,
+                          fontWeight: active ? 700 : 500,
+                          color: active ? '#1a1a1a' : '#6b7280',
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          whiteSpace: 'nowrap',
+                          transition: 'color 0.15s',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Strategy content */}
+              {rightTab === 'strategy' && (
+                <div style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '20px 24px',
+                }}>
+                  {/* Badge */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    borderRadius: 20,
+                    padding: '5px 12px',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: 10,
+                  }}>
+                    ✦ RECOMMENDED STRATEGY
+                  </div>
+
+                  {/* Strategy image placeholder */}
+                  <div style={{
+                    height: 140,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    marginBottom: 12,
+                  }}>
+                    📸 Hyperlocal Creator Campaign
+                  </div>
+
+                  {/* Strategy name */}
+                  <div style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: '#1a1a1a',
+                    marginBottom: 8,
+                  }}>
+                    Hyperlocal Creator Campaign
+                  </div>
+
+                  {/* Description */}
+                  <div style={{
+                    fontSize: 13,
+                    color: '#6b7280',
+                    lineHeight: 1.5,
+                    marginBottom: 16,
+                  }}>
+                    This strategy focuses on partnering with 8 nano and micro Tamil-speaking food creators in Chennai to drive authentic local engagement and maximize store footfall within your budget.
+                  </div>
+
+                  {/* Metrics row */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 10,
+                    marginBottom: 20,
+                  }}>
+                    {[
+                      { label: 'Creators', value: '8' },
+                      { label: 'Estimated Reach', value: '1.2M+' },
+                      { label: 'Total Budget', value: '₹1,50,000' },
+                    ].map(metric => (
+                      <div
+                        key={metric.label}
+                        style={{
+                          background: '#f9fafb',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: 10,
+                          padding: '12px 14px',
+                        }}
+                      >
+                        <div style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: '#9ca3af',
+                          letterSpacing: '0.5px',
+                          marginBottom: 6,
+                        }}>
+                          {metric.label}
+                        </div>
+                        <div style={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: '#1a1a1a',
+                        }}>
+                          {metric.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Key strategy highlights */}
+                  <div style={{
+                    marginBottom: 20,
+                  }}>
+                    <div style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: '#374151',
+                      letterSpacing: '0.5px',
+                      paddingBottom: 8,
+                      borderBottom: '1px solid #e5e7eb',
+                      marginBottom: 12,
+                    }}>
+                      KEY STRATEGY HIGHLIGHTS
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                    }}>
+                      {[
+                        'Tamil language content for authentic local connection',
+                        'Food & lifestyle creators with strong community engagement',
+                        'Mix of nano (6) and micro (2) creators for balanced reach',
+                        'Instagram-focused campaign with Reels and Stories',
+                        'Estimated 2,400+ store visits within 15-day campaign',
+                      ].map((text, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 10,
+                          }}
+                        >
+                          <span style={{
+                            color: '#10b981',
+                            fontSize: 16,
+                            flexShrink: 0,
+                          }}>
+                            ✓
+                          </span>
+                          <span style={{
+                            fontSize: 13,
+                            color: '#374151',
+                            lineHeight: 1.5,
+                          }}>
+                            {text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{
+                    display: 'flex',
+                    gap: 10,
+                  }}>
+                    <button style={{
+                      flex: 1,
+                      background: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: 8,
+                      padding: '11px 16px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: '#374151',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}>
+                      Regenerate strategy
+                    </button>
+                    <button
+                      onClick={() => navigate('/business/campaigns/creators')}
+                      style={{
+                        flex: 1,
+                        background: '#1a1a1a',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '11px 20px',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Continue to creators →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Placeholder for other tabs */}
+              {rightTab !== 'strategy' && (
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 14,
+                  color: '#9ca3af',
+                }}>
+                  {rightTab.charAt(0).toUpperCase() + rightTab.slice(1)} content coming soon...
+                </div>
+              )}
+            </>
+          )}
         </div>
-      )}
+      </div>
     </BusinessLayout>
   );
 }
