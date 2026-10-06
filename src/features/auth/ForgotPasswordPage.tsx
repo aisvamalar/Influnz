@@ -3,8 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { forgotSchema, type ForgotFormValues } from './schemas';
-import { authService } from '../../lib/auth/authService';
-import { extractAuthError } from './authErrors';
 import Logo from '../../components/Logo';
 import { Spinner, Field } from './AuthFormParts';
 
@@ -37,10 +35,11 @@ export default function ForgotPasswordPage() {
 
   const identifier = watch('identifier', '');
 
-  const onSubmit = async (data: ForgotFormValues) => {
+  const onSubmit = async (_data: ForgotFormValues) => {
     setApiErr('');
-    try { await authService.forgotPassword(data.identifier); setSent(true); }
-    catch (err) { setApiErr(extractAuthError(err)); }
+    // DEMO MODE: skip backend
+    setSent(true);
+    setTimeout(() => navigate('/business', { replace: true }), 1500);
   };
 
   return (

@@ -1,8 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { authService } from '../../lib/auth/authService';
 import { useAuth } from '../../app/AuthContext';
-import { extractAuthError } from './authErrors';
 import Logo from '../../components/Logo';
 import { Spinner } from './AuthFormParts';
 
@@ -63,16 +61,13 @@ export default function OtpPage() {
   const verify = useCallback(async () => {
     if (otp.length < OTP_LENGTH) { setError('Enter the complete 6-digit code'); return; }
     setError(''); setLoading(true);
-    try {
-      const res = await authService.verifyOtp({ identifier, otp, type: otpType });
-      setUser(res.user);
-      navigate('/onboarding', { replace: true });
-    } catch (err) {
-      setError(extractAuthError(err));
-      setDigits(Array(OTP_LENGTH).fill(''));
-      refs.current[0]?.focus();
-    } finally { setLoading(false); }
-  }, [otp, identifier, otpType, navigate, setUser]);
+    // DEMO MODE: skip backend
+    setTimeout(() => {
+      setUser({ id: 'demo-001', businessName: 'Demo Business', email: 'demo@influnz.in', role: 'business' } as any);
+      navigate('/business', { replace: true });
+      setLoading(false);
+    }, 800);
+  }, [otp, navigate, setUser]);
 
   // Auto-submit
   useEffect(() => {
@@ -83,13 +78,13 @@ export default function OtpPage() {
   const handleResend = async () => {
     if (!canResend || resending) return;
     setResending(true); setError('');
-    try {
-      await authService.resendOtp(identifier);
+    // DEMO MODE: simulate resend
+    setTimeout(() => {
       setTimer(RESEND_SECONDS); setResend(false);
       setDigits(Array(OTP_LENGTH).fill(''));
       refs.current[0]?.focus();
-    } catch (err) { setError(extractAuthError(err)); }
-    finally { setResending(false); }
+      setResending(false);
+    }, 500);
   };
 
   const masked = otpType === 'email'

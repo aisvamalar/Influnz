@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginFormValues } from './schemas';
-import { authService } from '../../lib/auth/authService';
 import { useAuth } from '../../app/AuthContext';
-import { extractAuthError } from './authErrors';
 import AuthPanel from './AuthPanel';
 import { EyeIcon, GoogleIcon, Spinner, Field } from './AuthFormParts';
 import Logo from '../../components/Logo';
@@ -29,9 +27,7 @@ function LockIcon() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { setUser } = useAuth();
-  const redirectTo = searchParams.get('redirect') ?? '/dashboard';
 
   const [showPwd, setShowPwd]     = useState(false);
   const [apiErr, setApiErr]       = useState('');
@@ -43,23 +39,19 @@ export default function LoginPage() {
     defaultValues: { identifier: '', password: '', remember: false },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (_data: LoginFormValues) => {
     setApiErr('');
-    try {
-      const res = await authService.login({ identifier: data.identifier, password: data.password, remember: data.remember ?? false });
-      setUser(res.user);
-      navigate(decodeURIComponent(redirectTo), { replace: true });
-    } catch (err) { setApiErr(extractAuthError(err)); }
+    // DEMO MODE: skip backend
+    setUser({ id: 'demo-001', businessName: 'Demo Business', email: 'demo@influnz.in', role: 'business' } as any);
+    navigate('/business', { replace: true });
   };
 
   const handleGoogle = async () => {
     setApiErr(''); setGoogleLoad(true);
-    try {
-      const res = await authService.googleSignIn();
-      setUser(res.user);
-      navigate(decodeURIComponent(redirectTo), { replace: true });
-    } catch (err) { setApiErr(extractAuthError(err)); }
-    finally { setGoogleLoad(false); }
+    // DEMO MODE: skip backend
+    setUser({ id: 'demo-001', businessName: 'Demo Business', email: 'demo@influnz.in', role: 'business' } as any);
+    setGoogleLoad(false);
+    navigate('/business', { replace: true });
   };
 
   const busy = isSubmitting || googleLoad;
@@ -92,6 +84,11 @@ export default function LoginPage() {
 
           {/* Form card */}
           <div className="in-auth-form-card">
+
+            {/* Demo Mode badge */}
+            <div className="in-demo-badge" aria-label="Demo mode">
+              <span aria-hidden="true">🔓</span> Demo Mode
+            </div>
 
             {/* Header */}
             <div className="in-auth-form-header">

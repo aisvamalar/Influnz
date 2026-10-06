@@ -3,8 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signupSchema, type SignupFormValues } from './schemas';
-import { authService } from '../../lib/auth/authService';
-import { extractAuthError } from './authErrors';
+import { useAuth } from '../../app/AuthContext';
 import AuthPanel from './AuthPanel';
 import { EyeIcon, PasswordStrengthBar, GoogleIcon, Spinner, Field } from './AuthFormParts';
 import Logo from '../../components/Logo';
@@ -37,6 +36,7 @@ function LockIcon() {
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [showPwd, setShowPwd]       = useState(false);
   const [apiErr, setApiErr]         = useState('');
   const [googleLoad, setGoogleLoad] = useState(false);
@@ -53,30 +53,19 @@ export default function SignupPage() {
   const emailErr      = errors.email?.message ?? '';
   const isEmailWarn   = emailErr.startsWith('Tip:');
 
-  const onSubmit = async (data: SignupFormValues) => {
+  const onSubmit = async (_data: SignupFormValues) => {
     setApiErr('');
-    try {
-      const res = await authService.signup({
-        businessName: data.businessName,
-        email: data.email,
-        phone: data.phone,
-        password: data.password,
-      });
-      if (res.requiresOtp) {
-        navigate('/verify', { state: { identifier: res.otpTarget, type: res.otpType, context: 'signup' } });
-      } else {
-        navigate('/onboarding');
-      }
-    } catch (err) { setApiErr(extractAuthError(err)); }
+    // DEMO MODE: skip backend
+    setUser({ id: 'demo-001', businessName: _data.businessName || 'Demo Business', email: _data.email || 'demo@influnz.in', role: 'business' } as any);
+    navigate('/business', { replace: true });
   };
 
   const handleGoogle = async () => {
     setApiErr(''); setGoogleLoad(true);
-    try {
-      await authService.googleSignIn();
-      navigate('/onboarding');
-    } catch (err) { setApiErr(extractAuthError(err)); }
-    finally { setGoogleLoad(false); }
+    // DEMO MODE: skip backend
+    setUser({ id: 'demo-001', businessName: 'Demo Business', email: 'demo@influnz.in', role: 'business' } as any);
+    setGoogleLoad(false);
+    navigate('/business', { replace: true });
   };
 
   const busy = isSubmitting || googleLoad;
@@ -105,6 +94,11 @@ export default function SignupPage() {
           </div>
 
           <div className="in-auth-form-card">
+
+            {/* Demo Mode badge */}
+            <div className="in-demo-badge" aria-label="Demo mode">
+              <span aria-hidden="true">🔓</span> Demo Mode
+            </div>
 
             {/* Header */}
             <div className="in-auth-form-header">

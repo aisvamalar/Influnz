@@ -66,7 +66,7 @@ function AnimatedNumber({ target, suffix, prefix }: { target: number; suffix: st
     const timer = setInterval(() => {
       step++;
       if (step <= steps) {
-        setCurrent(prev => {
+        setCurrent(_prev => {
           const next = increment * step;
           return next > target ? target : next;
         });
@@ -190,23 +190,25 @@ export default function AuthPanel({ mode, onSwitch }: AuthPanelProps) {
                 animation: featuresVisible ? `slideUp 0.5s ease both ${0.6 + i * 0.1}s` : 'none',
                 opacity: featuresVisible ? 1 : 0,
                 transform: featuresVisible ? 'translateY(0)' : 'translateY(20px)',
-                transition: 'all 0.3s ease',
+                transition: 'transform 0.3s ease, opacity 0.3s ease',
+              }}
+              onMouseEnter={e => {
+                if (featuresVisible) {
+                  e.currentTarget.style.transform = 'translateX(8px)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (featuresVisible) {
+                  e.currentTarget.style.transform = 'translateX(0)';
+                }
               }}
             >
               <span style={{
-                width: 36, height: 36, borderRadius: 12, flexShrink: 0,
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                 background: 'rgba(255,255,255,0.15)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.3s ease',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'scale(1.1) rotate(5deg)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                backdropFilter: 'blur(8px)',
               }}>
                 {f.icon}
               </span>
@@ -217,7 +219,7 @@ export default function AuthPanel({ mode, onSwitch }: AuthPanelProps) {
           ))}
         </ul>
 
-        {/* Animated stats strip */}
+        {/* Animated Stats strip */}
         <div style={{
           display: 'flex', gap: 0,
           background: 'rgba(255,255,255,0.1)',
@@ -229,29 +231,35 @@ export default function AuthPanel({ mode, onSwitch }: AuthPanelProps) {
           animation: 'slideUp 0.6s ease both 1.2s',
           opacity: 0,
           animationFillMode: 'forwards',
+          transform: 'translateY(20px)',
         }}>
           {INITIAL_STATS.map((s, i) => (
             <div key={s.label} style={{
-              flex: 1, textAlign: 'center', padding: '16px 10px',
+              flex: 1, textAlign: 'center', padding: '14px 8px',
               borderRight: i < INITIAL_STATS.length - 1 ? '1px solid rgba(255,255,255,0.12)' : 'none',
-            }}>
+              transition: 'background-color 0.3s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
               <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'white', lineHeight: 1.2 }}>
                 <AnimatedNumber target={s.target} suffix={s.suffix} prefix={s.prefix} />
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Enhanced switch CTA */}
+        {/* Enhanced Switch CTA */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 12, background: 'rgba(255,255,255,0.12)',
           border: '1px solid rgba(255,255,255,0.2)', borderRadius: 12,
-          padding: '14px 20px',
+          padding: '12px 18px',
           animation: 'slideUp 0.6s ease both 1.4s',
           opacity: 0,
           animationFillMode: 'forwards',
+          backdropFilter: 'blur(8px)',
         }}>
           <span style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
             {isLogin ? 'New to Influnz?' : 'Already have an account?'}
@@ -262,7 +270,7 @@ export default function AuthPanel({ mode, onSwitch }: AuthPanelProps) {
             style={{
               background: 'white', color: '#b94a33',
               border: 'none', borderRadius: 40,
-              padding: '10px 20px', fontSize: '0.8125rem', fontWeight: 700,
+              padding: '8px 18px', fontSize: '0.8125rem', fontWeight: 700,
               cursor: 'pointer', fontFamily: 'inherit',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               flexShrink: 0,
@@ -270,13 +278,15 @@ export default function AuthPanel({ mode, onSwitch }: AuthPanelProps) {
               overflow: 'hidden',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = 'none';
             }}
+            onMouseDown={e => e.currentTarget.style.transform = 'translateY(-1px) scale(0.98)'}
+            onMouseUp={e => e.currentTarget.style.transform = 'translateY(-2px) scale(1)'}
           >
             {isLogin ? 'Create account →' : 'Sign in →'}
           </button>

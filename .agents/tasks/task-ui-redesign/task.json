@@ -1,0 +1,7 @@
+{
+  "task_id": "task-ui-redesign",
+  "task_description": "Comprehensive UI redesign of the Influnz React+TypeScript+Vite+Tailwind app: mock auth (skip backend, navigate to /business), polish auth screens, improve all 13 business screens, polish landing page — all screens fully responsive for mobile/tablet/desktop.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

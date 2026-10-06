@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 
-// Lazy-loaded pages
+// Lazy-loaded pages — Auth & Landing
 const Landing      = lazy(() => import('../features/landing/LandingPage'));
 const SignupPage   = lazy(() => import('../features/auth/SignupPage'));
 const LoginPage    = lazy(() => import('../features/auth/LoginPage'));
@@ -10,6 +10,20 @@ const OtpPage      = lazy(() => import('../features/auth/OtpPage'));
 const ForgotPage   = lazy(() => import('../features/auth/ForgotPasswordPage'));
 const ResetPage    = lazy(() => import('../features/auth/ResetPasswordPage'));
 const Dashboard    = lazy(() => import('../features/dashboard/DashboardPlaceholder'));
+
+// Lazy-loaded pages — Business side
+const BizDashboard        = lazy(() => import('../features/business/BusinessDashboard'));
+const CampaignList        = lazy(() => import('../features/business/CampaignListPage'));
+const CreateCampaign      = lazy(() => import('../features/business/CreateCampaignPage'));
+const CreatorSelection    = lazy(() => import('../features/business/CreatorSelectionPage'));
+const Guardrails          = lazy(() => import('../features/business/GuardrailsPage'));
+const Invitations         = lazy(() => import('../features/business/InvitationsPage'));
+const CampaignOps         = lazy(() => import('../features/business/CampaignOperationsPage'));
+const Approvals           = lazy(() => import('../features/business/ApprovalsPage'));
+const Analytics           = lazy(() => import('../features/business/AnalyticsPage'));
+const Payments            = lazy(() => import('../features/business/PaymentsPage'));
+const Notifications       = lazy(() => import('../features/business/NotificationsPage'));
+const Settings            = lazy(() => import('../features/business/SettingsPage'));
 
 function PageLoader() {
   return (
@@ -31,9 +45,24 @@ export default function AppRouter() {
         <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPage /></PublicOnlyRoute>} />
         <Route path="/reset-password"  element={<PublicOnlyRoute><ResetPage /></PublicOnlyRoute>} />
 
-        {/* Protected */}
+        {/* Legacy dashboard placeholder */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/onboarding" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute><BizDashboard /></ProtectedRoute>} />
+
+        {/* ── Business side ── */}
+        <Route path="/business" element={<ProtectedRoute><BizDashboard /></ProtectedRoute>} />
+        <Route path="/business/campaigns" element={<ProtectedRoute><CampaignList /></ProtectedRoute>} />
+        <Route path="/business/campaigns/new" element={<ProtectedRoute><CreateCampaign /></ProtectedRoute>} />
+        <Route path="/business/campaigns/creators" element={<ProtectedRoute><CreatorSelection /></ProtectedRoute>} />
+        <Route path="/business/campaigns/guardrails" element={<ProtectedRoute><Guardrails /></ProtectedRoute>} />
+        <Route path="/business/campaigns/invitations" element={<ProtectedRoute><Invitations /></ProtectedRoute>} />
+        <Route path="/business/campaigns/:id" element={<ProtectedRoute><CampaignOps /></ProtectedRoute>} />
+        <Route path="/business/creators" element={<ProtectedRoute><CreatorSelection /></ProtectedRoute>} />
+        <Route path="/business/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/business/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+        <Route path="/business/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
+        <Route path="/business/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/business/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

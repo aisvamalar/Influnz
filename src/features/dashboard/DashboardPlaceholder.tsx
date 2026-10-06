@@ -1,10 +1,15 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
 import Logo from '../../components/Logo';
 
 export default function DashboardPlaceholder() {
   const { state, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect to the new business dashboard
+  return <Navigate to="/business" replace />;
+
+  // eslint-disable-next-line no-unreachable
 
   const handleLogout = async () => {
     await logout();
