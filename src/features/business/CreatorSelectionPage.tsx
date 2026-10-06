@@ -384,8 +384,7 @@ export default function CreatorSelectionPage() {
                 borderRadius: 12,
                 padding: '16px 20px',
                 transition: 'all 0.15s',
-                overflow: 'visible',
-                overflowX: 'auto'
+                minWidth: 1400
               }}
             >
               <div style={{
@@ -784,7 +783,7 @@ export default function CreatorSelectionPage() {
               }}>
                 {selectedCreators.length}
               </span>
-              1 creator selected
+              {selectedCreators.length} creator{selectedCreators.length === 1 ? '' : 's'} selected
             </span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -43,6 +43,36 @@ const SUGGESTION_CHIPS = [
   'Increase brand awareness',
 ];
 
+const THINKING_DURATION_MS = 3500;
+
+// Field validation rules
+const validateField = (key: string, value: string): string | null => {
+  if (!value.trim()) return 'Field cannot be empty';
+  
+  switch (key) {
+    case 'budget':
+      // Must start with ₹ and contain numbers
+      if (!value.startsWith('₹')) return 'Budget must start with ₹';
+      const budgetNum = value.slice(1).replace(/,/g, '');
+      if (!/^\d+$/.test(budgetNum)) return 'Budget must be a valid number';
+      return null;
+    
+    case 'duration':
+      // Must contain a number
+      if (!/\d+/.test(value)) return 'Duration must include a number';
+      return null;
+    
+    case 'location':
+      // Basic check: not empty
+      if (value.trim().length < 3) return 'Location must be at least 3 characters';
+      return null;
+    
+    default:
+      // Generic non-empty check
+      return value.trim().length > 0 ? null : 'Field cannot be empty';
+  }
+};
+
 export default function CreateCampaignPage() {
   const navigate = useNavigate();
 
@@ -55,6 +85,7 @@ export default function CreateCampaignPage() {
   const [fieldValues, setFieldValues] = useState<Record<string, string>>(
     Object.fromEntries(FIELDS.map(f => [f.key, f.value]))
   );
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [rightTab, setRightTab] = useState<RightTab>('strategy');
 
   // Progressive step reveal when entering thinking stage
@@ -76,7 +107,7 @@ export default function CreateCampaignPage() {
     setInputValue('');
     setStage('thinking');
     setThinkingSteps(THINKING_STEPS.map(s => ({ ...s, expanded: false })));
-    setTimeout(() => setStage('results'), 3500);
+    setTimeout(() => setStage('results'), THINKING_DURATION_MS);
   };
 
   const handleChipClick = (text: string) => {
@@ -88,7 +119,21 @@ export default function CreateCampaignPage() {
   };
 
   const handleFieldEdit = (key: string, value: string) => {
-    setFieldValues(prev => ({ ...prev, [key]: value }));
+    const error = validateField(key, value);
+    setFieldErrors(prev => ({ ...prev, [key]: error }));
+    if (!error) {
+      setFieldValues(prev => ({ ...prev, [key]: value }));
+    }
+  };
+
+  const commitFieldEdit = (key: string) => {
+    const error = fieldErrors[key];
+    if (error) {
+      // Don't commit invalid values, revert to previous
+      setFieldValues(prev => ({ ...prev, [key]: FIELDS.find(f => f.key === key)?.value || prev[key] }));
+      setFieldErrors(prev => ({ ...prev, [key]: null }));
+    }
+    setEditingField(null);
   };
 
   return (
@@ -537,27 +582,42 @@ export default function CreateCampaignPage() {
                             )}
                           </div>
                           {editingField === field.key ? (
-                            <input
-                              type="text"
-                              value={fieldValues[field.key]}
-                              onChange={e => handleFieldEdit(field.key, e.target.value)}
-                              onBlur={() => setEditingField(null)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') setEditingField(null);
-                              }}
-                              autoFocus
-                              style={{
-                                width: '100%',
-                                border: '1px solid #1a1a1a',
-                                borderRadius: 4,
-                                padding: '4px 6px',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                color: '#1a1a1a',
-                                outline: 'none',
-                                fontFamily: 'inherit',
-                              }}
-                            />
+                            <div>
+                              <input
+                                type="text"
+                                value={fieldValues[field.key]}
+                                onChange={e => handleFieldEdit(field.key, e.target.value)}
+                                onBlur={() => commitFieldEdit(field.key)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') commitFieldEdit(field.key);
+                                  if (e.key === 'Escape') {
+                                    setEditingField(null);
+                                    setFieldErrors(prev => ({ ...prev, [field.key]: null }));
+                                  }
+                                }}
+                                autoFocus
+                                style={{
+                                  width: '100%',
+                                  border: `1px solid ${fieldErrors[field.key] ? '#ef4444' : '#1a1a1a'}`,
+                                  borderRadius: 4,
+                                  padding: '4px 6px',
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  color: '#1a1a1a',
+                                  outline: 'none',
+                                  fontFamily: 'inherit',
+                                }}
+                              />
+                              {fieldErrors[field.key] && (
+                                <div style={{
+                                  fontSize: 10,
+                                  color: '#ef4444',
+                                  marginTop: 2,
+                                }}>
+                                  {fieldErrors[field.key]}
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <div style={{
                               fontSize: 13,
