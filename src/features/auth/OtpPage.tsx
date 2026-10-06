@@ -13,6 +13,7 @@ interface LocationState {
   identifier: string;
   type: 'email' | 'phone';
   context: 'signup' | 'login';
+  accountType?: 'creator' | 'business';
 }
 
 export default function OtpPage() {
@@ -22,6 +23,7 @@ export default function OtpPage() {
   const state      = (location.state ?? {}) as LocationState;
   const identifier = state.identifier ?? '';
   const otpType    = state.type ?? 'email';
+  const postAuthPath = state.accountType === 'creator' ? '/creator/onboarding' : '/onboarding';
 
   const [digits, setDigits]     = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [error, setError]       = useState('');
@@ -66,13 +68,13 @@ export default function OtpPage() {
     try {
       const res = await authService.verifyOtp({ identifier, otp, type: otpType });
       setUser(res.user);
-      navigate('/onboarding', { replace: true });
+      navigate(postAuthPath, { replace: true });
     } catch (err) {
       setError(extractAuthError(err));
       setDigits(Array(OTP_LENGTH).fill(''));
       refs.current[0]?.focus();
     } finally { setLoading(false); }
-  }, [otp, identifier, otpType, navigate, setUser]);
+  }, [otp, identifier, otpType, navigate, setUser, postAuthPath]);
 
   // Auto-submit
   useEffect(() => {

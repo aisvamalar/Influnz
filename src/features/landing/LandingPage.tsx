@@ -37,7 +37,7 @@ function Nav() {
           <button className="in-btn in-btn--ghost" style={{ padding: '8px 18px', fontSize: '0.875rem' }} onClick={() => navigate('/login')}>
             Log in
           </button>
-          <button className="in-btn in-btn--primary" style={{ padding: '8px 18px', fontSize: '0.875rem' }} onClick={() => navigate('/signup')}>
+          <button className="in-btn in-btn--primary" style={{ padding: '8px 18px', fontSize: '0.875rem' }} onClick={() => navigate('/get-started')}>
             Get started
           </button>
           <button
@@ -75,7 +75,7 @@ function Nav() {
               </button>
             ))}
             <div style={{ height: 16 }} />
-            <button className="in-btn in-btn--primary" style={{ width: '100%' }} onClick={() => { navigate('/signup'); setMenuOpen(false); }}>
+            <button className="in-btn in-btn--primary" style={{ width: '100%' }} onClick={() => { navigate('/get-started'); setMenuOpen(false); }}>
               Get started
             </button>
             <button className="in-btn in-btn--ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => { navigate('/login'); setMenuOpen(false); }}>
@@ -253,7 +253,7 @@ export default function LandingPage() {
             </p>
 
             <div className="in-hero__ctas">
-              <button className="in-btn in-btn--primary" style={{ height: 52, padding: '0 28px', fontSize: '1rem' }} onClick={() => navigate('/signup')}>
+              <button className="in-btn in-btn--primary" style={{ height: 52, padding: '0 28px', fontSize: '1rem' }} onClick={() => navigate('/signup?role=business')}>
                 Create your business account →
               </button>
               <button className="in-btn in-btn--ghost" style={{ height: 52, padding: '0 28px', fontSize: '1rem' }} onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
@@ -408,7 +408,7 @@ export default function LandingPage() {
           <p className="in-cta-band__sub">
             Join businesses across India running creator campaigns that drive real, measurable results.
           </p>
-          <button className="in-cta-band__btn" onClick={() => navigate('/signup')}>
+          <button className="in-cta-band__btn" onClick={() => navigate('/signup?role=business')}>
             Create your business account →
           </button>
         </section>
@@ -430,9 +430,10 @@ export default function LandingPage() {
             <div>
               <p className="in-footer__links-title">Platform</p>
               <div className="in-footer__links">
-                {['How it works', 'Features', 'Pricing', 'Creator sign-up'].map(l => (
+                {['How it works', 'Features', 'Pricing'].map(l => (
                   <button key={l} className="in-footer__link">{l}</button>
                 ))}
+                <button className="in-footer__link" onClick={() => navigate('/signup?role=creator')}>Creator sign-up</button>
               </div>
             </div>
             <div>

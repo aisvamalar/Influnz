@@ -66,7 +66,7 @@ function AnimatedNumber({ target, suffix, prefix }: { target: number; suffix: st
     const timer = setInterval(() => {
       step++;
       if (step <= steps) {
-        setCurrent(prev => {
+        setCurrent(() => {
           const next = increment * step;
           return next > target ? target : next;
         });

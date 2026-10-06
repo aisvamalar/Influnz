@@ -86,7 +86,7 @@ export default function LoginPage() {
           <div style={{ width: '100%', maxWidth: 400, marginBottom: 24 }}>
             <div className="in-auth-tabs" role="tablist" aria-label="Auth mode">
               <button role="tab" aria-selected={true}  className="in-auth-tabs__btn in-auth-tabs__btn--active">Log In</button>
-              <button role="tab" aria-selected={false} className="in-auth-tabs__btn" onClick={() => navigate('/signup')}>Sign Up</button>
+              <button role="tab" aria-selected={false} className="in-auth-tabs__btn" onClick={() => navigate('/get-started')}>Sign Up</button>
             </div>
           </div>
 
@@ -157,7 +157,7 @@ export default function LoginPage() {
 
             {/* Switch */}
             <p className="in-switch">
-              Don't have an account? <Link to="/signup" className="in-link">Create one free →</Link>
+              Don't have an account? <Link to="/get-started" className="in-link">Create one free →</Link>
             </p>
 
             {/* Security */}
