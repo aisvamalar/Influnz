@@ -61,7 +61,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 8_
 
 - [ ] 3. Implement compound components
-  - [~] 3.1 Create CampaignGoalCard component
+  - [ ] 3.1 Create CampaignGoalCard component
     - Implement `components/CampaignGoalCard.tsx` with distinct styling
     - Display "🎯 CAMPAIGN GOAL" label in uppercase (11px gray, increased spacing)
     - Display goal value in large bold text (18px font)
@@ -69,7 +69,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Apply styling: white background, #e5e7eb border, 10px radius
     - _Requirements: 7_
   
-  - [~] 3.2 Create ParameterFieldsGrid component
+  - [ ] 3.2 Create ParameterFieldsGrid component
     - Implement `components/ParameterFieldsGrid.tsx` with 2-column CSS grid
     - Define grid with 10px gap
     - Make Platform field span full width (grid-column: 1 / -1)
@@ -77,7 +77,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Include fields: Budget (💰), Location (📍), Duration (📅), Category (🍽️), Target Audience (👥), Language (🗣️), Platform (📱)
     - _Requirements: 8_
   
-  - [~] 3.3 Create InputBar component
+  - [ ] 3.3 Create InputBar component
     - Implement `components/InputBar.tsx` with flex row layout
     - Add attachment button (📎 icon, gray #9ca3af) on left
     - Add text input field with light gray background (#F9FAFB), 24px border radius
@@ -89,7 +89,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Handle Enter key press to submit message
     - _Requirements: 9_
   
-  - [~] 3.4 Create TipBox component
+  - [ ] 3.4 Create TipBox component
     - Implement `components/TipBox.tsx` with pale yellow styling
     - Apply background: #FFFBEB, border: #FDE68A, 10px radius, 14-16px padding
     - Display "💡 Tip" heading (dark amber #92400E, bold, 14px)
@@ -100,7 +100,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 11_
 
 - [ ] 4. Implement strategy panel components
-  - [~] 4.1 Create StrategyCard component
+  - [ ] 4.1 Create StrategyCard component
     - Implement `components/StrategyCard.tsx` with gradient image placeholder at top
     - Create 140px height gradient section (#667eea to #764ba2 at 135deg)
     - Display centered emoji icon (☕) at 48px font size in gradient
@@ -110,7 +110,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Add 16-18px padding inside card
     - _Requirements: 14_
   
-  - [~] 4.2 Create MetricsGrid component
+  - [ ] 4.2 Create MetricsGrid component
     - Implement `components/MetricsGrid.tsx` with 3-column grid layout
     - Apply 12px gap between metric cards
     - Create metric cards with light gray background (#F9FAFB), border (#e5e7eb), 10px radius
@@ -119,7 +119,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Style icon (24px font, 6px bottom margin), value (bold 16px, black), label (11px, gray)
     - _Requirements: 15_
   
-  - [~] 4.3 Create KeyHighlights component
+  - [ ] 4.3 Create KeyHighlights component
     - Implement `components/KeyHighlights.tsx` with light gray container
     - Apply background: #F9FAFB, border: #e5e7eb, 12px radius, 18-20px padding
     - Display "💡 Key Strategy Highlights" heading (bold, 14px)
@@ -129,7 +129,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Add 10px vertical spacing between items
     - _Requirements: 16_
   
-  - [~] 4.4 Create ActionButtons component
+  - [ ] 4.4 Create ActionButtons component
     - Implement `components/ActionButtons.tsx` with stacked vertical layout
     - Create "↻ Regenerate strategy" button with outlined styling (white bg, gray border #e5e7eb, gray text)
     - Create "Continue to creators →" button with filled styling (black bg #1a1a1a, white text)
@@ -139,7 +139,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 17_
 
 - [ ] 5. Implement panel-level components
-  - [~] 5.1 Create InitialStatePanel component
+  - [ ] 5.1 Create InitialStatePanel component
     - Implement `components/InitialStatePanel.tsx` for right panel initial state
     - Display header "📋 Your Campaign" (bold, 18px, 24px padding)
     - Display subtitle "The details will be filled as we chat" (gray #6b7280, 13px)
@@ -151,7 +151,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Include TipBox component at bottom
     - _Requirements: 10, 11_
   
-  - [~] 5.2 Create TabNavigation component
+  - [ ] 5.2 Create TabNavigation component
     - Implement `components/TabNavigation.tsx` with horizontal tabs
     - Render tabs: "Strategy Overview", "Creators" (with "8" badge), "Content Plan", "Budget", "Timeline"
     - Apply active styling: #F9FAFB background, 2px #1a1a1a bottom border, black bold text (weight 600)
@@ -161,14 +161,14 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Handle click events to call onTabChange callback
     - _Requirements: 13_
   
-  - [~] 5.3 Create StrategyContent component
+  - [ ] 5.3 Create StrategyContent component
     - Implement `components/StrategyContent.tsx` for strategy overview tab content
     - Display "RECOMMENDED STRATEGY" label (uppercase, gray #9ca3af, 11px, increased spacing)
     - Compose StrategyCard, MetricsGrid, KeyHighlights, and ActionButtons
     - Apply appropriate spacing between sections
     - _Requirements: 14, 15, 16, 17_
   
-  - [~] 5.4 Create ResultsStatePanel component
+  - [ ] 5.4 Create ResultsStatePanel component
     - Implement `components/ResultsStatePanel.tsx` for right panel results state
     - Display header "✨ Your Campaign Strategy" (bold, 18px, black #1a1a1a)
     - Create "AI Generated" badge with gradient background (#EC4899 to #8B5CF6 at 135deg)
@@ -178,7 +178,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 12, 13_
 
 - [ ] 6. Implement main chat panel sections
-  - [~] 6.1 Create MessagesArea component
+  - [ ] 6.1 Create MessagesArea component
     - Implement `components/MessagesArea.tsx` as container for chat messages
     - Apply 32px padding to message area
     - Add 20px gap between consecutive messages
@@ -189,7 +189,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Include CampaignGoalCard and ParameterFieldsGrid in extraction response
     - _Requirements: 4, 5, 6, 7, 8_
   
-  - [~] 6.2 Create ChatPanel component
+  - [ ] 6.2 Create ChatPanel component
     - Implement `components/ChatPanel.tsx` as container for left panel
     - Apply white background with 16px rounded corners
     - Use flex column layout to separate MessagesArea and InputBar
@@ -198,14 +198,14 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Add 1px top border (#e5e7eb) to InputBar
     - _Requirements: 1, 4, 5, 6, 7, 8, 9_
 
-- [~] 7. Checkpoint - Review component structure
+- [ ] 7. Checkpoint - Review component structure
   - Ensure all atomic and compound components are implemented
   - Verify all components accept correct props with TypeScript types
   - Ensure all styling matches design specifications (colors, spacing, typography)
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Implement main page component with state management
-  - [~] 8.1 Create CreateCampaignPage container component
+  - [ ] 8.1 Create CreateCampaignPage container component
     - Implement `src/features/campaigns/create-campaign-page/CreateCampaignPage.tsx`
     - Define component state using useState hooks: activeMode, stage, inputValue, userMessage, activeTab
     - Initialize state: activeMode='ai', stage='initial', inputValue='', userMessage='', activeTab='strategy'
@@ -216,7 +216,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Implement handleTabChange to update activeTab state
     - _Requirements: 1, 2, 21_
   
-  - [~] 8.2 Compose two-panel layout
+  - [ ] 8.2 Compose two-panel layout
     - Create container div with beige background (#F9F7F5) and minimum height 600px
     - Render ModeToggle component at top with activeMode and handleModeChange
     - Create flex row layout for two panels with 24px gap
@@ -236,7 +236,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 1, 2, 4, 5, 9_
 
 - [ ] 9. Implement responsive behavior
-  - [~] 9.1 Add responsive layout logic
+  - [ ] 9.1 Add responsive layout logic
     - Create useMediaQuery custom hook in `src/hooks/useMediaQuery.ts`
     - Use useMediaQuery to detect viewport width breakpoints (768px, 1024px)
     - Apply conditional styling: flex-direction column when width < 1024px
@@ -245,7 +245,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Test layout at different viewport widths
     - _Requirements: 19_
   
-  - [~] 9.2 Add mobile optimizations
+  - [ ] 9.2 Add mobile optimizations
     - Reduce padding to 16px on mobile (< 768px)
     - Adjust MetricsGrid to 2 columns on mobile
     - Increase button touch targets to minimum 44x44px
@@ -261,7 +261,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 19_
 
 - [ ] 10. Implement animations and transitions
-  - [~] 10.1 Add CSS transitions to interactive elements
+  - [ ] 10.1 Add CSS transitions to interactive elements
     - Add 0.2s transition to button hover states (background-color, border-color)
     - Add 0.2s transition to tab active state (border-color, background-color)
     - Add 0.2s transition to send button state change (background-color)
@@ -269,7 +269,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Test all hover effects for smooth visual feedback
     - _Requirements: 20, 25_
   
-  - [~] 10.2 Add message fade-in animations
+  - [ ] 10.2 Add message fade-in animations
     - Implement fade-in animation for new messages (0.3s ease-in)
     - Animate message entrance: opacity 0→1, translateY 10px→0
     - Apply animation to BotMessage and UserMessage components
@@ -284,7 +284,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 20_
 
 - [ ] 11. Implement accessibility features
-  - [~] 11.1 Add ARIA labels and keyboard navigation
+  - [ ] 11.1 Add ARIA labels and keyboard navigation
     - Add aria-label to send button: "Send message"
     - Add aria-disabled to send button based on input state
     - Add aria-label to attachment button: "Attach file"
@@ -296,7 +296,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Implement Enter key handler for message submission
     - _Requirements: 9, 13, 25_
   
-  - [~] 11.2 Add focus styles and screen reader support
+  - [ ] 11.2 Add focus styles and screen reader support
     - Add visible focus outlines to all interactive elements
     - Ensure focus order follows visual layout
     - Add sr-only text descriptions for emoji icons where needed
@@ -313,27 +313,27 @@ The implementation follows a bottom-up approach: establish core types and consta
     - _Requirements: 25_
 
 - [ ] 12. Add sample data and mock responses
-  - [~] 12.1 Create mock data constants
+  - [ ] 12.1 Create mock data constants
     - Create `constants/mockData.ts` with sample extracted parameters
     - Define sample campaign goal: "Launch a new café in Chennai"
     - Define sample parameters: Budget (₹1,50,000), Location (Chennai), Duration (30 days), Category (Food & Beverage), Target Audience (Food lovers, 18-35), Language (Tamil, English), Platform (Instagram, YouTube)
     - Define sample generated strategy with title, description, metrics, highlights
     - _Requirements: 7, 8, 14, 15, 16_
   
-  - [~] 12.2 Wire mock data to results state
+  - [ ] 12.2 Wire mock data to results state
     - Display mock extracted parameters in BotExtractionResponse when stage === 'results'
     - Display mock generated strategy in ResultsStatePanel when stage === 'results'
     - Ensure all mock data matches exact text and values from reference images
     - _Requirements: 7, 8, 12, 14, 15, 16_
 
 - [ ] 13. Final integration and polish
-  - [~] 13.1 Integrate component into app routing
+  - [ ] 13.1 Integrate component into app routing
     - Add route for CreateCampaignPage in app router configuration
     - Test navigation to /campaigns/create from other pages
     - Ensure component renders correctly in app layout
     - _Requirements: 1_
   
-  - [~] 13.2 Verify pixel-perfect alignment
+  - [ ] 13.2 Verify pixel-perfect alignment
     - Compare rendered component side-by-side with reference images
     - Verify all spacing matches specifications (24px panel gap, 32px padding, etc.)
     - Verify all colors match hex values exactly
@@ -350,7 +350,7 @@ The implementation follows a bottom-up approach: establish core types and consta
     - Verify no console errors or warnings
     - _Requirements: All_
 
-- [~] 14. Final checkpoint - Complete review
+- [ ] 14. Final checkpoint - Complete review
   - Run all unit and integration tests, ensure 100% pass rate
   - Verify TypeScript compilation with no errors
   - Test component at multiple viewport widths

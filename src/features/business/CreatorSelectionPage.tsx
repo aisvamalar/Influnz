@@ -384,15 +384,15 @@ export default function CreatorSelectionPage() {
                 borderRadius: 12,
                 padding: '16px 20px',
                 transition: 'all 0.15s',
-                minWidth: 1400
+                maxWidth: '100%',
+                overflow: 'hidden'
               }}
             >
               <div style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr auto auto',
                 alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                overflow: 'visible'
+                gap: 20
               }}>
                 {/* Checkbox */}
                 <input
@@ -408,60 +408,63 @@ export default function CreatorSelectionPage() {
                   }}
                 />
 
-                {/* Creator Avatar with Content Preview */}
+                {/* Creator Info Section */}
                 <div style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: 10,
-                  width: 440,
-                  flexShrink: 0
+                  gap: 16,
+                  minWidth: 0
                 }}>
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <img
-                      src={creator.avatar}
-                      alt={creator.name}
-                      style={{
-                        width: 48,
-                        height: 48,
+                  {/* Avatar and Basic Info */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <img
+                        src={creator.avatar}
+                        alt={creator.name}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: '50%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        bottom: -2,
+                        right: -2,
+                        width: 16,
+                        height: 16,
                         borderRadius: '50%',
-                        objectFit: 'cover'
-                      }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      bottom: -2,
-                      right: -2,
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      background: '#10b981',
-                      border: '2px solid white'
-                    }} />
-                  </div>
-                  
-                  <div style={{ minWidth: 120 }}>
-                    <div style={{
-                      fontSize: 15,
-                      fontWeight: 600,
-                      color: '#1f2937',
-                      marginBottom: 2,
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {creator.name}
+                        background: '#10b981',
+                        border: '2px solid white'
+                      }} />
                     </div>
-                    <div style={{
-                      fontSize: 12,
-                      color: '#9ca3af',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {creator.handle}
-                    </div>
-                    <div style={{
-                      fontSize: 11,
-                      color: '#9ca3af',
-                      marginTop: 2
-                    }}>
-                      {creator.tier}
+                    
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: '#1f2937',
+                        marginBottom: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {creator.name}
+                      </div>
+                      <div style={{
+                        fontSize: 12,
+                        color: '#9ca3af'
+                      }}>
+                        {creator.handle}
+                      </div>
+                      <div style={{
+                        fontSize: 11,
+                        color: '#9ca3af',
+                        marginTop: 2
+                      }}>
+                        {creator.tier}
+                      </div>
                     </div>
                   </div>
 
@@ -501,8 +504,8 @@ export default function CreatorSelectionPage() {
                       <div
                         key={idx}
                         style={{
-                          width: 40,
-                          height: 40,
+                          width: 36,
+                          height: 36,
                           borderRadius: 6,
                           overflow: 'hidden',
                           flexShrink: 0
@@ -520,225 +523,217 @@ export default function CreatorSelectionPage() {
                       </div>
                     ))}
                     <div style={{
-                      width: 40,
-                      height: 40,
+                      width: 36,
+                      height: 36,
                       borderRadius: 6,
                       background: 'rgba(0,0,0,0.8)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: 'white',
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: 700,
                       flexShrink: 0
                     }}>
                       {creator.contentImages[4]}
                     </div>
                   </div>
-                </div>
 
-                {/* Stats */}
-                <div style={{ 
-                  display: 'flex', 
-                  gap: 24,
-                  flexShrink: 0
-                }}>
-                  {/* Followers */}
-                  <div style={{ minWidth: 70 }}>
-                    <div style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: '#1f2937',
-                      marginBottom: 2
-                    }}>
-                      {creator.followers}
-                    </div>
-                    <div style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: '#9ca3af',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: 2
-                    }}>
-                      FOLLOWERS
-                    </div>
-                    <div style={{
-                      fontSize: 10,
-                      color: '#10b981',
-                      fontWeight: 500
-                    }}>
-                      {creator.followersGrowth}
-                    </div>
-                  </div>
-
-                  {/* Engagement */}
-                  <div style={{ minWidth: 80 }}>
-                    <div style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: '#1f2937',
-                      marginBottom: 2
-                    }}>
-                      {creator.engagement}
-                    </div>
-                    <div style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: '#9ca3af',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: 2
-                    }}>
-                      ENGAGEMENT
-                    </div>
-                    <div style={{
-                      fontSize: 10,
-                      color: '#10b981',
-                      fontWeight: 500
-                    }}>
-                      {creator.engagementGrowth}
-                    </div>
-                  </div>
-
-                  {/* Median Views */}
-                  <div style={{ minWidth: 70 }}>
-                    <div style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: '#1f2937',
-                      marginBottom: 2
-                    }}>
-                      {creator.medianViews}
-                    </div>
-                    <div style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: '#9ca3af',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      marginBottom: 2
-                    }}>
-                      MEDIAN VIEWS
-                    </div>
-                    <div style={{
-                      fontSize: 10,
-                      color: '#10b981',
-                      fontWeight: 500
-                    }}>
-                      {creator.viewsGrowth}
-                    </div>
-                  </div>
-
-                  {/* Rate */}
-                  <div style={{ minWidth: 80 }}>
-                    <div style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: '#1f2937',
-                      marginBottom: 2
-                    }}>
-                      {creator.rate}
-                    </div>
-                    <div style={{
-                      fontSize: 9,
-                      fontWeight: 700,
-                      color: '#9ca3af',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3
-                    }}>
-                      RATE
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-                        <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="0.8" fill="none"/>
-                        <path d="M5 3v2.5M5 7v.3" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Spacer */}
-                <div style={{ flex: 1 }} />
-
-                {/* Right Actions */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  flexShrink: 0,
-                  marginLeft: 'auto'
-                }}>
-                  {/* AI Score */}
-                  <div style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: '50%',
-                    border: `3px solid ${getScoreColor(creator.fitScore)}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: '#fff',
-                    flexShrink: 0
-                  }}>
-                    <span style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: getScoreColor(creator.fitScore)
-                    }}>
-                      {creator.fitScore}
-                    </span>
-                    <span style={{
-                      fontSize: 8,
-                      color: '#9ca3af',
-                      textTransform: 'uppercase'
-                    }}>
-                      AI SCORE
-                    </span>
-                  </div>
-
-                  {/* Action Buttons */}
+                  {/* Stats Section */}
                   <div style={{ 
                     display: 'flex', 
-                    flexDirection: 'column',
-                    gap: 6,
-                    alignItems: 'flex-start'
+                    gap: 20,
+                    flexShrink: 0,
+                    marginLeft: 16
                   }}>
-                    <button style={{
-                      padding: '2px 0',
-                      background: 'none',
-                      border: 'none',
-                      fontSize: 13,
-                      color: '#6b7280',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontWeight: 500
-                    }}>
-                      More
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                        <path d="M2.5 4L5 6.5 7.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                    <button style={{
-                      padding: '8px 16px',
-                      background: '#1f2937',
-                      border: 'none',
-                      borderRadius: 6,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      View profile →
-                    </button>
+                    {/* Followers */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: '#1f2937',
+                        marginBottom: 2
+                      }}>
+                        {creator.followers}
+                      </div>
+                      <div style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: '#9ca3af',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: 2
+                      }}>
+                        FOLLOWERS
+                      </div>
+                      <div style={{
+                        fontSize: 10,
+                        color: '#10b981',
+                        fontWeight: 500
+                      }}>
+                        {creator.followersGrowth}
+                      </div>
+                    </div>
+
+                    {/* Engagement */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: '#1f2937',
+                        marginBottom: 2
+                      }}>
+                        {creator.engagement}
+                      </div>
+                      <div style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: '#9ca3af',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: 2
+                      }}>
+                        ENGAGEMENT
+                      </div>
+                      <div style={{
+                        fontSize: 10,
+                        color: '#10b981',
+                        fontWeight: 500
+                      }}>
+                        {creator.engagementGrowth}
+                      </div>
+                    </div>
+
+                    {/* Median Views */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: '#1f2937',
+                        marginBottom: 2
+                      }}>
+                        {creator.medianViews}
+                      </div>
+                      <div style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: '#9ca3af',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        marginBottom: 2
+                      }}>
+                        MEDIAN VIEWS
+                      </div>
+                      <div style={{
+                        fontSize: 10,
+                        color: '#10b981',
+                        fontWeight: 500
+                      }}>
+                        {creator.viewsGrowth}
+                      </div>
+                    </div>
+
+                    {/* Rate */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: '#1f2937',
+                        marginBottom: 2
+                      }}>
+                        {creator.rate}
+                      </div>
+                      <div style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        color: '#9ca3af',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}>
+                        RATE
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                          <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="0.8" fill="none"/>
+                          <path d="M5 3v2.5M5 7v.3" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                    </div>
                   </div>
+                </div>
+
+                {/* AI Score */}
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  border: `3px solid ${getScoreColor(creator.fitScore)}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#fff',
+                  flexShrink: 0
+                }}>
+                  <span style={{
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: getScoreColor(creator.fitScore),
+                    lineHeight: 1
+                  }}>
+                    {creator.fitScore}
+                  </span>
+                  <span style={{
+                    fontSize: 8,
+                    color: '#9ca3af',
+                    textTransform: 'uppercase',
+                    marginTop: 2
+                  }}>
+                    AI SCORE
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: 6,
+                  alignItems: 'flex-start',
+                  flexShrink: 0
+                }}>
+                  <button style={{
+                    padding: '2px 0',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 13,
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontWeight: 500
+                  }}>
+                    More
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M2.5 4L5 6.5 7.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  <button style={{
+                    padding: '8px 16px',
+                    background: '#1f2937',
+                    border: 'none',
+                    borderRadius: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    View profile →
+                  </button>
                 </div>
               </div>
             </div>

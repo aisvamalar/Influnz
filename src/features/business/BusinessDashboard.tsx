@@ -191,7 +191,7 @@ export default function BusinessDashboard() {
             View all campaigns
           </button>
           <button
-            onClick={() => navigate('/business/campaigns/new')}
+            onClick={() => navigate('/business/campaigns/create')}
             style={{
               padding: '8px 16px',
               fontSize: '14px',

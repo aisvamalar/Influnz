@@ -22,6 +22,10 @@ interface Campaign {
   percentUsed: number;
 }
 
+const CAMPAIGNS: Campaign[] = [];
+
+// Uncomment this to show campaigns list instead of empty state
+/*
 const CAMPAIGNS: Campaign[] = [
   {
     id: 1,
@@ -84,6 +88,7 @@ const CAMPAIGNS: Campaign[] = [
     percentUsed: 97
   }
 ];
+*/
 
 const FILTER_TABS = ['All', 'Active', 'Pending', 'Draft', 'Completed'];
 
@@ -94,6 +99,358 @@ export default function CampaignListPage() {
   const filteredCampaigns = activeFilter === 'All' 
     ? CAMPAIGNS 
     : CAMPAIGNS.filter(c => c.status === activeFilter.toLowerCase());
+
+  // Show empty state if no campaigns exist
+  const hasCampaigns = CAMPAIGNS.length > 0;
+
+  if (!hasCampaigns) {
+    return (
+      <BusinessLayout breadcrumb="Campaigns">
+        <div style={{
+          minHeight: 'calc(100vh - 120px)',
+          background: '#FAFAFA',
+          padding: '80px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Background gradient circles */}
+          <div style={{
+            position: 'absolute',
+            width: 600,
+            height: 600,
+            top: '-200px',
+            left: '-100px',
+            background: 'radial-gradient(circle, rgba(254, 226, 226, 0.4) 0%, transparent 70%)',
+            pointerEvents: 'none'
+          }} />
+          <div style={{
+            position: 'absolute',
+            width: 500,
+            height: 500,
+            bottom: '-150px',
+            right: '-100px',
+            background: 'radial-gradient(circle, rgba(254, 215, 170, 0.3) 0%, transparent 70%)',
+            pointerEvents: 'none'
+          }} />
+
+          {/* Main illustration area */}
+          <div style={{
+            position: 'relative',
+            width: 500,
+            height: 300,
+            marginBottom: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {/* Background shape */}
+            <div style={{
+              position: 'absolute',
+              width: 350,
+              height: 250,
+              background: 'linear-gradient(135deg, rgba(254, 243, 236, 0.8) 0%, rgba(254, 226, 210, 0.6) 100%)',
+              borderRadius: '50% 30% 50% 30%',
+              filter: 'blur(25px)',
+              opacity: 0.7
+            }} />
+
+            {/* Main card */}
+            <div style={{
+              position: 'relative',
+              width: 220,
+              height: 260,
+              background: 'white',
+              borderRadius: 16,
+              boxShadow: '0 20px 60px rgba(251, 113, 133, 0.12), 0 10px 30px rgba(0, 0, 0, 0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '30px 20px',
+              transform: 'rotate(-2deg)',
+              border: '2px solid rgba(254, 215, 170, 0.3)',
+              zIndex: 3
+            }}>
+              {/* Megaphone container */}
+              <div style={{
+                width: 100,
+                height: 100,
+                background: 'linear-gradient(135deg, #FFF5F0 0%, #FFEDD5 100%)',
+                borderRadius: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 24,
+                boxShadow: '0 4px 16px rgba(251, 146, 60, 0.08)'
+              }}>
+                <span style={{ fontSize: 48 }}>📣</span>
+              </div>
+
+              {/* Lines */}
+              <div style={{
+                width: 120,
+                height: 6,
+                background: 'linear-gradient(90deg, #FED7AA 0%, #FDBA74 100%)',
+                borderRadius: 3,
+                marginBottom: 8
+              }} />
+              <div style={{
+                width: 100,
+                height: 6,
+                background: 'linear-gradient(90deg, #FED7AA 0%, #FDBA74 100%)',
+                borderRadius: 3,
+                opacity: 0.7,
+                marginBottom: 8
+              }} />
+              <div style={{
+                width: 80,
+                height: 6,
+                background: 'linear-gradient(90deg, #FED7AA 0%, #FDBA74 100%)',
+                borderRadius: 3,
+                opacity: 0.5
+              }} />
+            </div>
+
+            {/* Instagram icon */}
+            <div style={{
+              position: 'absolute',
+              top: 20,
+              left: 40,
+              width: 64,
+              height: 64,
+              background: '#E1306C',
+              borderRadius: 14,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(225, 48, 108, 0.25)',
+              zIndex: 2
+            }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="white">
+                <rect x="2" y="2" width="20" height="20" rx="5" stroke="white" strokeWidth="2" fill="none"/>
+                <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="2" fill="none"/>
+                <circle cx="17.5" cy="6.5" r="1.5" fill="white"/>
+              </svg>
+            </div>
+
+            {/* YouTube icon */}
+            <div style={{
+              position: 'absolute',
+              top: 30,
+              right: 30,
+              width: 64,
+              height: 64,
+              background: '#FF0000',
+              borderRadius: 14,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(255, 0, 0, 0.25)',
+              zIndex: 2
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                <path d="M10 8l6 4-6 4V8z"/>
+              </svg>
+            </div>
+
+            {/* Chart icon */}
+            <div style={{
+              position: 'absolute',
+              top: 20,
+              right: 130,
+              width: 48,
+              height: 48,
+              background: 'white',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+              zIndex: 2
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <rect x="4" y="14" width="3" height="6" fill="#FB923C" rx="1"/>
+                <rect x="10.5" y="9" width="3" height="11" fill="#FB923C" rx="1"/>
+                <rect x="17" y="4" width="3" height="16" fill="#FB923C" rx="1"/>
+              </svg>
+            </div>
+
+            {/* User icon */}
+            <div style={{
+              position: 'absolute',
+              bottom: 30,
+              left: 70,
+              width: 48,
+              height: 48,
+              background: 'white',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+              zIndex: 2
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="8" r="4" fill="#FB923C"/>
+                <path d="M4 20c0-4 3-6 8-6s8 2 8 6" stroke="#FB923C" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+
+            {/* Decorative dots */}
+            {[
+              { size: 12, color: '#FCA5A5', top: 100, left: 20 },
+              { size: 8, color: '#FB923C', top: 180, right: 60 },
+              { size: 10, color: '#FDBA74', bottom: 50, right: 20 },
+              { size: 14, color: '#FED7AA', top: 60, right: 150 },
+              { size: 6, color: '#F97316', bottom: 100, left: 140 }
+            ].map((dot, i) => (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  width: dot.size,
+                  height: dot.size,
+                  background: dot.color,
+                  borderRadius: '50%',
+                  top: dot.top,
+                  left: dot.left,
+                  right: dot.right,
+                  bottom: dot.bottom,
+                  opacity: 0.6,
+                  zIndex: 1
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Badge */}
+          <div style={{
+            display: 'inline-flex',
+            padding: '6px 14px',
+            background: 'rgba(220, 38, 38, 0.06)',
+            border: '1px solid rgba(220, 38, 38, 0.08)',
+            borderRadius: 20,
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#DC2626',
+            letterSpacing: '0.8px',
+            textTransform: 'uppercase',
+            marginBottom: 24
+          }}>
+            NO CAMPAIGNS YET
+          </div>
+
+          {/* Heading */}
+          <h1 style={{
+            fontSize: 42,
+            fontWeight: 700,
+            color: '#111827',
+            textAlign: 'center',
+            margin: '0 0 16px 0',
+            lineHeight: 1.2,
+            letterSpacing: '-0.02em'
+          }}>
+            Ready to launch your next <span style={{ color: '#EF4444' }}>campaign?</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p style={{
+            fontSize: 17,
+            color: '#6B7280',
+            textAlign: 'center',
+            margin: '0 0 40px 0',
+            maxWidth: 480,
+            lineHeight: 1.6
+          }}>
+            Create a campaign and start collaborating with creators<br />
+            to grow your brand.
+          </p>
+
+          {/* CTA Button */}
+          <button
+            onClick={() => navigate('/business/campaigns/create')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '16px 32px',
+              background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 50,
+              fontSize: 17,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              boxShadow: '0 10px 30px rgba(239, 68, 68, 0.25), 0 4px 12px rgba(239, 68, 68, 0.15)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              letterSpacing: '-0.01em'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 14px 40px rgba(239, 68, 68, 0.3), 0 6px 16px rgba(239, 68, 68, 0.2)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 30px rgba(239, 68, 68, 0.25), 0 4px 12px rgba(239, 68, 68, 0.15)';
+            }}
+          >
+            <div style={{
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6 2v8M2 6h8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            New Campaign
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M7 5l5 5-5 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
+          {/* Features */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 48,
+            marginTop: 64,
+            fontSize: 14,
+            color: '#6B7280'
+          }}>
+            {[
+              'Find the right creators',
+              'Plan & collaborate',
+              'Track performance'
+            ].map((text, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10
+              }}>
+                <div style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#EF4444'
+                }} />
+                {text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </BusinessLayout>
+    );
+  }
 
   return (
     <BusinessLayout breadcrumb="Campaigns">
@@ -124,7 +481,7 @@ export default function CampaignListPage() {
           </div>
 
           <button
-            onClick={() => navigate('/business/campaigns/new')}
+            onClick={() => navigate('/business/campaigns/create')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -340,55 +697,6 @@ export default function CampaignListPage() {
             </div>
           ))}
         </div>
-
-        {/* Empty State */}
-        {filteredCampaigns.length === 0 && (
-          <div style={{
-            background: 'white',
-            border: '2px dashed #e5e7eb',
-            borderRadius: 12,
-            padding: 60,
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: 48,
-              marginBottom: 16
-            }}>
-              📋
-            </div>
-            <h3 style={{
-              fontSize: 18,
-              fontWeight: 600,
-              color: '#1f2937',
-              margin: '0 0 8px 0'
-            }}>
-              No campaigns found
-            </h3>
-            <p style={{
-              fontSize: 14,
-              color: '#6b7280',
-              margin: '0 0 20px 0'
-            }}>
-              Try adjusting your filter or create a new campaign
-            </p>
-            <button
-              onClick={() => navigate('/business/campaigns/new')}
-              style={{
-                padding: '10px 18px',
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit'
-              }}
-            >
-              + Create campaign
-            </button>
-          </div>
-        )}
       </div>
     </BusinessLayout>
   );

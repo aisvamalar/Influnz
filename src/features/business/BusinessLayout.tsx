@@ -258,7 +258,7 @@ export default function BusinessLayout({
             Create campaigns, collaborate with creators and drive real results.
           </p>
           <button
-            onClick={() => navigate('/business/campaigns/new')}
+            onClick={() => navigate('/business/campaigns/create')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               height: 32, padding: '0 12px',
