@@ -121,9 +121,11 @@ const BOTTOM_NAV: NavItem[] = [
 export default function BusinessLayout({
   breadcrumb,
   children,
+  flush = false,
 }: {
   breadcrumb: string;
   children: React.ReactNode;
+  flush?: boolean;
 }) {
   const { state, logout } = useAuth();
   const navigate = useNavigate();
@@ -164,7 +166,7 @@ export default function BusinessLayout({
       style={{
         width: 260,
         height: '100dvh',
-        background: 'white',
+        background: '#fcf8f5',
         borderRight: '1px solid var(--in-border)',
         display: 'flex',
         flexDirection: 'column',
@@ -204,9 +206,9 @@ export default function BusinessLayout({
                 width: '100%', height: 38,
                 padding: '0 10px',
                 borderRadius: 8,
-                background: active ? 'rgba(242,132,107,0.1)' : 'none',
+                background: active ? 'rgba(242,132,107,0.13)' : 'none',
                 border: 'none',
-                color: active ? 'var(--in-coral-text)' : '#6b6b6b',
+                color: active ? '#e0412a' : '#5b6472',
                 fontWeight: active ? 700 : 500,
                 fontSize: '0.875rem', fontFamily: 'inherit',
                 cursor: 'pointer', textAlign: 'left',
@@ -215,7 +217,7 @@ export default function BusinessLayout({
                 marginBottom: 2,
               }}
               onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(242,132,107,0.06)'; e.currentTarget.style.color = '#2d2d2d'; } }}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#6b6b6b'; } }}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#5b6472'; } }}
             >
               <span style={{ display: 'flex', color: active ? 'var(--in-coral)' : 'currentColor', flexShrink: 0 }}>{item.icon}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
@@ -258,7 +260,7 @@ export default function BusinessLayout({
             Create campaigns, collaborate with creators and drive real results.
           </p>
           <button
-            onClick={() => navigate('/business/campaigns/create')}
+            onClick={() => navigate('/business/campaigns/new')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               height: 32, padding: '0 12px',
@@ -329,7 +331,7 @@ export default function BusinessLayout({
   return (
     <div style={{
       display: 'flex', minHeight: '100dvh',
-      background: '#f8fafc',
+      background: '#faf8f5',
     }}>
       {/* ── Desktop sidebar slot ── */}
       <div className="biz-sidebar-slot" style={{ width: 260 }}>{sidebar}</div>
@@ -383,7 +385,7 @@ export default function BusinessLayout({
           height: 56,
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '0 20px',
-          background: 'white',
+          background: '#fdfaf8',
           borderBottom: '1px solid var(--in-border)',
           boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
         }}>
@@ -547,8 +549,8 @@ export default function BusinessLayout({
           id="main-content"
           style={{
             flex: 1,
-            padding: 'clamp(16px, 2vw, 28px)',
-            maxWidth: 1200,
+            padding: flush ? 0 : 'clamp(16px, 2vw, 28px)',
+            maxWidth: flush ? undefined : 1200,
             width: '100%',
             boxSizing: 'border-box',
           }}

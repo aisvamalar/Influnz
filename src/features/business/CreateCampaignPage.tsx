@@ -7,7 +7,16 @@ import { useNavigate } from 'react-router-dom';
 import BusinessLayout from './BusinessLayout';
 
 type ConversationStage = 'initial' | 'results';
-type TabKey = 'strategy' | 'creators' | 'content' | 'budget' | 'timeline';
+
+const EXTRACTED: [string, string][] = [
+  ['Campaign name', 'Chennai Caf? Launch'],
+  ['Goal', 'Drive local store visits'],
+  ['Target audience', 'Local food lovers (18?34)'],
+  ['Budget', '?1,50,000'],
+  ['Platform', 'Instagram'],
+  ['Location', 'Chennai (15 km)'],
+  ['Timeline', '15 days'],
+];
 
 const SUGGESTION_CHIPS = [
   'Launch a cafe in Chennai',
@@ -22,7 +31,6 @@ export default function CreateCampaignPage() {
   const [stage, setStage] = useState<ConversationStage>('initial');
   const [inputValue, setInputValue] = useState('');
   const [userMessage, setUserMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<TabKey>('strategy');
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -306,175 +314,38 @@ export default function CreateCampaignPage() {
             </>
           ) : (
             <>
-              <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>
-                  ✨ Your Campaign Strategy
+              <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #e5e7eb' }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', margin: '0 0 6px 0' }}>
+                  ?? Your Campaign
                 </h3>
-                <span
-                  style={{
-                    background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
-                    color: 'white',
-                    padding: '6px 12px',
-                    borderRadius: 16,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}
-                >
-                  AI Generated
-                </span>
+                <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+                  Recognised from your brief
+                </p>
               </div>
-              <div style={{ display: 'flex', gap: 4, padding: '12px 24px', borderBottom: '1px solid #e5e7eb', overflowX: 'auto' }}>
-                {[
-                  { key: 'strategy', label: 'Strategy Overview' },
-                  { key: 'creators', label: 'Creators', badge: '8' },
-                  { key: 'content', label: 'Content Plan' },
-                  { key: 'budget', label: 'Budget' },
-                  { key: 'timeline', label: 'Timeline' },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key as TabKey)}
-                    style={{
-                      padding: '8px 14px',
-                      background: activeTab === tab.key ? '#F9FAFB' : 'transparent',
-                      border: 'none',
-                      borderBottom: activeTab === tab.key ? '2px solid #1a1a1a' : '2px solid transparent',
-                      color: activeTab === tab.key ? '#1a1a1a' : '#6b7280',
-                      fontSize: 13,
-                      fontWeight: activeTab === tab.key ? 600 : 400,
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
+              <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {EXTRACTED.map(([label, value]) => (
+                  <div
+                    key={label}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingBottom: 12, borderBottom: '1px dashed #e5e7eb' }}
                   >
-                    {tab.label}
-                    {tab.badge && (
-                      <span
-                        style={{
-                          background: '#1a1a1a',
-                          color: 'white',
-                          padding: '2px 6px',
-                          borderRadius: 10,
-                          fontSize: 11,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
+                    <span style={{ fontSize: 14, color: '#6b7280' }}>{label}</span>
+                    <span style={{ fontSize: 14, color: '#1a1a1a', fontWeight: 600, textAlign: 'right' }}>{value}</span>
+                  </div>
                 ))}
               </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.5px', marginBottom: 12 }}>
-                  RECOMMENDED STRATEGY
-                </div>
-                <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 24 }}>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: 140,
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 48,
-                    }}
-                  >
-                    ☕
-                  </div>
-                  <div style={{ padding: '16px 18px' }}>
-                    <h4 style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', margin: '0 0 8px 0' }}>
-                      Hyperlocal Creator Campaign
-                    </h4>
-                    <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5, margin: 0 }}>
-                      Partner with Tamil-speaking food creators to create authentic content.
-                    </p>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
-                  {[
-                    { icon: '👥', label: 'Creators', value: '8' },
-                    { icon: '📊', label: 'Estimated Reach', value: '1.2M+' },
-                    { icon: '💰', label: 'Total Budget', value: '₹1,50,000' },
-                  ].map((metric) => (
-                    <div
-                      key={metric.label}
-                      style={{
-                        background: '#F9FAFB',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 10,
-                        padding: '14px 12px',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div style={{ fontSize: 24, marginBottom: 6 }}>{metric.icon}</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 2 }}>
-                        {metric.value}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#6b7280' }}>{metric.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ background: '#F9FAFB', border: '1px solid #e5e7eb', borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 14 }}>
-                    💡 Key Strategy Highlights
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[
-                      'Focus on micro and nano creators from Chennai (15 km radius)',
-                      'Authentic in-cafe experiences, food reviews and local eats',
-                      'Content in Tamil / Tanglish to connect with local audience',
-                      'Mix of reels, stories and carousel posts for higher reach',
-                      'Special focus on weekend footfall and lunch buzz',
-                    ].map((highlight) => (
-                      <div key={highlight} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                        <span style={{ color: '#10B981', fontSize: 16, flexShrink: 0 }}>✓</span>
-                        <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{highlight}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button
-                    style={{
-                      flex: 1,
-                      padding: '12px 20px',
-                      background: 'white',
-                      border: '1.5px solid #e5e7eb',
-                      borderRadius: 8,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: '#374151',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    ↻ Regenerate strategy
-                  </button>
-                  <button
-                    onClick={() => navigate('/business/creators')}
-                    style={{
-                      flex: 1,
-                      padding: '12px 20px',
-                      background: '#1a1a1a',
-                      border: 'none',
-                      borderRadius: 8,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    Continue to creators →
-                  </button>
-                </div>
+              <div style={{ padding: '0 24px 24px' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/business/campaigns/strategy')}
+                  style={{
+                    width: '100%', height: 48, border: 'none', borderRadius: 10,
+                    background: 'linear-gradient(180deg, #ee6247 0%, #dc5039 100%)',
+                    color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                    boxShadow: '0 8px 20px rgba(224,82,57,0.28)',
+                  }}
+                >
+                  ? Generate strategy ?
+                </button>
               </div>
             </>
           )}
