@@ -142,12 +142,14 @@ export interface CampaignDraft {
   strategy: StrategyKey;
   /** Creator ids the business removed from the strategy's portfolio. */
   removed: Partial<Record<StrategyKey, string[]>>;
+  /** Portfolio slots the business swapped: original creator id → replacement id. */
+  swaps: Partial<Record<StrategyKey, Record<string, string>>>;
   negotiation: NegotiationParams;
   dealReviews: Partial<Record<StrategyKey, Record<string, DealReview>>>;
 }
 
 const KEY = 'influnz.campaignDraft.v1';
-const DEFAULT_DRAFT: CampaignDraft = { strategy: 'reach', removed: {}, negotiation: DEFAULT_NEGOTIATION, dealReviews: {} };
+const DEFAULT_DRAFT: CampaignDraft = { strategy: 'reach', removed: {}, swaps: {}, negotiation: DEFAULT_NEGOTIATION, dealReviews: {} };
 
 export function saveCampaignDraft(draft: CampaignDraft) {
   try {
@@ -166,6 +168,7 @@ function read(): CampaignDraft {
     return {
       strategy,
       removed: parsed.removed ?? {},
+      swaps: parsed.swaps ?? {},
       negotiation: { ...DEFAULT_NEGOTIATION, ...parsed.negotiation },
       dealReviews: parsed.dealReviews ?? {},
     };
@@ -196,6 +199,40 @@ export function useCampaignDraft() {
     });
   }, [updateDraft]);
 
+  /** Replaces the creator in a portfolio slot with the next matched alternative; returns it. */
+  const swapCreator = useCallback((creatorId: string): Creator | undefined => {
+    const current = draftRef.current;
+    const slots = STRATEGY_META[current.strategy].creatorIds;
+    const swaps = current.swaps[current.strategy] ?? {};
+    const slot = slots.find(id => (swaps[id] ?? id) === creatorId);
+    if (!slot) return undefined;
+
+    const taken = new Set(slots.map(id => swaps[id] ?? id));
+    const base = CREATORS[slot];
+    const ranked = [
+      base,
+      ...Object.values(CREATORS)
+        .filter(c => c.id !== slot)
+        .sort((a, b) => Number(b.tier === base.tier) - Number(a.tier === base.tier) || b.fit - a.fit),
+    ];
+    const options = ranked.filter(c => c.id === creatorId || !taken.has(c.id));
+    if (options.length < 2) return undefined;
+    const next = options[(options.findIndex(c => c.id === creatorId) + 1) % options.length];
+
+    updateDraft(draft => {
+      const removed = (draft.removed[draft.strategy] ?? []).filter(id => id !== creatorId && id !== next.id);
+      const slotSwaps = { ...draft.swaps[draft.strategy] };
+      if (next.id === slot) delete slotSwaps[slot];
+      else slotSwaps[slot] = next.id;
+      return {
+        ...draft,
+        removed: { ...draft.removed, [draft.strategy]: removed },
+        swaps: { ...draft.swaps, [draft.strategy]: slotSwaps },
+      };
+    });
+    return next;
+  }, [updateDraft]);
+
   const setNegotiation = useCallback((patch: Partial<NegotiationParams>) => {
     updateDraft(draft => ({ ...draft, negotiation: { ...draft.negotiation, ...patch } }));
   }, [updateDraft]);
@@ -213,7 +250,13 @@ export function useCampaignDraft() {
     }));
   }, [updateDraft]);
 
-  return { draft, setStrategy, setCreatorSelected, setNegotiation, setDealReview };
+  return { draft, setStrategy, setCreatorSelected, swapCreator, setNegotiation, setDealReview };
+}
+
+/** The strategy's portfolio with any swapped slots applied. */
+export function getPortfolio(draft: CampaignDraft): Creator[] {
+  const swaps = draft.swaps[draft.strategy] ?? {};
+  return STRATEGY_META[draft.strategy].creatorIds.map(id => CREATORS[swaps[id] ?? id]).filter(Boolean);
 }
 
 export function formatMoney(n: number): string {
@@ -222,7 +265,7 @@ export function formatMoney(n: number): string {
 
 export function getSelectedCreators(draft: CampaignDraft): Creator[] {
   const removed = new Set(draft.removed[draft.strategy] ?? []);
-  return STRATEGY_META[draft.strategy].creatorIds.filter(id => !removed.has(id)).map(id => CREATORS[id]).filter(Boolean);
+  return getPortfolio(draft).filter(c => !removed.has(c.id));
 }
 
 export type DealStatus = 'within-guardrails' | 'approval-required' | 'over-cap';

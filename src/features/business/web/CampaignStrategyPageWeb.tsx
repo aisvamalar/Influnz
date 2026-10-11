@@ -3,14 +3,14 @@
  */
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BusinessLayout from './BusinessLayout';
-import CampaignStepper from './CampaignStepper';
-import { useCampaignDraft, type StrategyKey } from './campaignDraft';
-import './campaign-strategy.css';
-import reachImg from '../../assets/campaigns/strategy-reach.jpg';
-import performanceImg from '../../assets/campaigns/strategy-performance.jpg';
-import communityImg from '../../assets/campaigns/strategy-community.jpg';
-import hybridImg from '../../assets/campaigns/strategy-hybrid.jpg';
+import BusinessLayout from '../BusinessLayout';
+import CampaignStepper from '../CampaignStepper';
+import { useCampaignDraft, type StrategyKey } from '../campaignDraft';
+import '../campaign-strategy.css';
+import reachImg from '../../../assets/campaigns/strategy-reach.jpg';
+import performanceImg from '../../../assets/campaigns/strategy-performance.jpg';
+import communityImg from '../../../assets/campaigns/strategy-community.jpg';
+import hybridImg from '../../../assets/campaigns/strategy-hybrid.jpg';
 
 const CORAL = '#e8573f';
 
@@ -69,7 +69,7 @@ const CheckCircle = () => (
   </svg>
 );
 
-export default function CampaignStrategyPage() {
+export default function CampaignStrategyPageWeb() {
   const navigate = useNavigate();
   const { draft, setStrategy: setSelected } = useCampaignDraft();
   const selected = draft.strategy;

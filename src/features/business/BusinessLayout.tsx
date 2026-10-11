@@ -1,13 +1,35 @@
 /**
- * BusinessLayout — matches the reference design image exactly
- * - White sidebar with logo + BUSINESS badge, nav items, promo card, sign-out, user chip
+ * BusinessLayout
+ * - Floating sidebar: brand, four main screens centred, profile + settings at the foot.
+ *   Collapses to an icon rail with tooltips (default on tablets, toggle remembered).
  * - Desktop header: breadcrumb, search bar, notification bell, profile chip
  * - Mobile: sticky header + bottom tab bar
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
-import Logo from '../../components/Logo';
+import LogoLight from '../../components/LogoLight';
+import { useResponsive } from '../../hooks/useResponsive';
+import { useViewportScale } from '../../hooks/useViewportScale';
+import { profileProgress, useBusinessProfile } from './businessProfile';
+import '../../styles/web-responsive.css';
+import './business-sidebar.css';
+
+/** Width the business screens are designed at; wider viewports scale the whole shell up. */
+const DESIGN_WIDTH = 1680;
+const SCREEN_HEIGHT = 'calc(100dvh / var(--biz-zoom, 1))';
+const COLLAPSE_KEY = 'influnz.biz.sidebarCollapsed';
+/** Below this width the sidebar starts as an icon rail unless the user expanded it. */
+const RAIL_BELOW = 1200;
+
+function readCollapsePref(): boolean | null {
+  try {
+    const v = localStorage.getItem(COLLAPSE_KEY);
+    return v === null ? null : v === '1';
+  } catch {
+    return null;
+  }
+}
 
 interface NavItem {
   key: string;
@@ -33,13 +55,6 @@ const Icons = {
       <circle cx="9" cy="9" r="1.8" stroke="currentColor" strokeWidth="1.3"/>
     </svg>
   ),
-  creators: (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <circle cx="6.5" cy="6" r="2.8" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M1.5 15c0-2.8 2.2-4.5 5-4.5s5 1.7 5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M12.5 4.5a2.5 2.5 0 010 4.5M14.5 15c0-1.6-.6-2.9-1.5-3.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  ),
   analytics: (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <path d="M3 15V8.5M7.5 15V3.5M12 15v-4.5M16 15V6.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
@@ -52,27 +67,15 @@ const Icons = {
       <path d="M5 11.5h2M8.5 11.5h1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
     </svg>
   ),
-  approvals: (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path d="M4 2.5h7.5L14.5 5.5V15a.9.9 0 01-.9.9H4.9A.9.9 0 014 15V3.4a.9.9 0 01.9-.9z" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M6.5 10l1.8 1.8L12 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  ),
-  notifications: (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path d="M9 2.5a4 4 0 00-4 4v2.6L3.8 11.4h10.4L13 9.1V6.5a4 4 0 00-4-4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
-      <path d="M7.2 13.4a1.9 1.9 0 003.6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  ),
   settings: (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <circle cx="9" cy="9" r="2.6" stroke="currentColor" strokeWidth="1.5"/>
       <path d="M9 2v1.8M9 14.2V16M2 9h1.8M14.2 9H16M4.1 4.1l1.3 1.3M12.6 12.6l1.3 1.3M13.9 4.1l-1.3 1.3M5.4 12.6l-1.3 1.3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
     </svg>
   ),
-  signout: (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path d="M7 15H4a1 1 0 01-1-1V4a1 1 0 011-1h3M11 12.5l3.5-3.5L11 5.5M14.5 9H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  chevronLeft: (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
   menu: (
@@ -100,22 +103,20 @@ const Icons = {
 };
 
 const PRIMARY_NAV: NavItem[] = [
-  { key: 'dashboard',     label: 'Dashboard',     path: '/business',               icon: Icons.dashboard },
-  { key: 'campaigns',     label: 'Campaigns',     path: '/business/campaigns',     icon: Icons.campaigns },
-  { key: 'creators',      label: 'Creators',      path: '/business/creators',      icon: Icons.creators },
-  { key: 'analytics',     label: 'Analytics',     path: '/business/analytics',     icon: Icons.analytics },
-  { key: 'payments',      label: 'Payments',      path: '/business/payments',      icon: Icons.payments },
-  { key: 'approvals',     label: 'Approvals',     path: '/business/approvals',     icon: Icons.approvals, badge: 3 },
-  { key: 'notifications', label: 'Notifications', path: '/business/notifications', icon: Icons.notifications, badge: 5 },
-  { key: 'settings',      label: 'Settings',      path: '/business/settings',      icon: Icons.settings },
+  { key: 'dashboard', label: 'Dashboard', path: '/business',           icon: Icons.dashboard },
+  { key: 'campaigns', label: 'Campaigns', path: '/business/campaigns', icon: Icons.campaigns },
+  { key: 'payments',  label: 'Payments',  path: '/business/payments',  icon: Icons.payments },
+  { key: 'analytics', label: 'Analytics', path: '/business/analytics', icon: Icons.analytics },
 ];
 
+const SETTINGS_NAV: NavItem = { key: 'settings', label: 'Settings', path: '/business/settings', icon: Icons.settings };
+
 const BOTTOM_NAV: NavItem[] = [
-  { key: 'dashboard',  label: 'Home',      path: '/business',           icon: Icons.dashboard },
-  { key: 'campaigns',  label: 'Campaigns', path: '/business/campaigns', icon: Icons.campaigns },
-  { key: 'approvals',  label: 'Approvals', path: '/business/approvals', icon: Icons.approvals, badge: 3 },
-  { key: 'analytics',  label: 'Analytics', path: '/business/analytics', icon: Icons.analytics },
-  { key: 'payments',   label: 'Payments',  path: '/business/payments',  icon: Icons.payments },
+  { key: 'dashboard', label: 'Home',      path: '/business',           icon: Icons.dashboard },
+  { key: 'campaigns', label: 'Campaigns', path: '/business/campaigns', icon: Icons.campaigns },
+  { key: 'payments',  label: 'Payments',  path: '/business/payments',  icon: Icons.payments },
+  { key: 'analytics', label: 'Analytics', path: '/business/analytics', icon: Icons.analytics },
+  SETTINGS_NAV,
 ];
 
 export default function BusinessLayout({
@@ -132,10 +133,24 @@ export default function BusinessLayout({
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const scale = useViewportScale(DESIGN_WIDTH);
+  const { width } = useResponsive();
+  const [collapsePref, setCollapsePref] = useState<boolean | null>(readCollapsePref);
+  const collapsed = width > 768 && (collapsePref ?? width < RAIL_BELOW);
 
   const displayName = state.user?.businessName ?? state.user?.email ?? 'Business';
+  const { profileComplete } = profileProgress(useBusinessProfile());
+  const contact = state.user?.email || (state.user?.phone ? `+91 ${state.user.phone}` : 'Business account');
+  const subtitle = profileComplete ? contact : 'Complete your profile';
   const initial = displayName.trim()[0]?.toUpperCase() ?? 'B';
+
+  const setCollapsed = (next: boolean) => {
+    setCollapsePref(next);
+    try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* storage unavailable */ }
+  };
+  const toggleCollapsed = () => setCollapsed(!collapsed);
 
   useEffect(() => {
     if (!profileOpen) return;
@@ -148,7 +163,7 @@ export default function BusinessLayout({
     return () => document.removeEventListener('mousedown', handler);
   }, [profileOpen]);
 
-  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+  useEffect(() => { setDrawerOpen(false); setMobileMenuOpen(false); }, [location.pathname]);
 
   const isActive = (item: NavItem) => {
     if (item.path === '/business') return location.pathname === '/business';
@@ -161,180 +176,128 @@ export default function BusinessLayout({
   };
 
   // ── Sidebar JSX ──────────────────────────────────────────────────────────────
-  const sidebar = (
+  const renderNavItem = (item: NavItem, railed: boolean) => {
+    const active = isActive(item);
+    return (
+      <button
+        key={item.key}
+        type="button"
+        className={`bsb__item${active ? ' is-active' : ''}`}
+        onClick={() => {
+          if (railed) setCollapsed(false);
+          navigate(item.path);
+          setDrawerOpen(false);
+        }}
+        aria-current={active ? 'page' : undefined}
+        aria-label={railed ? item.label : undefined}
+      >
+        <span className="bsb__icon">{item.icon}</span>
+        <span className="bsb__label">{item.label}</span>
+        <span className="bsb__tip" aria-hidden="true">{item.label}</span>
+      </button>
+    );
+  };
+
+  const renderSidebar = (railed: boolean, withToggle: boolean) => (
     <aside
-      style={{
-        width: 260,
-        height: '100dvh',
-        background: '#fcf8f5',
-        borderRight: '1px solid var(--in-border)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
+      className={`bsb biz-aside${railed ? ' is-collapsed' : ''}${mobileMenuOpen ? ' mobile-sidebar-open' : ''}`}
       aria-label="Business navigation"
     >
-      {/* Brand */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '18px 16px 14px',
-        borderBottom: '1px solid var(--in-border)',
-      }}>
-        <Logo size="sm" />
-        <span style={{
-          fontSize: '0.5625rem', fontWeight: 800, textTransform: 'uppercase',
-          letterSpacing: '0.1em', color: '#b94a33',
-          background: 'rgba(242,132,107,0.12)',
-          padding: '2px 7px', borderRadius: 4,
-        }}>
-          BUSINESS
-        </span>
-      </div>
-
-      {/* Nav items */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 0' }} aria-label="Primary">
-        {PRIMARY_NAV.map(item => {
-          const active = isActive(item);
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => { navigate(item.path); setDrawerOpen(false); }}
-              aria-current={active ? 'page' : undefined}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', height: 38,
-                padding: '0 10px',
-                borderRadius: 8,
-                background: active ? 'rgba(242,132,107,0.13)' : 'none',
-                border: 'none',
-                color: active ? '#e0412a' : '#5b6472',
-                fontWeight: active ? 700 : 500,
-                fontSize: '0.875rem', fontFamily: 'inherit',
-                cursor: 'pointer', textAlign: 'left',
-                transition: 'background 0.15s, color 0.15s',
-                position: 'relative',
-                marginBottom: 2,
-              }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(242,132,107,0.06)'; e.currentTarget.style.color = '#2d2d2d'; } }}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#5b6472'; } }}
-            >
-              <span style={{ display: 'flex', color: active ? 'var(--in-coral)' : 'currentColor', flexShrink: 0 }}>{item.icon}</span>
-              <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge ? (
-                <span style={{
-                  minWidth: 18, height: 18, padding: '0 5px',
-                  borderRadius: 9, background: 'var(--in-coral)',
-                  color: 'white', fontSize: '0.625rem', fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {item.badge}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Bottom: promo card + sign out + user chip */}
-      <div style={{ padding: '10px 12px 12px', borderTop: '1px solid var(--in-border)' }}>
-        {/* Promo card */}
-        <div style={{
-          background: 'linear-gradient(145deg, #fef3ed 0%, #fde8d8 100%)',
-          border: '1px solid rgba(242,132,107,0.2)',
-          borderRadius: 12, padding: '14px 14px 12px',
-          marginBottom: 10, position: 'relative', overflow: 'hidden',
-        }}>
-          {/* decorative house illustration */}
-          <div style={{
-            position: 'absolute', top: 0, right: 0,
-            width: 64, height: 64, opacity: 0.18,
-            fontSize: '2.5rem', display: 'flex',
-            alignItems: 'flex-start', justifyContent: 'flex-end',
-            padding: '4px 4px 0 0',
-          }}>🏠</div>
-          <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--in-charcoal)', lineHeight: 1.3, margin: '0 0 4px', position: 'relative', zIndex: 1 }}>
-            Grow with<br />Influencer Marketing
-          </p>
-          <p style={{ fontSize: '0.6875rem', color: 'var(--in-gray)', lineHeight: 1.45, margin: '0 0 10px', position: 'relative', zIndex: 1 }}>
-            Create campaigns, collaborate with creators and drive real results.
-          </p>
-          <button
-            onClick={() => navigate('/business/campaigns/new')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              height: 32, padding: '0 12px',
-              background: 'var(--in-coral)', color: 'white',
-              border: 'none', borderRadius: 8,
-              fontSize: '0.75rem', fontWeight: 700, fontFamily: 'inherit',
-              cursor: 'pointer', transition: 'background 0.15s',
-              position: 'relative', zIndex: 1,
-            }}
-          >
-            Create campaign →
+      <div className="bsb__panel">
+        <div className="bsb__brand">
+          <LogoLight className="bsb__logo" height={40} />
+          <button type="button" className="bsb__mark" onClick={() => setCollapsed(false)} aria-label="Expand sidebar">
+            <LogoLight variant="mark" height={34} title="" />
           </button>
         </div>
 
-        {/* Sign out */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            width: '100%', height: 34, padding: '0 8px',
-            background: 'none', border: 'none',
-            color: '#6b6b6b', fontSize: '0.875rem', fontWeight: 500,
-            fontFamily: 'inherit', cursor: 'pointer', borderRadius: 8,
-            transition: 'background 0.15s, color 0.15s',
-            marginBottom: 6,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
-        >
-          <span style={{ display: 'flex', color: 'var(--in-gray-light)' }}>{Icons.signout}</span>
-          Sign out
-        </button>
+        {withToggle && (
+          <button
+            type="button"
+            className="bsb__toggle"
+            onClick={toggleCollapsed}
+            aria-label={railed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!railed}
+          >
+            {Icons.chevronLeft}
+          </button>
+        )}
 
-        {/* User chip */}
-        <button
-          onClick={() => navigate('/business/settings')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            width: '100%', padding: '8px 8px',
-            background: 'rgba(242,132,107,0.06)',
-            border: '1px solid var(--in-border)',
-            borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
-            textAlign: 'left', transition: 'background 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.12)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.06)')}
-        >
-          <div style={{
-            width: 30, height: 30, borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))',
-            color: 'white', fontSize: '0.8125rem', fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            {initial}
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-charcoal)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {displayName}
-            </div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--in-gray-light)' }}>Business account</div>
-          </div>
-        </button>
+        <nav className="bsb__nav" aria-label="Primary">
+          {PRIMARY_NAV.map(item => renderNavItem(item, railed))}
+        </nav>
+
+        <div className="bsb__foot">
+          <div className="bsb__divider" />
+          <button
+            type="button"
+            className={`bsb__profile${profileComplete ? '' : ' is-incomplete'}`}
+            title={railed ? `${displayName} · ${subtitle}` : undefined}
+            onClick={() => {
+              if (railed) { setCollapsed(false); return; }
+              navigate(profileComplete ? '/business/settings' : '/business/settings#verification');
+              setDrawerOpen(false);
+            }}
+          >
+            <span className="bsb__avatar" aria-hidden="true">{initial}</span>
+            <span className="bsb__who">
+              <strong>{displayName}</strong>
+              <small>{subtitle}</small>
+            </span>
+          </button>
+          {renderNavItem(SETTINGS_NAV, railed)}
+        </div>
       </div>
     </aside>
   );
 
   return (
     <div style={{
-      display: 'flex', minHeight: '100dvh',
+      display: 'flex', minHeight: SCREEN_HEIGHT,
       background: '#faf8f5',
-    }}>
+      zoom: scale,
+      '--biz-zoom': scale,
+    } as React.CSSProperties} className={`business-layout ${mobileMenuOpen ? 'sidebar-open' : ''}`}>
+      {/* ── Mobile Menu Toggle Button ── */}
+      <button 
+        className="mobile-menu-toggle"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle menu"
+        style={{
+          position: 'fixed',
+          top: '16px',
+          left: '16px',
+          zIndex: 1002,
+          padding: '8px',
+          background: 'white',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          cursor: 'pointer'
+        }}
+      >
+        {Icons.menu}
+      </button>
+
+      {/* ── Mobile overlay ── */}
+      {mobileMenuOpen && (
+        <div 
+          className="mobile-overlay"
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1001,
+            backdropFilter: 'blur(4px)'
+          }}
+        />
+      )}
+
       {/* ── Desktop sidebar slot ── */}
-      <div className="biz-sidebar-slot" style={{ width: 260 }}>{sidebar}</div>
+      <div className={`biz-sidebar-slot${collapsed ? ' is-collapsed' : ''}`}>{renderSidebar(collapsed, width > 768)}</div>
 
       {/* ── Mobile drawer overlay ── */}
       {drawerOpen && (
@@ -349,9 +312,7 @@ export default function BusinessLayout({
           <div
             style={{
               position: 'absolute', top: 0, left: 0, bottom: 0,
-              width: 260,
-              background: 'white',
-              boxShadow: '4px 0 28px rgba(0,0,0,0.12)',
+              width: 280,
               animation: 'slideInLeft 0.22s ease',
             }}
             onClick={e => e.stopPropagation()}
@@ -363,21 +324,21 @@ export default function BusinessLayout({
               onClick={() => setDrawerOpen(false)}
               aria-label="Close menu"
               style={{
-                position: 'absolute', top: 14, right: 14,
-                width: 28, height: 28, borderRadius: 6,
-                background: 'rgba(242,132,107,0.1)', border: 'none',
-                color: 'var(--in-coral-text)', cursor: 'pointer',
+                position: 'absolute', top: 30, right: 22, zIndex: 3,
+                width: 28, height: 28, borderRadius: 8,
+                background: '#f6f3f1', border: 'none',
+                color: '#5b6472', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.875rem', fontWeight: 700,
               }}
             >✕</button>
-            {sidebar}
+            {renderSidebar(false, false)}
           </div>
         </div>
       )}
 
       {/* ── Main body ── */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
+      <div className="biz-main-content" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: SCREEN_HEIGHT }}>
 
         {/* ── Header ── */}
         <header style={{
@@ -391,7 +352,7 @@ export default function BusinessLayout({
         }}>
           {/* Hamburger — mobile only */}
           <button
-            className="biz-header__menu"
+            className="biz-header__menu mobile-only"
             onClick={() => setDrawerOpen(v => !v)}
             aria-label="Open navigation"
             aria-expanded={drawerOpen}
@@ -401,14 +362,14 @@ export default function BusinessLayout({
           </button>
 
           {/* Breadcrumb — desktop */}
-          <nav className="biz-crumb" aria-label="Breadcrumb">
+          <nav className="biz-crumb desktop-only" aria-label="Breadcrumb">
             <span style={{ color: '#a8a8a8', fontSize: '0.875rem', fontWeight: 500 }}>Influnz</span>
             <span style={{ color: '#a8a8a8', margin: '0 6px', fontSize: '0.875rem' }}>›</span>
             <span style={{ fontWeight: 700, color: '#2d2d2d', fontSize: '0.875rem' }}>{breadcrumb}</span>
           </nav>
 
           {/* Page title — mobile */}
-          <span className="biz-header__page-title">{breadcrumb}</span>
+          <span className="biz-header__page-title mobile-only">{breadcrumb}</span>
 
           {/* Spacer */}
           <div style={{ flex: 1 }} />
@@ -421,7 +382,7 @@ export default function BusinessLayout({
             border: '1px solid rgba(0,0,0,0.07)',
             borderRadius: 10,
             width: 'clamp(160px, 22vw, 280px)',
-          }} className="biz-header-search">
+          }} className="biz-header-search desktop-only">
             <span style={{ color: '#a8a8a8', display: 'flex', flexShrink: 0 }}>{Icons.search}</span>
             <input
               placeholder="Search campaigns, creators..."
@@ -547,11 +508,13 @@ export default function BusinessLayout({
         {/* ── Page content ── */}
         <main
           id="main-content"
+          className="biz-canvas"
           style={{
             flex: 1,
             padding: flush ? 0 : 'clamp(16px, 2vw, 28px)',
-            maxWidth: flush ? undefined : 1200,
+            maxWidth: flush ? undefined : 1600,
             width: '100%',
+            margin: '0 auto',
             boxSizing: 'border-box',
           }}
         >

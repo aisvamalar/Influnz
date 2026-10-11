@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import BusinessLayout from './BusinessLayout';
-import CampaignStepper from './CampaignStepper';
+import BusinessLayout from '../BusinessLayout';
+import CampaignStepper from '../CampaignStepper';
 import {
   BUDGET_CAP,
   DEFAULT_NEGOTIATION,
@@ -12,8 +12,9 @@ import {
   useCampaignDraft,
   type NegotiationParams,
   type Stance,
-} from './campaignDraft';
-import './negotiation.css';
+} from '../campaignDraft';
+import '../negotiation.css';
+import UiIcon from '../../../components/UiIcon';
 
 const STANCES: { value: Stance; title: string; detail: string }[] = [
   { value: 'firm', title: 'Firm', detail: 'Prioritize your target price; fewer concessions.' },
@@ -26,7 +27,7 @@ const formatInput = (value: string, fallback: number) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export default function NegotiationParametersPage() {
+export default function NegotiationParametersPageWeb() {
   const navigate = useNavigate();
   const { draft, setNegotiation } = useCampaignDraft();
   const [params, setParams] = useState<NegotiationParams>(draft.negotiation ?? DEFAULT_NEGOTIATION);
@@ -175,7 +176,7 @@ export default function NegotiationParametersPage() {
             </section>
 
             <section className="ng-safety">
-              <span aria-hidden="true">🛡️</span>
+              <span aria-hidden="true"><UiIcon name="shield" /></span>
               <div><strong>Safe by design</strong><p>These settings create draft offers only. Nothing is sent, accepted, or paid until you review and explicitly approve it.</p></div>
             </section>
           </div>

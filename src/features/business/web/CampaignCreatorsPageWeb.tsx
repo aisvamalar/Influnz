@@ -4,13 +4,13 @@
  */
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import BusinessLayout from './BusinessLayout';
-import CampaignStepper from './CampaignStepper';
+import BusinessLayout from '../BusinessLayout';
+import CampaignStepper from '../CampaignStepper';
 import {
-  BUDGET_CAP, CREATORS, STRATEGY_META, formatMoney, useCampaignDraft,
+  BUDGET_CAP, STRATEGY_META, formatMoney, getPortfolio, useCampaignDraft,
   type Creator,
-} from './campaignDraft';
-import './campaign-creators.css';
+} from '../campaignDraft';
+import '../campaign-creators.css';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 
@@ -92,13 +92,13 @@ function CreatorCard({ creator, selected, onToggle }: { creator: Creator; select
   );
 }
 
-export default function CampaignCreatorsPage() {
+export default function CampaignCreatorsPageWeb() {
   const navigate = useNavigate();
   const { draft, setCreatorSelected } = useCampaignDraft();
   const strategy = STRATEGY_META[draft.strategy];
 
   const removed = useMemo(() => new Set(draft.removed[draft.strategy] ?? []), [draft]);
-  const portfolio = strategy.creatorIds.map(id => CREATORS[id]).filter(Boolean);
+  const portfolio = getPortfolio(draft);
   const selected = portfolio.filter(c => !removed.has(c.id));
 
   const committed = selected.reduce((sum, c) => sum + c.rate, 0);

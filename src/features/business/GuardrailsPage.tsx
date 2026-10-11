@@ -114,7 +114,7 @@ export default function GuardrailsPage() {
           <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: "24px 28px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💰</div>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}></div>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a1a", marginBottom: 4 }}>Budget Controls</div>
                   <div style={{ fontSize: 13, color: "#6b7280" }}>These limits can never be exceeded by the AI without your explicit approval.</div>
@@ -122,7 +122,7 @@ export default function GuardrailsPage() {
               </div>
               {/* AI notice */}
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8, background: "#FFF5F0", border: "1px solid #FFD4C1", borderRadius: 10, padding: "10px 14px", maxWidth: 220, flexShrink: 0 }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>🛡️</span>
+                <span style={{ fontSize: 16, flexShrink: 0 }}></span>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#FF6B35", marginBottom: 2 }}>AI will stay within these limits</div>
                   <div style={{ fontSize: 11, color: "#9ca3af" }}>You'll be notified for anything above this.</div>
@@ -162,7 +162,7 @@ export default function GuardrailsPage() {
           {/* ── 2. Quality Thresholds ── */}
           <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: "24px 28px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 24 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🎯</div>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}></div>
               <div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a1a", marginBottom: 4 }}>Quality Thresholds</div>
                 <div style={{ fontSize: 13, color: "#6b7280" }}>Minimum standards creators must meet to be considered.</div>
@@ -204,7 +204,7 @@ export default function GuardrailsPage() {
           <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: "24px 28px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🏷️</div>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}></div>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a1a", marginBottom: 4 }}>Allowed Categories</div>
                   <div style={{ fontSize: 13, color: "#6b7280" }}>Only creators in these categories will be considered.</div>
@@ -251,7 +251,7 @@ export default function GuardrailsPage() {
           <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: "24px 28px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F3F0FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>🤖</div>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F3F0FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}></div>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a1a", marginBottom: 4 }}>AI Negotiation</div>
                   <div style={{ fontSize: 13, color: "#FF6B35" }}>Control how the AI handles creator counteroffers within your guardrails.</div>
@@ -272,7 +272,7 @@ export default function GuardrailsPage() {
 
             {aiNegotiate && (
               <div style={{ marginTop: 16, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#78350F", lineHeight: 1.6 }}>
-                ⚠️ The AI will never exceed ₹{maxPerCreator} per creator or the ₹{totalBudget} total budget. Any deal above ₹{approvalThreshold} will be paused for your approval.
+                The AI will never exceed ₹{maxPerCreator} per creator or the ₹{totalBudget} total budget. Any deal above ₹{approvalThreshold} will be paused for your approval.
               </div>
             )}
           </div>
@@ -280,18 +280,18 @@ export default function GuardrailsPage() {
           {/* ── Guardrail Summary ── */}
           <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 16, padding: "20px 28px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>🎯</div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "#FFF5F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}></div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a", marginBottom: 2 }}>Guardrail Summary</div>
                 <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 14 }}>A quick overview of your current limits.</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 28px" }}>
                   {[
-                    { icon: "💰", label: "Total budget", value: `₹${totalBudget}` },
-                    { icon: "👤", label: "Max per creator", value: `₹${maxPerCreator}` },
-                    { icon: "📋", label: "Approval above", value: `₹${approvalThreshold}` },
-                    { icon: "⭐", label: "Min creator score", value: `${minScore} / 100` },
-                    { icon: "👥", label: "Min audience match", value: `${minAudience}%` },
-                    { icon: "🏷️", label: "Allowed categories", value: allowed.join(", ") || "None" },
+                    { icon: "", label: "Total budget", value: `₹${totalBudget}` },
+                    { icon: "", label: "Max per creator", value: `₹${maxPerCreator}` },
+                    { icon: "", label: "Approval above", value: `₹${approvalThreshold}` },
+                    { icon: "", label: "Min creator score", value: `${minScore} / 100` },
+                    { icon: "", label: "Min audience match", value: `${minAudience}%` },
+                    { icon: "", label: "Allowed categories", value: allowed.join(", ") || "None" },
                   ].map((item) => (
                     <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontSize: 16 }}>{item.icon}</span>

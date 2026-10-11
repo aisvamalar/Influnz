@@ -1,0 +1,313 @@
+/* Business sidebar — floating rust panel that collapses to an icon rail (prefix: bsb). */
+
+.bsb {
+  --bsb-bg: #252d3c;
+  --bsb-ink: #a9502c;
+  --bsb-text: #c3cad6;
+  --bsb-line: rgba(255, 255, 255, 0.08);
+
+  height: 100%;
+  padding: 14px 6px 14px 14px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.bsb__panel {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: var(--bsb-bg);
+  color: var(--bsb-text);
+  box-shadow: 0 12px 30px -18px rgba(37, 45, 60, 0.6);
+}
+
+/* ── Brand ── */
+.bsb__brand {
+  display: flex;
+  align-items: center;
+  height: 80px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--bsb-line);
+}
+
+.bsb__logo {
+  display: block;
+}
+
+/* Collapsed: just the "i" mark; clicking it expands the rail. */
+.bsb__mark {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bsb__mark:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Collapse toggle ── */
+.bsb__toggle {
+  position: absolute;
+  top: 27px;
+  right: -13px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid #faf8f5;
+  background: #ffffff;
+  color: var(--bsb-ink);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+  transition: color 0.15s ease;
+}
+
+.bsb__toggle:hover {
+  color: #7d3a1f;
+}
+
+.bsb__toggle svg {
+  transition: transform 0.25s ease;
+}
+
+.bsb.is-collapsed .bsb__toggle svg {
+  transform: rotate(180deg);
+}
+
+/* ── Nav ── */
+.bsb__nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px;
+}
+
+.bsb__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--bsb-text);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bsb__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.bsb__item:focus-visible,
+.bsb__toggle:focus-visible,
+.bsb__mark:focus-visible {
+  outline: 2px solid var(--in-coral);
+  outline-offset: 2px;
+}
+
+.bsb__item.is-active {
+  background: var(--in-coral);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 6px 16px -8px rgba(242, 132, 107, 0.7);
+}
+
+.bsb__icon {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.bsb__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.bsb__label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ── Footer: profile + settings ── */
+.bsb__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 18px;
+  border-top: 1px solid var(--bsb-line);
+}
+
+.bsb__profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bsb__profile:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bsb__profile.is-incomplete .bsb__who small {
+  color: #f6a58f;
+}
+
+.bsb__profile.is-incomplete .bsb__avatar::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f6b24a;
+  box-shadow: 0 0 0 2px var(--bsb-bg);
+}
+
+.bsb__avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--in-coral);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.bsb__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.bsb__who strong {
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bsb__who small {
+  color: #8f99aa;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Tooltip (collapsed rail only) ── */
+.bsb__tip {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 14px);
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: var(--in-charcoal);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-4px, -50%);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* ── Collapsed rail ── */
+.bsb.is-collapsed .bsb__brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.bsb.is-collapsed .bsb__logo,
+.bsb.is-collapsed .bsb__label,
+.bsb.is-collapsed .bsb__who {
+  display: none;
+}
+
+.bsb.is-collapsed .bsb__mark {
+  display: grid;
+}
+
+.bsb.is-collapsed .bsb__nav {
+  gap: 18px;
+}
+
+.bsb.is-collapsed .bsb__nav,
+.bsb.is-collapsed .bsb__foot {
+  align-items: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.bsb.is-collapsed .bsb__item {
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+}
+
+.bsb.is-collapsed .bsb__profile {
+  justify-content: center;
+  width: auto;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.bsb.is-collapsed .bsb__tip {
+  display: block;
+}
+
+.bsb.is-collapsed .bsb__item:hover .bsb__tip,
+.bsb.is-collapsed .bsb__item:focus-visible .bsb__tip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bsb *,
+  .bsb *::before,
+  .bsb *::after {
+    transition: none !important;
+  }
+}

@@ -3,29 +3,11 @@
  * Post-campaign reporting, creator performance, optimization recommendations
  */
 import { useState } from 'react';
-import BusinessLayout from './BusinessLayout';
+import BusinessLayout from '../BusinessLayout';
+import { AI_OPTS, CREATOR_PERF, KPIS, TREND } from '../analyticsData';
+import UiIcon from '../../../components/UiIcon';
 
-const CREATOR_PERF = [
-  { name: 'Foodie Tamilan', reach: '2.1L', views: '1.84L', engagements: '180K', enquiries: '310', spend: '₹10,000', cac: '₹32', perf: 94 },
-  { name: 'Chennai Bites',  reach: '380K', views: '310K',  engagements: '38K',  enquiries: '142', spend: '₹11,500', cac: '₹81', perf: 78 },
-  { name: 'Madras Food Trail', reach: '62K', views: '48K', engagements: '12K', enquiries: '88', spend: '₹6,200', cac: '₹70', perf: 82 },
-];
-
-const TREND = [
-  { label: '1 Sep', views: 0 },
-  { label: '8 Sep', views: 12000 },
-  { label: '15 Sep', views: 58000 },
-  { label: '22 Sep', views: 145000 },
-  { label: '30 Sep', views: 184000 },
-];
-
-const AI_OPTS = [
-  { icon: '📈', rec: 'Foodie Tamilan is driving 3× more enquiries per rupee spent. Consider allocating ₹8,000 more for Phase 2.' },
-  { icon: '⚡', rec: 'Chennai Bites engagement rate dropped after Day 3. Content cadence may need review.' },
-  { icon: '🎯', rec: 'Overall CAC of ₹52 is below the ₹80 target. Campaign is performing above expectations.' },
-];
-
-export default function AnalyticsPage() {
+export default function AnalyticsPageWeb() {
   const [period, setPeriod] = useState('This campaign');
 
   return (
@@ -44,14 +26,7 @@ export default function AnalyticsPage() {
 
       {/* Top KPIs */}
       <div className="biz-kpi-grid">
-        {[
-          { label: 'Total views', value: '2.8M', delta: '+12%', dir: 'up' },
-          { label: 'Engagements', value: '180K', delta: '+95%', dir: 'up' },
-          { label: 'Enquiries', value: '302', delta: '+140%', dir: 'up' },
-          { label: 'Story visits', value: '110', delta: '+145%', dir: 'up' },
-          { label: 'Total spend', value: '₹27,700', delta: '', dir: '' },
-          { label: 'Avg. CAC', value: '₹52', delta: '↓35%', dir: 'up' },
-        ].map(k => (
+        {KPIS.map(k => (
           <div key={k.label} className="biz-kpi">
             <span className="biz-kpi__label">{k.label}</span>
             <span className="biz-kpi__value">{k.value}</span>
@@ -191,7 +166,7 @@ export default function AnalyticsPage() {
               padding: '14px 16px', borderRadius: 12,
               background: 'rgba(242,132,107,0.04)', border: '1px solid rgba(242,132,107,0.12)',
             }}>
-              <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>{o.icon}</span>
+              <span style={{ fontSize: '1.25rem', flexShrink: 0 }}><UiIcon name={o.icon} /></span>
               <span style={{ fontSize: '0.875rem', color: 'var(--in-charcoal)', lineHeight: 1.55 }}>{o.rec}</span>
               <button className="biz-btn biz-btn--ghost" style={{ height: 30, fontSize: '0.75rem', flexShrink: 0, marginLeft: 'auto' }}>
                 Apply
@@ -200,7 +175,7 @@ export default function AnalyticsPage() {
           ))}
         </div>
         <p style={{ fontSize: '0.75rem', color: 'var(--in-gray-light)', marginTop: 14 }}>
-          ⚠️ Missing or incomplete analytics are labeled as such. Optimization changes require your approval unless automation is enabled.
+          <UiIcon name="alert" /> Missing or incomplete analytics are labeled as such. Optimization changes require your approval unless automation is enabled.
         </p>
       </div>
     </BusinessLayout>

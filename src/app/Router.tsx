@@ -15,7 +15,7 @@ const Dashboard    = lazy(() => import('../features/dashboard/DashboardPlacehold
 const BizDashboard        = lazy(() => import('../features/business/BusinessDashboard'));
 const CampaignList        = lazy(() => import('../features/business/CampaignListPage'));
 const CreateCampaign      = lazy(() => import('../features/business/CreateCampaignPage'));
-const CreatorSelection    = lazy(() => import('../features/business/CreatorSelectionPage'));
+const CreatorSelection    = lazy(() => import('../features/business/web/CreatorSelectionWeb'));
 const Strategy           = lazy(() => import('../features/business/CampaignStrategyPage'));
 const CampaignCreators    = lazy(() => import('../features/business/CampaignCreatorsPage'));
 const NegotiationParams   = lazy(() => import('../features/business/NegotiationParametersPage'));
@@ -28,6 +28,8 @@ const Payments            = lazy(() => import('../features/business/PaymentsPage
 const Notifications       = lazy(() => import('../features/business/NotificationsPage'));
 const Settings            = lazy(() => import('../features/business/SettingsPage'));
 const CampaignContent     = lazy(() => import('../features/business/CampaignContentPage'));
+const AIStrategyWizard    = lazy(() => import('../features/business/AIStrategyWizard/AIStrategyWizardPage'));
+const CampaignParametersWizard = lazy(() => import('../features/business/CampaignParametersWizard/CampaignParametersWizardPage'));
 
 function PageLoader() {
   return (
@@ -57,6 +59,8 @@ export default function AppRouter() {
         <Route path="/business" element={<ProtectedRoute><BizDashboard /></ProtectedRoute>} />
         <Route path="/business/campaigns" element={<ProtectedRoute><CampaignList /></ProtectedRoute>} />
         <Route path="/business/campaigns/new" element={<ProtectedRoute><CreateCampaign /></ProtectedRoute>} />
+        <Route path="/business/campaigns/ai-strategy" element={<ProtectedRoute><AIStrategyWizard /></ProtectedRoute>} />
+        <Route path="/business/campaigns/parameters" element={<ProtectedRoute><CampaignParametersWizard /></ProtectedRoute>} />
         <Route path="/business/campaigns/strategy" element={<ProtectedRoute><Strategy /></ProtectedRoute>} />
         <Route path="/business/campaigns/creators" element={<ProtectedRoute><CampaignCreators /></ProtectedRoute>} />
         <Route path="/business/campaigns/guardrails" element={<ProtectedRoute><NegotiationParams /></ProtectedRoute>} />

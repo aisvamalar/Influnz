@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetSchema, type ResetFormValues } from './schemas';
 import Logo from '../../components/Logo';
-import { EyeIcon, PasswordStrengthBar, Spinner, Field } from './AuthFormParts';
+import { EyeIcon, PasswordStrengthBar, Spinner, Field } from './AuthFormParts';
+import UiIcon from '../../components/UiIcon';
 
 function LockIcon() {
   return (
@@ -56,7 +57,7 @@ export default function ResetPasswordPage() {
 
         {done ? (
           <div className="in-success-wrap">
-            <div className="in-success-icon" aria-hidden="true">🔒</div>
+            <div className="in-success-icon" aria-hidden="true"><UiIcon name="lock" /></div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--in-charcoal)', letterSpacing: '-0.02em' }}>
               Password updated!
             </h1>

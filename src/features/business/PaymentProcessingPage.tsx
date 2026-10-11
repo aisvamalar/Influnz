@@ -234,7 +234,7 @@ export default function PaymentProcessingPage() {
                   justifyContent: 'center',
                   fontSize: '20px'
                 }}>
-                  🏦
+                 
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>

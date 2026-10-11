@@ -99,7 +99,7 @@ export default function CampaignAnalyticsPage() {
           <div style={{
             fontSize: '48px'
           }}>
-            🎉
+           
           </div>
           <div style={{ flex: 1 }}>
             <h2 style={{
@@ -128,10 +128,10 @@ export default function CampaignAnalyticsPage() {
           marginBottom: '32px'
         }}>
           {[
-            { label: 'Total Reach', value: '2.4M', change: '+24%', icon: '👥', color: '#3b82f6' },
-            { label: 'Engagement', value: '156K', change: '+18%', icon: '❤️', color: '#ec4899' },
-            { label: 'Video Views', value: '890K', change: '+32%', icon: '▶️', color: '#8b5cf6' },
-            { label: 'ROI', value: '4.2x', change: '+15%', icon: '📈', color: '#10b981' }
+            { label: 'Total Reach', value: '2.4M', change: '+24%', icon: '', color: '#3b82f6' },
+            { label: 'Engagement', value: '156K', change: '+18%', icon: '', color: '#ec4899' },
+            { label: 'Video Views', value: '890K', change: '+32%', icon: '', color: '#8b5cf6' },
+            { label: 'ROI', value: '4.2x', change: '+15%', icon: '', color: '#10b981' }
           ].map((metric) => (
             <div
               key={metric.label}
@@ -348,7 +348,7 @@ export default function CampaignAnalyticsPage() {
                   borderRadius: '12px',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '24px', marginBottom: '4px' }}>👩</div>
+                  <div style={{ fontSize: '24px', marginBottom: '4px' }}></div>
                   <div style={{ fontSize: '20px', fontWeight: '700', color: '#3b82f6' }}>58%</div>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>Female</div>
                 </div>
@@ -359,7 +359,7 @@ export default function CampaignAnalyticsPage() {
                   borderRadius: '12px',
                   textAlign: 'center'
                 }}>
-                  <div style={{ fontSize: '24px', marginBottom: '4px' }}>👨</div>
+                  <div style={{ fontSize: '24px', marginBottom: '4px' }}></div>
                   <div style={{ fontSize: '20px', fontWeight: '700', color: '#10b981' }}>42%</div>
                   <div style={{ fontSize: '12px', color: '#6b7280' }}>Male</div>
                 </div>
@@ -391,11 +391,11 @@ export default function CampaignAnalyticsPage() {
             gap: '20px'
           }}>
             {[
-              { label: 'Likes', value: '89.2K', icon: '❤️', percent: 92 },
-              { label: 'Comments', value: '12.4K', icon: '💬', percent: 78 },
+              { label: 'Likes', value: '89.2K', icon: '', percent: 92 },
+              { label: 'Comments', value: '12.4K', icon: '', percent: 78 },
               { label: 'Shares', value: '8.9K', icon: '↗️', percent: 85 },
-              { label: 'Saves', value: '15.3K', icon: '🔖', percent: 88 },
-              { label: 'Click Rate', value: '4.2%', icon: '🔗', percent: 95 }
+              { label: 'Saves', value: '15.3K', icon: '', percent: 88 },
+              { label: 'Click Rate', value: '4.2%', icon: '', percent: 95 }
             ].map((stat) => (
               <div key={stat.label} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '32px', marginBottom: '8px' }}>

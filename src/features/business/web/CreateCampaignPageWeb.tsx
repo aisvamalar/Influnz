@@ -4,7 +4,8 @@
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BusinessLayout from './BusinessLayout';
+import BusinessLayout from '../BusinessLayout';
+import UiIcon from '../../../components/UiIcon';
 
 type ConversationStage = 'initial' | 'results';
 
@@ -25,7 +26,7 @@ const SUGGESTION_CHIPS = [
   'Increase brand awareness',
 ];
 
-export default function CreateCampaignPage() {
+export default function CreateCampaignPageWeb() {
   const navigate = useNavigate();
   const [activeMode, setActiveMode] = useState<'ai' | 'manual'>('ai');
   const [stage, setStage] = useState<ConversationStage>('initial');
@@ -75,14 +76,14 @@ export default function CreateCampaignPage() {
               fontFamily: 'inherit',
             }}
           >
-            <span>{mode === 'ai' ? '✨' : '⚙️'}</span>
+            <UiIcon name={mode === 'ai' ? 'sparkles' : 'settings'} />
             {mode === 'ai' ? 'AI Assistant' : 'Manual Setup'}
           </button>
         ))}
       </div>
 
       {/* Two-Panel Layout */}
-      <div style={{ display: 'flex', gap: 24, minHeight: 600, height: 'calc(100vh - 280px)' }}>
+      <div style={{ display: 'flex', gap: 24, minHeight: 600, height: 'calc(100dvh / var(--biz-zoom, 1) - 280px)' }}>
         {/* LEFT PANEL - Chat */}
         <div style={{ flex: '0 0 58%', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
           {/* Messages Area */}
@@ -91,12 +92,10 @@ export default function CreateCampaignPage() {
               <>
                 {/* Bot Greeting */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FFB5A7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
-                    🤖
-                  </div>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FFB5A7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><UiIcon name="bot" /></div>
                   <div style={{ background: '#F5F5F5', borderRadius: '12px 12px 12px 4px', padding: '16px 20px', maxWidth: '85%' }}>
                     <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 6 }}>
-                      Hi! I'm your campaign assistant 👋
+                      Hi! I'm your campaign assistant
                     </div>
                     <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.5 }}>
                       Tell me what you want to achieve, and I'll help you create the best campaign.
@@ -154,12 +153,10 @@ export default function CreateCampaignPage() {
 
                 {/* Bot Response */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FFB5A7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
-                    🤖
-                  </div>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FFB5A7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><UiIcon name="bot" /></div>
                   <div style={{ background: '#F9FAFB', borderRadius: '12px 12px 12px 4px', padding: '20px 24px', flex: 1, maxWidth: '95%' }}>
                     <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>
-                      Here's what I understood from your brief 👍
+                      Here's what I understood from your brief
                     </div>
                     <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20, lineHeight: 1.5 }}>
                       I've extracted the key details. Please review and edit if needed before I generate the campaign strategy.
@@ -169,10 +166,10 @@ export default function CreateCampaignPage() {
                     <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.5px' }}>
-                          🎯 CAMPAIGN GOAL
+                          <UiIcon name="target" /> CAMPAIGN GOAL
                         </span>
                         <button style={{ background: 'none', border: 'none', color: '#FF6B35', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                          ✏️ Edit all
+                          <UiIcon name="edit" /> Edit all
                         </button>
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a' }}>
@@ -183,13 +180,13 @@ export default function CreateCampaignPage() {
                     {/* Fields Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                       {[
-                        { label: 'BUDGET', value: '₹1,50,000', icon: '💰' },
-                        { label: 'LOCATION', value: 'Chennai (15 km)', icon: '📍' },
-                        { label: 'DURATION', value: '15 days', icon: '📅' },
-                        { label: 'CATEGORY', value: 'Food & Beverage', icon: '🍽️' },
-                        { label: 'TARGET AUDIENCE', value: 'Local food lovers (18–34)', icon: '👥' },
-                        { label: 'LANGUAGE', value: 'Tamil / Tanglish', icon: '🗣️' },
-                        { label: 'PLATFORM', value: 'Instagram', icon: '📱', span: true },
+                        { label: 'BUDGET', value: '₹1,50,000', icon: 'money' },
+                        { label: 'LOCATION', value: 'Chennai (15 km)', icon: 'pin' },
+                        { label: 'DURATION', value: '15 days', icon: 'calendar' },
+                        { label: 'CATEGORY', value: 'Food & Beverage', icon: 'utensils' },
+                        { label: 'TARGET AUDIENCE', value: 'Local food lovers (18–34)', icon: 'users' },
+                        { label: 'LANGUAGE', value: 'Tamil / Tanglish', icon: 'languages' },
+                        { label: 'PLATFORM', value: 'Instagram', icon: 'phone', span: true },
                       ].map((field, idx) => (
                         <div
                           key={idx}
@@ -203,11 +200,9 @@ export default function CreateCampaignPage() {
                         >
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                             <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.5px' }}>
-                              {field.icon} {field.label}
+                              <UiIcon name={field.icon} /> {field.label}
                             </span>
-                            <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 14, padding: 0 }}>
-                              ✏️
-                            </button>
+                            <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 14, padding: 0 }}><UiIcon name="edit" /></button>
                           </div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>
                             {field.value}
@@ -224,9 +219,7 @@ export default function CreateCampaignPage() {
           {/* Input Bar */}
           <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', background: 'white' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 22, padding: 4, display: 'flex', alignItems: 'center' }}>
-                📎
-              </button>
+              <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 22, padding: 4, display: 'flex', alignItems: 'center' }}><UiIcon name="paperclip" /></button>
               <input
                 type="text"
                 value={inputValue}
@@ -277,7 +270,7 @@ export default function CreateCampaignPage() {
             <>
               <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #e5e7eb' }}>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', margin: '0 0 6px 0' }}>
-                  📋 Your Campaign
+                  <UiIcon name="clipboard" /> Your Campaign
                 </h3>
                 <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
                   The details will be filled as we chat
@@ -302,7 +295,7 @@ export default function CreateCampaignPage() {
               </div>
               <div style={{ margin: '0 24px 24px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '14px 16px' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
-                  💡 Tip
+                  <UiIcon name="idea" /> Tip
                 </div>
                 <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.5, marginBottom: 8 }}>
                   Be as specific as possible to get better recommendations.

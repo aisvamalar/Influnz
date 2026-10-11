@@ -1,760 +1,31 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import BusinessLayout from './BusinessLayout';
-import './negotiation-preview.css';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import BusinessLayout from '../BusinessLayout';
+import ContentReviewDrawer, { initialReview, type ReviewMap, type ReviewRecord } from './ContentReviewDrawer';
+import '../negotiation-preview.css';
+import {
+  INITIAL_CREATORS,
+  chennaiThumb,
+  complianceCert,
+  type ContentDeliverable,
+  type CreatorData,
+} from '../campaignWorkspaceData';
 
-// Import images
-import chennaiThumb from '../../assets/campaigns/chennai-cafe-thumb.png';
-import avatarShruti from '../../assets/campaigns/avatar-shruti.png';
-import c1Shruti from '../../assets/campaigns/c1-shruti.png';
-import c2Pranav from '../../assets/campaigns/c2-pranav.png';
-import c3Explorer from '../../assets/campaigns/c3-explorer.png';
-import c4Anu from '../../assets/campaigns/c4-anu.png';
-import c5Rohit from '../../assets/campaigns/c5-rohit.png';
-import c6Foodtales from '../../assets/campaigns/c6-foodtales.png';
-import c7Madras from '../../assets/campaigns/c7-madras.png';
-import c8Cafe from '../../assets/campaigns/c8-cafe.png';
+const CAMPAIGN_NAMES: Record<string, string> = {
+  '1': 'Chennai Café Launch',
+  '2': 'Mumbai Fashion Drop',
+  '3': 'Bangalore Tech Event',
+  '4': 'Delhi Festive Campaign',
+};
 
-// Import content assets matching Pasted Image.png & Pasted Image 2.png
-import contentD1 from '../../assets/campaigns/content-d1.png';
-import contentD2 from '../../assets/campaigns/content-d2.png';
-import contentD3 from '../../assets/campaigns/content-d3.png';
-import videoPlayerMain from '../../assets/campaigns/video-player-main.png';
-import frame1 from '../../assets/campaigns/frame-1.png';
-import frame2 from '../../assets/campaigns/frame-2.png';
-import frame3 from '../../assets/campaigns/frame-3.png';
-import frame4 from '../../assets/campaigns/frame-4.png';
-import complianceCert from '../../assets/campaigns/compliance-cert.png';
+import UiIcon from '../../../components/UiIcon';
 
-interface NegotiationOffer {
-  type: 'initial' | 'creator-counter' | 'our-counter';
-  title: string;
-  amount: string;
-  deliverables: string;
-  extra?: string;
-}
-
-interface NegotiationStep {
-  sender: 'ai' | 'creator';
-  time: string;
-  message: string;
-  offer?: NegotiationOffer;
-}
-
-interface ContentDeliverable {
-  id: string;
-  title: string;
-  type: string;
-  duration: string;
-  status: 'approved' | 'in_review' | 'revision' | 'pending';
-  complianceScore: number;
-  submittedDate: string;
-  thumbnail: string;
-  videoPreview: string;
-  caption: string;
-  hashtags: string[];
-  location: string;
-  postedOn: string;
-  likes: string;
-  comments: string;
-  shares: string;
-  saves: string;
-  checks: {
-    brandTag: string;
-    paidDisclosure: string;
-    productShown: string;
-    audioClear: string;
-    noMisleading: string;
-    formatDuration: string;
-  };
-}
-
-interface CreatorPerformance {
-  views: string;
-  reach: string;
-  visits: number;
-  cac: string;
-  engagement: string;
-  grade: 'A+' | 'A' | 'B+' | 'B' | '—';
-  sales: string;
-  couponsUsed: number;
-  aiNote: string;
-}
-
-interface CreatorPayment {
-  totalFee: string;
-  released: string;
-  escrow: string;
-  status: 'released' | 'escrow' | 'hold';
-  invoiceId: string;
-  accountMasked: string;
-  tdsDeducted: string;
-}
-
-interface CreatorData {
-  id: string;
-  name: string;
-  handle: string;
-  avatar: string;
-  largeAvatar?: string;
-  verified: boolean;
-  status: 'accepted' | 'pending' | 'intervene' | 'not-started';
-  contentStatus: 'approved' | 'in_review' | 'not-started' | 'pending' | 'completed';
-  contentDeliveredText: string;
-  finalOffer: string;
-  wasPrice: string;
-  initialOffer: string;
-  creatorAsk: string;
-  deliverables: string;
-  usageRights: string;
-  timeline: string;
-  exclusivity: string;
-  followers: string;
-  engagement: string;
-  location: string;
-  insights: string[];
-  steps: NegotiationStep[];
-  contentDeliverables: ContentDeliverable[];
-  performance: CreatorPerformance;
-  payments: CreatorPayment;
-}
-
-const INITIAL_CREATORS: CreatorData[] = [
-  {
-    id: 'shruti',
-    name: 'Shruti Vlogs',
-    handle: '@shruti.vlogs',
-    avatar: c1Shruti,
-    largeAvatar: avatarShruti,
-    verified: true,
-    status: 'accepted',
-    contentStatus: 'approved',
-    contentDeliveredText: '3/3 delivered',
-    finalOffer: '₹32,000',
-    wasPrice: '(was ₹45,000)',
-    initialOffer: '₹25,000',
-    creatorAsk: '₹45,000',
-    deliverables: '1 Reel + 3 Stories',
-    usageRights: '20 days',
-    timeline: 'Within 20 days',
-    exclusivity: 'Category exclusive (Chennai)',
-    followers: '1.2M',
-    engagement: '4.8%',
-    location: 'Chennai, TN',
-    insights: [
-      'Good audience fit for Chennai market',
-      'Strong engagement rate (4.8%)',
-      'Creator open to long-term collaboration',
-      'Recommended for future campaigns',
-    ],
-    steps: [
-      {
-        sender: 'ai',
-        time: '10:02 AM',
-        message: 'Analyzed creator profile, audience fit and past brand collabs...',
-        offer: {
-          type: 'initial',
-          title: 'Initial Offer',
-          amount: '₹25,000',
-          deliverables: '1 Reel + 3 Stories',
-        },
-      },
-      {
-        sender: 'ai',
-        time: '10:03 AM',
-        message: 'Creator requested ₹45,000. Negotiating within your limit...',
-        offer: {
-          type: 'creator-counter',
-          title: 'Creator Counter',
-          amount: '₹45,000',
-          deliverables: '1 Reel + 3 Stories',
-        },
-      },
-      {
-        sender: 'ai',
-        time: '10:04 AM',
-        message: 'Presented counter offer with usage rights and 20 days timeline...',
-        offer: {
-          type: 'our-counter',
-          title: 'Our Counter',
-          amount: '₹32,000',
-          deliverables: '1 Reel + 3 Stories',
-          extra: '+ 20 days usage rights',
-        },
-      },
-      {
-        sender: 'creator',
-        time: '10:06 AM',
-        message:
-          "Looks good! I'm happy to collaborate at ₹32,000 with the proposed deliverables and timeline.",
-      },
-    ],
-    contentDeliverables: [
-      {
-        id: 'deliv-shruti-1',
-        title: 'Café Experience Reel',
-        type: 'Instagram Reel (30–60s)',
-        duration: '0:45',
-        status: 'approved',
-        complianceScore: 98,
-        submittedDate: 'Submitted on 25 Oct 2026',
-        thumbnail: contentD1,
-        videoPreview: videoPlayerMain,
-        caption: 'The perfect café spot in Chennai! ☕💛 Great food, cozy vibes and a must visit! #ad #ChennaiCafe',
-        hashtags: ['#ChennaiCafe', '#ChennaiFood', '#CafeVibes', '+2'],
-        location: 'Chennai, TN',
-        postedOn: '25 Oct 2026, 11:02 AM',
-        likes: '8.2K',
-        comments: '542',
-        shares: '312',
-        saves: '186',
-        checks: {
-          brandTag: 'Found',
-          paidDisclosure: 'Found',
-          productShown: 'Found',
-          audioClear: 'Good',
-          noMisleading: 'Clear',
-          formatDuration: '0:45 (Valid)',
-        },
-      },
-      {
-        id: 'deliv-shruti-2',
-        title: 'Menu Highlight Story',
-        type: 'Instagram Story (3 frames)',
-        duration: '3 frames',
-        status: 'approved',
-        complianceScore: 96,
-        submittedDate: 'Submitted on 28 Oct 2026',
-        thumbnail: contentD2,
-        videoPreview: contentD2,
-        caption: 'Must-try signature cold brew and wood-fired sourdough pizzas at Chennai Café! 🍕☕ Location tagged.',
-        hashtags: ['#ChennaiCafe', '#FoodieChennai'],
-        location: 'Chennai, TN',
-        postedOn: '28 Oct 2026, 04:30 PM',
-        likes: '4.5K',
-        comments: '128',
-        shares: '180',
-        saves: '95',
-        checks: {
-          brandTag: 'Found',
-          paidDisclosure: 'Found',
-          productShown: 'Found',
-          audioClear: 'Good',
-          noMisleading: 'Clear',
-          formatDuration: '3 frames (Valid)',
-        },
-      },
-      {
-        id: 'deliv-shruti-3',
-        title: 'Closing Story',
-        type: 'Instagram Story (2 frames)',
-        duration: '0:60',
-        status: 'approved',
-        complianceScore: 99,
-        submittedDate: 'Submitted on 30 Oct 2026',
-        thumbnail: contentD3,
-        videoPreview: contentD3,
-        caption: 'Weekend discount code CAFE15 still valid! Swipe up to get directions. ☕✨',
-        hashtags: ['#ChennaiCafe', '#WeekendVibes'],
-        location: 'Chennai, TN',
-        postedOn: '30 Oct 2026, 06:15 PM',
-        likes: '6.1K',
-        comments: '290',
-        shares: '240',
-        saves: '142',
-        checks: {
-          brandTag: 'Found',
-          paidDisclosure: 'Found',
-          productShown: 'Found',
-          audioClear: 'Good',
-          noMisleading: 'Clear',
-          formatDuration: '0:60 (Valid)',
-        },
-      },
-    ],
-    performance: {
-      views: '325K',
-      reach: '240K',
-      visits: 540,
-      cac: '₹59',
-      engagement: '4.8%',
-      grade: 'A+',
-      sales: '₹2,43,000',
-      couponsUsed: 312,
-      aiNote: 'Highest footfall conversion in Chennai market. Drove massive weekend brunch traffic.',
-    },
-    payments: {
-      totalFee: '₹32,000',
-      released: '₹32,000',
-      escrow: '₹0',
-      status: 'released',
-      invoiceId: 'INV-2026-081',
-      accountMasked: 'HDFC •••• 4921',
-      tdsDeducted: '₹320 (1%)',
-    },
-  },
-  {
-    id: 'pranav',
-    name: 'Thefoodiepranav',
-    handle: '@thefoodiepranav',
-    avatar: c2Pranav,
-    verified: false,
-    status: 'pending',
-    contentStatus: 'in_review',
-    contentDeliveredText: '1/3 delivered',
-    finalOffer: '₹28,000',
-    wasPrice: '(was ₹40,000)',
-    initialOffer: '₹22,000',
-    creatorAsk: '₹40,000',
-    deliverables: '1 Reel + 2 Stories',
-    usageRights: '15 days',
-    timeline: 'Within 15 days',
-    exclusivity: 'Category exclusive (Chennai)',
-    followers: '340K',
-    engagement: '5.2%',
-    location: 'Chennai, TN',
-    insights: [
-      'High reach among foodies in Anna Nagar & T. Nagar',
-      'Average view rate above 42,000 on restaurant reels',
-      'Awaiting creator confirmation on counter offer',
-    ],
-    steps: [
-      {
-        sender: 'ai',
-        time: '10:11 AM',
-        message: 'Initiated brief with campaign deliverables and footfall target.',
-        offer: {
-          type: 'initial',
-          title: 'Initial Offer',
-          amount: '₹22,000',
-          deliverables: '1 Reel + 2 Stories',
-        },
-      },
-      {
-        sender: 'ai',
-        time: '10:14 AM',
-        message: 'Creator counter received. Negotiating with creator within guardrails...',
-        offer: {
-          type: 'creator-counter',
-          title: 'Creator Counter',
-          amount: '₹40,000',
-          deliverables: '1 Reel + 2 Stories',
-        },
-      },
-      {
-        sender: 'ai',
-        time: '10:18 AM',
-        message: 'Sent optimized counter offer of ₹28,000. Waiting for creator acceptance.',
-        offer: {
-          type: 'our-counter',
-          title: 'Our Counter',
-          amount: '₹28,000',
-          deliverables: '1 Reel + 2 Stories',
-          extra: '+ 15 days usage rights',
-        },
-      },
-    ],
-    contentDeliverables: [
-      {
-        id: 'deliv-pranav-1',
-        title: 'Street Food vs Café Brew Comparison',
-        type: 'Instagram Reel (30–60s)',
-        duration: '0:50',
-        status: 'in_review',
-        complianceScore: 92,
-        submittedDate: 'Submitted on 27 Oct 2026',
-        thumbnail: contentD1,
-        videoPreview: contentD1,
-        caption: 'Exploring Chennai Café specialty drinks! Check out this filter coffee brew. #ad #ChennaiCafe',
-        hashtags: ['#ChennaiCafe', '#ChennaiFoodies'],
-        location: 'Anna Nagar, Chennai',
-        postedOn: 'Draft Review',
-        likes: '—',
-        comments: '—',
-        shares: '—',
-        saves: '—',
-        checks: {
-          brandTag: 'Found',
-          paidDisclosure: 'Found',
-          productShown: 'Found',
-          audioClear: 'Good',
-          noMisleading: 'Clear',
-          formatDuration: '0:50 (Valid)',
-        },
-      },
-    ],
-    performance: {
-      views: '98,000',
-      reach: '76,000',
-      visits: 180,
-      cac: '₹68',
-      engagement: '5.2%',
-      grade: 'A',
-      sales: '₹84,000',
-      couponsUsed: 94,
-      aiNote: 'Strong engagement from youth demographic in Anna Nagar.',
-    },
-    payments: {
-      totalFee: '₹28,000',
-      released: '₹0',
-      escrow: '₹28,000',
-      status: 'escrow',
-      invoiceId: 'INV-2026-084',
-      accountMasked: 'ICICI •••• 8820',
-      tdsDeducted: '₹280 (1%)',
-    },
-  },
-  {
-    id: 'explorer',
-    name: 'Chennai Explorer',
-    handle: '@chennai.explorer',
-    avatar: c3Explorer,
-    verified: false,
-    status: 'intervene',
-    contentStatus: 'not-started',
-    contentDeliveredText: '0/3 delivered',
-    finalOffer: '₹30,000',
-    wasPrice: '(was ₹38,000)',
-    initialOffer: '₹24,000',
-    creatorAsk: '₹38,000',
-    deliverables: '2 Reels + 2 Stories',
-    usageRights: '30 days',
-    timeline: 'Within 18 days',
-    exclusivity: 'Regional exclusive (TN)',
-    followers: '490K',
-    engagement: '3.9%',
-    location: 'Chennai, TN',
-    insights: [
-      'Creator requested higher usage rights fee',
-      'Counter-offer is near the business approval limit',
-      'Manual intervention recommended to close the deal',
-    ],
-    steps: [],
-    contentDeliverables: [],
-    performance: {
-      views: '1,10,000',
-      reach: '85,000',
-      visits: 210,
-      cac: '₹82',
-      engagement: '3.9%',
-      grade: 'B+',
-      sales: '₹95,000',
-      couponsUsed: 112,
-      aiNote: 'Good city discovery audience. Deliverables activate upon deal confirmation.',
-    },
-    payments: {
-      totalFee: '₹30,000',
-      released: '₹0',
-      escrow: '₹30,000',
-      status: 'hold',
-      invoiceId: 'INV-2026-085',
-      accountMasked: 'Axis •••• 1044',
-      tdsDeducted: '₹300 (1%)',
-    },
-  },
-  {
-    id: 'anu',
-    name: 'Travel with Anu',
-    handle: '@travelwithanu',
-    avatar: c4Anu,
-    verified: true,
-    status: 'accepted',
-    contentStatus: 'pending',
-    contentDeliveredText: '0/3 delivered',
-    finalOffer: '₹38,000',
-    wasPrice: '(was ₹55,000)',
-    initialOffer: '₹30,000',
-    creatorAsk: '₹55,000',
-    deliverables: '1 Reel + 4 Stories',
-    usageRights: '25 days',
-    timeline: 'Within 20 days',
-    exclusivity: 'Category exclusive (Chennai)',
-    followers: '620K',
-    engagement: '4.5%',
-    location: 'Chennai, TN',
-    insights: [
-      'High trust score & viral reel track record in Chennai',
-      'Agreed to special café tasting walkthrough',
-      'Discount achieved: 31% from initial ask',
-    ],
-    steps: [],
-    contentDeliverables: [],
-    performance: {
-      views: '1,90,000',
-      reach: '1,45,000',
-      visits: 310,
-      cac: '₹122',
-      engagement: '4.5%',
-      grade: 'A',
-      sales: '₹1,38,000',
-      couponsUsed: 165,
-      aiNote: 'Excellent brand prestige and high reach across Tamil Nadu tourists.',
-    },
-    payments: {
-      totalFee: '₹38,000',
-      released: '₹38,000',
-      escrow: '₹0',
-      status: 'released',
-      invoiceId: 'INV-2026-082',
-      accountMasked: 'SBI •••• 9923',
-      tdsDeducted: '₹380 (1%)',
-    },
-  },
-  {
-    id: 'rohit',
-    name: 'Rohit Visuals',
-    handle: '@rohitvisuals',
-    avatar: c5Rohit,
-    verified: false,
-    status: 'accepted',
-    contentStatus: 'completed',
-    contentDeliveredText: '4/4 delivered',
-    finalOffer: '₹25,000',
-    wasPrice: '(was ₹32,000)',
-    initialOffer: '₹20,000',
-    creatorAsk: '₹32,000',
-    deliverables: '1 Reel + 2 Stories',
-    usageRights: '20 days',
-    timeline: 'Within 14 days',
-    exclusivity: 'Category exclusive (Chennai)',
-    followers: '280K',
-    engagement: '6.1%',
-    location: 'Chennai, TN',
-    insights: [
-      'Highest engagement rate in creator pool (6.1%)',
-      'Cinematic visual style for café aesthetic showcase',
-      'Fast turnaround promised within 14 days',
-    ],
-    steps: [],
-    contentDeliverables: [
-      {
-        id: 'deliv-rohit-1',
-        title: 'Cinematic Café Ambience & Special Pastries',
-        type: 'Instagram Reel (30–60s)',
-        duration: '0:58',
-        status: 'approved',
-        complianceScore: 94,
-        submittedDate: 'Submitted on 26 Oct 2026',
-        thumbnail: contentD2,
-        videoPreview: contentD2,
-        caption: 'Moody lighting, slow pours and artisanal bakery treats at Chennai Café. #sponsored #ChennaiCafe',
-        hashtags: ['#ChennaiCafe', '#ChennaiAesthetics'],
-        location: 'Alwarpet, Chennai',
-        postedOn: '26 Oct 2026, 02:15 PM',
-        likes: '12.4K',
-        comments: '680',
-        shares: '512',
-        saves: '420',
-        checks: {
-          brandTag: 'Found',
-          paidDisclosure: 'Found',
-          productShown: 'Found',
-          audioClear: 'Good',
-          noMisleading: 'Clear',
-          formatDuration: '0:58 (Valid)',
-        },
-      },
-    ],
-    performance: {
-      views: '1,80,000',
-      reach: '1,32,000',
-      visits: 460,
-      cac: '₹54',
-      engagement: '6.1%',
-      grade: 'A+',
-      sales: '₹2,05,000',
-      couponsUsed: 278,
-      aiNote: 'Lowest cost per visit (₹54). High repeat footfall driven to store.',
-    },
-    payments: {
-      totalFee: '₹25,000',
-      released: '₹12,500',
-      escrow: '₹12,500',
-      status: 'escrow',
-      invoiceId: 'INV-2026-083',
-      accountMasked: 'HDFC •••• 3311',
-      tdsDeducted: '₹250 (1%)',
-    },
-  },
-  {
-    id: 'foodtales',
-    name: 'Food Tales',
-    handle: '@foodtales.in',
-    avatar: c6Foodtales,
-    verified: false,
-    status: 'pending',
-    contentStatus: 'in_review',
-    contentDeliveredText: '2/4 delivered',
-    finalOffer: '₹26,000',
-    wasPrice: '(was ₹35,000)',
-    initialOffer: '₹20,000',
-    creatorAsk: '₹35,000',
-    deliverables: '1 Reel + 3 Stories',
-    usageRights: '15 days',
-    timeline: 'Within 15 days',
-    exclusivity: 'Category exclusive (Chennai)',
-    followers: '210K',
-    engagement: '4.7%',
-    location: 'Chennai, TN',
-    insights: [
-      'Strong local food discovery audience',
-      'Creator countered at ₹35,000',
-      'AI countered at ₹26,000; awaiting final reply',
-    ],
-    steps: [],
-    contentDeliverables: [
-      {
-        id: 'deliv-foodtales-1',
-        title: 'Top 5 Desserts to Try at Chennai Café',
-        type: 'Instagram Reel (30–60s)',
-        duration: '0:50',
-        status: 'in_review',
-        complianceScore: 90,
-        submittedDate: 'Submitted on 29 Oct 2026',
-        thumbnail: contentD3,
-        videoPreview: contentD3,
-        caption: 'Dessert lovers rejoice! Trying the tiramisu & pain au chocolat at Chennai Café. #ad #ChennaiCafe',
-        hashtags: ['#ChennaiDesserts', '#ChennaiCafe'],
-        location: 'Chennai, TN',
-        postedOn: 'Draft Review',
-        likes: '—',
-        comments: '—',
-        shares: '—',
-        saves: '—',
-        checks: {
-          brandTag: 'Found',
-          paidDisclosure: 'Found',
-          productShown: 'Found',
-          audioClear: 'Good',
-          noMisleading: 'Clear',
-          formatDuration: '0:50 (Valid)',
-        },
-      },
-    ],
-    performance: {
-      views: '72,000',
-      reach: '58,000',
-      visits: 140,
-      cac: '₹64',
-      engagement: '4.7%',
-      grade: 'B+',
-      sales: '₹62,000',
-      couponsUsed: 71,
-      aiNote: 'Good dessert & bakery crowd footfall driven during tea time.',
-    },
-    payments: {
-      totalFee: '₹26,000',
-      released: '₹0',
-      escrow: '₹26,000',
-      status: 'escrow',
-      invoiceId: 'INV-2026-086',
-      accountMasked: 'Kotak •••• 7120',
-      tdsDeducted: '₹260 (1%)',
-    },
-  },
-  {
-    id: 'madras',
-    name: 'Madras Bites',
-    handle: '@madrasbites',
-    avatar: c7Madras,
-    verified: false,
-    status: 'not-started',
-    contentStatus: 'not-started',
-    contentDeliveredText: '0/2 delivered',
-    finalOffer: '—',
-    wasPrice: '',
-    initialOffer: '₹18,000',
-    creatorAsk: '₹28,000',
-    deliverables: '1 Reel + 2 Stories',
-    usageRights: '14 days',
-    timeline: 'Within 14 days',
-    exclusivity: 'Category exclusive (Chennai)',
-    followers: '180K',
-    engagement: '4.2%',
-    location: 'Chennai, TN',
-    insights: [
-      'High concentration of South Chennai foodies',
-      'Ready for automated AI negotiation',
-      'Click "AI Negotiate" to generate offer',
-    ],
-    steps: [],
-    contentDeliverables: [],
-    performance: {
-      views: '—',
-      reach: '—',
-      visits: 0,
-      cac: '—',
-      engagement: '4.2%',
-      grade: '—',
-      sales: '—',
-      couponsUsed: 0,
-      aiNote: 'Negotiation pending. Sourcing content brief upon contract signature.',
-    },
-    payments: {
-      totalFee: '₹22,000 (Est.)',
-      released: '₹0',
-      escrow: '₹0',
-      status: 'hold',
-      invoiceId: 'Pending',
-      accountMasked: 'Verified on Sign',
-      tdsDeducted: '₹0',
-    },
-  },
-  {
-    id: 'cafe',
-    name: 'Cafe Stories',
-    handle: '@cafestories',
-    avatar: c8Cafe,
-    verified: false,
-    status: 'not-started',
-    contentStatus: 'not-started',
-    contentDeliveredText: '0/3 delivered',
-    finalOffer: '—',
-    wasPrice: '',
-    initialOffer: '₹16,000',
-    creatorAsk: '₹24,000',
-    deliverables: '1 Reel + 2 Stories',
-    usageRights: '14 days',
-    timeline: 'Within 14 days',
-    exclusivity: 'Category exclusive (Chennai)',
-    followers: '140K',
-    engagement: '3.8%',
-    location: 'Chennai, TN',
-    insights: [
-      'Niche café review channel',
-      'Ready for automated AI negotiation',
-      'Click "AI Negotiate" to generate offer',
-    ],
-    steps: [],
-    contentDeliverables: [],
-    performance: {
-      views: '—',
-      reach: '—',
-      visits: 0,
-      cac: '—',
-      engagement: '3.8%',
-      grade: '—',
-      sales: '—',
-      couponsUsed: 0,
-      aiNote: 'Negotiation pending. Sourcing content brief upon contract signature.',
-    },
-    payments: {
-      totalFee: '₹19,000 (Est.)',
-      released: '₹0',
-      escrow: '₹0',
-      status: 'hold',
-      invoiceId: 'Pending',
-      accountMasked: 'Verified on Sign',
-      tdsDeducted: '₹0',
-    },
-  },
-];
-
-export default function NegotiationPreviewPage() {
+export default function NegotiationPreviewPageWeb() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { id: campaignId } = useParams();
 
-  // Loader state
-  const [loading, setLoading] = useState<boolean>(true);
+  // Only the negotiation flow (/business/campaigns/negotiate without ?tab) plays the loader
+  const [loading, setLoading] = useState<boolean>(() => !campaignId && !searchParams.has('tab'));
   const [loadStep, setLoadStep] = useState<number>(0);
   const [loadProgress, setLoadProgress] = useState<number>(10);
 
@@ -764,8 +35,9 @@ export default function NegotiationPreviewPage() {
 
   // Master-Detail State per user prompt:
   // selectedCreator (id), selectedContent (id), activeCreatorTab ('content' | 'performance' | 'payments')
-  const [selectedCreatorId, setSelectedCreatorId] = useState<string>('shruti');
-  const [selectedContentId, setSelectedContentId] = useState<string>('deliv-shruti-1');
+  const linkedCreator = INITIAL_CREATORS.find((c) => c.id === searchParams.get('creator')) ?? INITIAL_CREATORS[0];
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string>(linkedCreator.id);
+  const [selectedContentId, setSelectedContentId] = useState<string>(linkedCreator.contentDeliverables[0]?.id ?? '');
   const [activeCreatorTab, setActiveCreatorTab] = useState<'content' | 'performance' | 'payments'>('content');
 
   // Search filter query on Left Creators list
@@ -774,11 +46,8 @@ export default function NegotiationPreviewPage() {
 
   // Right Workspace sub-states
   const [creators, setCreators] = useState<CreatorData[]>(INITIAL_CREATORS);
-  const [selectedFrameIndex, setSelectedFrameIndex] = useState<number>(0);
-  const [commentInput, setCommentInput] = useState<string>('');
-
   // Settings State (Sec 6.10, 6.13, 6.17, 6.18)
-  const [campaignName, setCampaignName] = useState('Chennai Café Launch');
+  const [campaignName, setCampaignName] = useState(CAMPAIGN_NAMES[campaignId ?? '1'] ?? CAMPAIGN_NAMES['1']);
   const [campaignGoal, setCampaignGoal] = useState('Drive local store visits and footfall');
   const [campaignRadius, setCampaignRadius] = useState('Chennai (15 km radius)');
   const [totalBudgetInput, setTotalBudgetInput] = useState('150000');
@@ -795,7 +64,6 @@ export default function NegotiationPreviewPage() {
   // Drawer state for content detail view
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedDeliverableIndex, setSelectedDeliverableIndex] = useState(0);
-  const [drawerSubtab, setDrawerSubtab] = useState<'content' | 'performance' | 'payments' | 'communication'>('content');
 
   const loaderMessages = [
     'Initializing AI negotiation engine with backend model...',
@@ -835,9 +103,27 @@ export default function NegotiationPreviewPage() {
     selectedCreator.contentDeliverables.find((d) => d.id === selectedContentId) ||
     selectedCreator.contentDeliverables[0] ||
     null;
+  // Review records per deliverable; approval and change requests also update the list badges
+  const [reviews, setReviews] = useState<ReviewMap>({});
+  const handleReviewChange = (deliverableId: string, change: (record: ReviewRecord) => ReviewRecord) => {
+    const owner = creators.find((c) => c.contentDeliverables.some((d) => d.id === deliverableId));
+    const deliv = owner?.contentDeliverables.find((d) => d.id === deliverableId);
+    if (!owner || !deliv) return;
+    setReviews((prev) => ({ ...prev, [deliverableId]: change(prev[deliverableId] ?? initialReview(owner, deliv)) }));
 
-  // Active deliverable in drawer (for the drawer detail view)
-  const activeDeliverable = selectedCreator.contentDeliverables[selectedDeliverableIndex] || selectedCreator.contentDeliverables[0];
+    const { stage } = change(reviews[deliverableId] ?? initialReview(owner, deliv));
+    const status: ContentDeliverable['status'] =
+      stage === 'approved' ? 'approved' : stage === 'changes_requested' ? 'revision' : stage === 'business_review' ? 'in_review' : deliv.status;
+    if (status !== deliv.status) {
+      setCreators((list) =>
+        list.map((c) =>
+          c.id !== owner.id
+            ? c
+            : { ...c, contentDeliverables: c.contentDeliverables.map((d) => (d.id === deliverableId ? { ...d, status } : d)) },
+        ),
+      );
+    }
+  };
 
   // Filter creators by search and status
   const filteredCreators = creators.filter((c) => {
@@ -862,7 +148,6 @@ export default function NegotiationPreviewPage() {
   // Master-Detail content deliverable selection handler
   const handleSelectContent = (content: ContentDeliverable) => {
     setSelectedContentId(content.id);
-    setSelectedFrameIndex(0);
   };
 
   // Handler to negotiate single creator
@@ -953,7 +238,7 @@ export default function NegotiationPreviewPage() {
               <div className="nr-orbit-dot nr-orbit-dot--2" />
             </div>
 
-            <h2 className="nr-loader-title">AI IS NEGOTIATING.....</h2>
+            <h2 className="nr-loader-title">SENDING REQUEST.....</h2>
             <div className="nr-loader-backend-tag">FOR MODEL RUNNING BACKEND</div>
 
             <div className="nr-loader-status-msg">
@@ -991,7 +276,7 @@ export default function NegotiationPreviewPage() {
         <div className="nr-breadcrumb">
           <Link to="/business/campaigns">Campaigns</Link>
           <span className="sep">&gt;</span>
-          <Link to="/business/campaigns">Chennai Café Launch</Link>
+          <Link to="/business/campaigns">{campaignName}</Link>
           <span className="sep">&gt;</span>
           <strong>
             {activeHeaderTab === 'creators' && 'Negotiation Results'}
@@ -1009,23 +294,23 @@ export default function NegotiationPreviewPage() {
             <div className="nr-header-card__left">
               <img
                 src={chennaiThumb}
-                alt="Chennai Café Launch"
+                alt=""
                 className="nr-header-card__thumb"
               />
               <div>
                 <div className="nr-header-card__title-row">
-                  <h1 className="nr-header-card__title">Chennai Café Launch</h1>
+                  <h1 className="nr-header-card__title">{campaignName}</h1>
                   <span className="nr-badge-active">Active</span>
                 </div>
                 <div className="nr-header-card__meta">
                   <span className="nr-header-card__meta-item">
-                    <span>📷</span> Instagram
+                    <span><UiIcon name="camera" /></span> Instagram
                   </span>
                   <span className="nr-header-card__meta-item">
-                    <span>👥</span> 8 creators
+                    <span><UiIcon name="users" /></span> 8 creators
                   </span>
                   <span className="nr-header-card__meta-item">
-                    <span>📅</span> Oct 24 - Nov 15
+                    <span><UiIcon name="calendar" /></span> Oct 24 - Nov 15
                   </span>
                 </div>
               </div>
@@ -1096,7 +381,7 @@ export default function NegotiationPreviewPage() {
                     onClick={handleNegotiateAll}
                     title="Negotiate remaining creators"
                   >
-                    ✨ AI Negotiate All
+                    <UiIcon name="sparkles" /> AI Negotiate All
                   </button>
                 )}
               </div>
@@ -1104,7 +389,7 @@ export default function NegotiationPreviewPage() {
               {/* Search box for Content/Performance/Payments */}
               {activeHeaderTab !== 'creators' ? (
                 <div className="nr-search-box">
-                  <span style={{ color: '#9ca3af' }}>🔍</span>
+                  <span style={{ color: '#9ca3af' }}><UiIcon name="search" /></span>
                   <input
                     type="text"
                     placeholder="Search creators..."
@@ -1192,8 +477,8 @@ export default function NegotiationPreviewPage() {
                             )}
                             <span className={`nr-badge nr-badge--${creator.status}`} style={{ marginTop: '2px' }}>
                               {creator.status === 'accepted' && '✓ Accepted'}
-                              {creator.status === 'pending' && '⏳ Pending'}
-                              {creator.status === 'intervene' && '⚠️ Intervene'}
+                              {creator.status === 'pending' && 'Pending'}
+                              {creator.status === 'intervene' && 'Intervene'}
                               {creator.status === 'not-started' && '• Not started'}
                             </span>
                           </>
@@ -1244,7 +529,7 @@ export default function NegotiationPreviewPage() {
                         src={selectedCreator.largeAvatar || selectedCreator.avatar}
                         alt={selectedCreator.name}
                       />
-                      <div className="nr-ig-badge-small">📷</div>
+                      <div className="nr-ig-badge-small"><UiIcon name="camera" /></div>
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1265,18 +550,18 @@ export default function NegotiationPreviewPage() {
                         <span>•</span>
                         <span><strong>{selectedCreator.engagement}</strong> Engagement</span>
                         <span>•</span>
-                        <span>📍 {selectedCreator.location}</span>
+                        <span><UiIcon name="pin" /> {selectedCreator.location}</span>
                       </div>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span className="nr-badge-contract-signed">📄 Contract Signed</span>
+                    <span className="nr-badge-contract-signed"><UiIcon name="file" /> Contract Signed</span>
                     <button
                       className="nr-btn-send-reminder"
                       onClick={() => alert(`Reminder sent to ${selectedCreator.name}!`)}
                     >
-                      <span>✈</span> Send Reminder
+                      <span><UiIcon name="send" /></span> Send Reminder
                     </button>
                     <button className="nr-icon-kebab" style={{ fontSize: '18px' }}>⋮</button>
                   </div>
@@ -1288,19 +573,19 @@ export default function NegotiationPreviewPage() {
                     className={`nr-creator-subtab ${activeCreatorTab === 'content' ? 'nr-creator-subtab--active' : ''}`}
                     onClick={() => setActiveCreatorTab('content')}
                   >
-                    <span>📋</span> Content
+                    <span><UiIcon name="clipboard" /></span> Content
                   </button>
                   <button
                     className={`nr-creator-subtab ${activeCreatorTab === 'performance' ? 'nr-creator-subtab--active' : ''}`}
                     onClick={() => setActiveCreatorTab('performance')}
                   >
-                    <span>📊</span> Performance
+                    <span><UiIcon name="chart" /></span> Performance
                   </button>
                   <button
                     className={`nr-creator-subtab ${activeCreatorTab === 'payments' ? 'nr-creator-subtab--active' : ''}`}
                     onClick={() => setActiveCreatorTab('payments')}
                   >
-                    <span>💳</span> Payments
+                    <span><UiIcon name="card" /></span> Payments
                   </button>
                 </div>
               </div>
@@ -1344,7 +629,7 @@ export default function NegotiationPreviewPage() {
                                 <h4>{deliv.title}</h4>
                                 <div className="nr-deliverable-subline">
                                   <span>{deliv.type}</span>
-                                  <span className="submitted-green">✔ {deliv.submittedDate}</span>
+                                  <span className="submitted-green"><UiIcon name="check" /> {deliv.submittedDate}</span>
                                 </div>
                               </div>
                             </div>
@@ -1378,16 +663,16 @@ export default function NegotiationPreviewPage() {
                       <div>
                         <div className="nr-compliance-head-row">
                           <h4>AI Compliance Check</h4>
-                          <span className="nr-badge-all-met">✔ All requirements met</span>
+                          <span className="nr-badge-all-met"><UiIcon name="check" /> All requirements met</span>
                         </div>
 
                         <div className="nr-compliance-body-row">
                           <ul className="nr-compliance-checklist-v2">
-                            <li><span className="green-check">✔</span> Brand tag (@ChennaiCafe)</li>
-                            <li><span className="green-check">✔</span> Paid disclosure (#ad)</li>
-                            <li><span className="green-check">✔</span> Product shown clearly</li>
-                            <li><span className="green-check">✔</span> No misleading claims</li>
-                            <li><span className="green-check">✔</span> Format & duration correct</li>
+                            <li><span className="green-check"><UiIcon name="check" /></span> Brand tag (@ChennaiCafe)</li>
+                            <li><span className="green-check"><UiIcon name="check" /></span> Paid disclosure (#ad)</li>
+                            <li><span className="green-check"><UiIcon name="check" /></span> Product shown clearly</li>
+                            <li><span className="green-check"><UiIcon name="check" /></span> No misleading claims</li>
+                            <li><span className="green-check"><UiIcon name="check" /></span> Format & duration correct</li>
                           </ul>
                           <img src={complianceCert} alt="Verified Certificate" className="nr-cert-graphic" />
                         </div>
@@ -1420,17 +705,17 @@ export default function NegotiationPreviewPage() {
 
                       <div className="nr-perf-metric-tiles">
                         <div className="nr-perf-tile">
-                          <div className="nr-perf-tile-top">👁 325K</div>
+                          <div className="nr-perf-tile-top"><UiIcon name="eye" /> 325K</div>
                           <div className="nr-perf-tile-label">Views</div>
                           <div className="nr-perf-tile-growth">↑ 28%</div>
                         </div>
                         <div className="nr-perf-tile">
-                          <div className="nr-perf-tile-top">❤️ 18.4K</div>
+                          <div className="nr-perf-tile-top"><UiIcon name="heart" /> 18.4K</div>
                           <div className="nr-perf-tile-label">Likes</div>
                           <div className="nr-perf-tile-growth">↑ 16%</div>
                         </div>
                         <div className="nr-perf-tile">
-                          <div className="nr-perf-tile-top">💬 742</div>
+                          <div className="nr-perf-tile-top"><UiIcon name="message" /> 742</div>
                           <div className="nr-perf-tile-label">Comments</div>
                           <div className="nr-perf-tile-growth">↑ 32%</div>
                         </div>
@@ -1514,7 +799,7 @@ export default function NegotiationPreviewPage() {
 
                   <div className="nr-ai-reallocation-card">
                     <div className="nr-ai-realloc-text">
-                      <h4>💡 AI Intelligence Summary for {selectedCreator.name}</h4>
+                      <h4><UiIcon name="idea" /> AI Intelligence Summary for {selectedCreator.name}</h4>
                       <p>{selectedCreator.performance.aiNote}</p>
                     </div>
                   </div>
@@ -1593,7 +878,7 @@ export default function NegotiationPreviewPage() {
                                 alert(`Downloading GST Invoice ${selectedCreator.payments.invoiceId}...`);
                               }}
                             >
-                              📄 {selectedCreator.payments.invoiceId}
+                              <UiIcon name="file" /> {selectedCreator.payments.invoiceId}
                             </a>
                           </td>
                         </tr>
@@ -1601,7 +886,7 @@ export default function NegotiationPreviewPage() {
                           <td><strong>Milestone 2</strong> (50%)</td>
                           <td>Content Approval & Video Live</td>
                           <td>₹16,000</td>
-                          <td><span className="nr-badge nr-badge--pending">🔒 In Protected Escrow</span></td>
+                          <td><span className="nr-badge nr-badge--pending"><UiIcon name="lock" /> In Protected Escrow</span></td>
                           <td>Releases on Content Sign-off</td>
                         </tr>
                       </tbody>
@@ -1641,7 +926,7 @@ export default function NegotiationPreviewPage() {
               <div className="nr-settings-col">
                 <div className="nr-settings-card">
                   <div className="nr-settings-card__header">
-                    <div className="nr-settings-card__icon">⚙️</div>
+                    <div className="nr-settings-card__icon"><UiIcon name="settings" /></div>
                     <div>
                       <h3 className="nr-settings-card__title">Campaign Details & Objective</h3>
                       <p className="nr-settings-card__subtitle">Core campaign scope and local business targeting rules</p>
@@ -1697,7 +982,7 @@ export default function NegotiationPreviewPage() {
 
                 <div className="nr-settings-card">
                   <div className="nr-settings-card__header">
-                    <div className="nr-settings-card__icon">💰</div>
+                    <div className="nr-settings-card__icon"><UiIcon name="money" /></div>
                     <div>
                       <h3 className="nr-settings-card__title">Budget & Negotiation Guardrails</h3>
                       <p className="nr-settings-card__subtitle">Strict limits that the AI agent can never exceed without authorization</p>
@@ -1760,7 +1045,7 @@ export default function NegotiationPreviewPage() {
                   </div>
 
                   <div className="nr-policy-box">
-                    <span>🛡️</span>
+                    <span><UiIcon name="shield" /></span>
                     <div>
                       <strong>Document Enforcement Rule (Sec 6.18):</strong> If a creator price exceeds your guardrail, the AI halts negotiation and requests business approval or seeks a qualified replacement without restarting discovery.
                     </div>
@@ -1769,7 +1054,7 @@ export default function NegotiationPreviewPage() {
 
                 <div className="nr-settings-card">
                   <div className="nr-settings-card__header">
-                    <div className="nr-settings-card__icon">🤖</div>
+                    <div className="nr-settings-card__icon"><UiIcon name="bot" /></div>
                     <div>
                       <h3 className="nr-settings-card__title">AI Agent Autonomy & Automation</h3>
                       <p className="nr-settings-card__subtitle">Configure permissions for automated negotiations and operations</p>
@@ -1889,7 +1174,7 @@ export default function NegotiationPreviewPage() {
                     Funds remain in protected funding state and release only upon verified milestone completion and human content sign-off.
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: '#166534' }}>
-                    <span>🔒</span> Standard Milestone Escrow Active
+                    <span><UiIcon name="lock" /></span> Standard Milestone Escrow Active
                   </div>
                 </div>
 
@@ -1917,7 +1202,7 @@ export default function NegotiationPreviewPage() {
           <div className="nr-settings-view">
             <div className="nr-settings-card">
               <div className="nr-settings-card__header">
-                <div className="nr-settings-card__icon">🗺️</div>
+                <div className="nr-settings-card__icon"><UiIcon name="map" /></div>
                 <div>
                   <h3 className="nr-settings-card__title">Campaign Operations Overview (Sec 6.13)</h3>
                   <p className="nr-settings-card__subtitle">Full campaign lifecycle state machine from goal to footfall results</p>
@@ -1938,7 +1223,7 @@ export default function NegotiationPreviewPage() {
                 <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px' }}>
                   <div style={{ fontSize: '11px', color: '#b45309', fontWeight: '700' }}>3. NEGOTIATION</div>
                   <div style={{ fontSize: '13px', fontWeight: '800', marginTop: '4px' }}>5 / 8 Agreed</div>
-                  <div style={{ fontSize: '11px', color: '#b45309', marginTop: '2px' }}>⚡ In Progress</div>
+                  <div style={{ fontSize: '11px', color: '#b45309', marginTop: '2px' }}><UiIcon name="zap" /> In Progress</div>
                 </div>
                 <div style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '12px' }}>
                   <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '700' }}>4. CONTENT</div>
@@ -1967,374 +1252,14 @@ export default function NegotiationPreviewPage() {
     
       {/* ── EXTRA POPUP FROM RIGHT: DELIVERABLE REVIEW DRAWER (Pasted Image 2.png) ── */}
       {isDrawerOpen && (
-        <>
-          <div className="nr-drawer-backdrop" onClick={() => setIsDrawerOpen(false)} />
-          <div className="nr-drawer-popup" role="dialog" aria-modal="true">
-            {/* Top Bar */}
-            <div className="nr-drawer-topbar">
-              <div className="nr-drawer-creator-info">
-                <img
-                  src={selectedCreator.largeAvatar || selectedCreator.avatar}
-                  alt={selectedCreator.name}
-                  className="nr-drawer-creator-avatar"
-                />
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111827' }}>
-                      {selectedCreator.name}
-                    </h3>
-                    {selectedCreator.verified && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#2563eb">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                      </svg>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>{selectedCreator.handle}</div>
-                </div>
-              </div>
-
-              <div className="nr-drawer-center-actions">
-                <span className="nr-badge nr-badge--accepted" style={{ cursor: 'pointer' }}>
-                  ● Approved ∨
-                </span>
-                <button
-                  className="nr-nav-arrow-btn"
-                  title="Previous Deliverable"
-                  onClick={() =>
-                    setSelectedDeliverableIndex((prev) =>
-                      prev > 0 ? prev - 1 : selectedCreator.contentDeliverables.length - 1
-                    )
-                  }
-                >
-                  &lt;
-                </button>
-                <button
-                  className="nr-nav-arrow-btn"
-                  title="Next Deliverable"
-                  onClick={() =>
-                    setSelectedDeliverableIndex((prev) =>
-                      prev < selectedCreator.contentDeliverables.length - 1 ? prev + 1 : 0
-                    )
-                  }
-                >
-                  &gt;
-                </button>
-                <button
-                  className="nr-drawer-close-btn"
-                  title="Close"
-                  onClick={() => setIsDrawerOpen(false)}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="nr-drawer-progress-box">
-                <div className="nr-drawer-progress-text">
-                  {selectedCreator.contentDeliverables.length}/{selectedCreator.contentDeliverables.length} Deliverables completed
-                </div>
-                <div className="nr-drawer-progress-track">
-                  <div className="nr-drawer-progress-fill" />
-                </div>
-              </div>
-            </div>
-
-            {/* Subtabs Bar inside drawer */}
-            <div className="nr-drawer-subtabs">
-              <button
-                className={`nr-drawer-subtab ${drawerSubtab === 'content' ? 'nr-drawer-subtab--active' : ''}`}
-                onClick={() => setDrawerSubtab('content')}
-              >
-                Content
-              </button>
-              <button
-                className={`nr-drawer-subtab ${drawerSubtab === 'performance' ? 'nr-drawer-subtab--active' : ''}`}
-                onClick={() => setDrawerSubtab('performance')}
-              >
-                Performance
-              </button>
-              <button
-                className={`nr-drawer-subtab ${drawerSubtab === 'payments' ? 'nr-drawer-subtab--active' : ''}`}
-                onClick={() => setDrawerSubtab('payments')}
-              >
-                Payments
-              </button>
-              <button
-                className={`nr-drawer-subtab ${drawerSubtab === 'communication' ? 'nr-drawer-subtab--active' : ''}`}
-                onClick={() => setDrawerSubtab('communication')}
-              >
-                Communication
-              </button>
-            </div>
-
-            {/* Drawer Interior 2-Column Grid */}
-            <div className="nr-drawer-body-grid">
-              {/* Left Sub-Column: Video Player, Filmstrip, Feedback Stepper */}
-              <div className="nr-drawer-video-sec">
-                <div className="nr-drawer-back-row">
-                  <button className="nr-btn-back-to-list" onClick={() => setIsDrawerOpen(false)}>
-                    ← Back to list
-                  </button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#6b7280' }}>
-                    <span>
-                      {selectedDeliverableIndex + 1} of {selectedCreator.contentDeliverables.length || 3}
-                    </span>
-                    <button
-                      className="nr-nav-arrow-btn"
-                      style={{ width: '22px', height: '22px', fontSize: '10px' }}
-                      onClick={() => setSelectedDeliverableIndex((prev) => (prev > 0 ? prev - 1 : 0))}
-                    >
-                      &lt;
-                    </button>
-                    <button
-                      className="nr-nav-arrow-btn"
-                      style={{ width: '22px', height: '22px', fontSize: '10px' }}
-                      onClick={() =>
-                        setSelectedDeliverableIndex((prev) =>
-                          prev < selectedCreator.contentDeliverables.length - 1 ? prev + 1 : prev
-                        )
-                      }
-                    >
-                      &gt;
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="nr-video-header-row">
-                    <h3>{activeDeliverable.title}</h3>
-                    <span className="nr-badge nr-badge--accepted">● Approved</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                    {activeDeliverable.type} • {activeDeliverable.submittedDate}
-                  </div>
-                </div>
-
-                {/* Video Mockup Player */}
-                <div className="nr-video-mockup-player">
-                  <img src={videoPlayerMain} alt="Reel Video Player" />
-                  <div className="nr-video-controls-bar">
-                    <button className="nr-player-play-btn">▷</button>
-                    <span>0:00 / {activeDeliverable.duration}</span>
-                    <div className="nr-player-scrubber-track">
-                      <div className="nr-player-scrubber-fill" />
-                    </div>
-                    <span>🔊</span>
-                    <span>⛶</span>
-                  </div>
-                </div>
-
-                {/* Frames Filmstrip */}
-                <div className="nr-filmstrip-row">
-                  <div
-                    className={`nr-filmstrip-thumb ${selectedFrameIndex === 0 ? 'nr-filmstrip-thumb--active' : ''}`}
-                    onClick={() => setSelectedFrameIndex(0)}
-                  >
-                    <img src={frame1} alt="Frame 1" />
-                  </div>
-                  <div
-                    className={`nr-filmstrip-thumb ${selectedFrameIndex === 1 ? 'nr-filmstrip-thumb--active' : ''}`}
-                    onClick={() => setSelectedFrameIndex(1)}
-                  >
-                    <img src={frame2} alt="Frame 2" />
-                  </div>
-                  <div
-                    className={`nr-filmstrip-thumb ${selectedFrameIndex === 2 ? 'nr-filmstrip-thumb--active' : ''}`}
-                    onClick={() => setSelectedFrameIndex(2)}
-                  >
-                    <img src={frame3} alt="Frame 3" />
-                  </div>
-                  <div
-                    className={`nr-filmstrip-thumb ${selectedFrameIndex === 3 ? 'nr-filmstrip-thumb--active' : ''}`}
-                    onClick={() => setSelectedFrameIndex(3)}
-                  >
-                    <img src={frame4} alt="Frame 4" />
-                  </div>
-                  <div className="nr-add-frame-box" onClick={() => alert('Add extra preview frame')}>
-                    <span style={{ fontSize: '16px' }}>+</span>
-                    <span>Add frame</span>
-                  </div>
-                </div>
-
-                {/* Feedback & Approval Card */}
-                <div className="nr-feedback-approval-card">
-                  <h4 style={{ margin: '0 0 10px 0', fontSize: '13.5px', fontWeight: '700', color: '#111827' }}>
-                    Feedback & Approval
-                  </h4>
-
-                  <div className="nr-approval-stepper">
-                    <div className="nr-step-item">
-                      <div className="nr-step-icon">✓</div>
-                      <div className="nr-step-label">Content submitted</div>
-                      <div className="nr-step-date">25 Oct 2026, 10:15 AM</div>
-                    </div>
-                    <div className="nr-step-item">
-                      <div className="nr-step-icon">✓</div>
-                      <div className="nr-step-label">AI compliance check passed</div>
-                      <div className="nr-step-date">25 Oct 2026, 10:20 AM</div>
-                    </div>
-                    <div className="nr-step-item">
-                      <div className="nr-step-icon">✓</div>
-                      <div className="nr-step-label">Business approved</div>
-                      <div className="nr-step-date">25 Oct 2026, 11:02 AM</div>
-                    </div>
-                    <div className="nr-step-item">
-                      <div className="nr-step-icon nr-step-icon--empty" />
-                      <div className="nr-step-label">Payment scheduled</div>
-                      <div className="nr-step-date">30 Oct 2026</div>
-                    </div>
-                  </div>
-
-                  <div className="nr-comment-input-row">
-                    <div className="nr-user-badge-avatar">D</div>
-                    <input
-                      type="text"
-                      placeholder="Add a comment..."
-                      value={commentInput}
-                      onChange={(e) => setCommentInput(e.target.value)}
-                    />
-                    <button
-                      className="nr-btn-send-comment"
-                      onClick={() => {
-                        if (commentInput.trim()) {
-                          alert(`Comment sent to ${selectedCreator.name}: "${commentInput}"`);
-                          setCommentInput('');
-                        }
-                      }}
-                    >
-                      ✈
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Sub-Column: AI Compliance, Content Details, Actions */}
-              <div className="nr-drawer-meta-sec">
-                {/* Card 1: AI Compliance Check */}
-                <div className="nr-ai-compliance-detail-card">
-                  <div className="nr-ai-compliance-detail-head">
-                    <h4>AI Compliance Check</h4>
-                    <span className="nr-badge nr-badge--accepted" style={{ background: '#dcfce7', color: '#166534', fontWeight: '700' }}>
-                      {activeDeliverable.complianceScore}%
-                    </span>
-                  </div>
-
-                  <div className="nr-compliance-table-rows">
-                    <div className="nr-comp-table-row">
-                      <div className="nr-comp-table-row-left">
-                        <span style={{ color: '#16a34a' }}>✔</span> Brand tag (@ChennaiCafe)
-                      </div>
-                      <span className="nr-comp-table-row-val">{activeDeliverable.checks.brandTag}</span>
-                    </div>
-                    <div className="nr-comp-table-row">
-                      <div className="nr-comp-table-row-left">
-                        <span style={{ color: '#16a34a' }}>✔</span> Paid disclosure (#ad)
-                      </div>
-                      <span className="nr-comp-table-row-val">{activeDeliverable.checks.paidDisclosure}</span>
-                    </div>
-                    <div className="nr-comp-table-row">
-                      <div className="nr-comp-table-row-left">
-                        <span style={{ color: '#16a34a' }}>✔</span> Product shown clearly
-                      </div>
-                      <span className="nr-comp-table-row-val">{activeDeliverable.checks.productShown}</span>
-                    </div>
-                    <div className="nr-comp-table-row">
-                      <div className="nr-comp-table-row-left">
-                        <span style={{ color: '#16a34a' }}>✔</span> Audio clear
-                      </div>
-                      <span className="nr-comp-table-row-val">{activeDeliverable.checks.audioClear}</span>
-                    </div>
-                    <div className="nr-comp-table-row">
-                      <div className="nr-comp-table-row-left">
-                        <span style={{ color: '#16a34a' }}>✔</span> No misleading claims
-                      </div>
-                      <span className="nr-comp-table-row-val">{activeDeliverable.checks.noMisleading}</span>
-                    </div>
-                    <div className="nr-comp-table-row">
-                      <div className="nr-comp-table-row-left">
-                        <span style={{ color: '#16a34a' }}>✔</span> Format & duration
-                      </div>
-                      <span className="nr-comp-table-row-val">{activeDeliverable.checks.formatDuration}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card 2: Content Details */}
-                <div className="nr-content-details-card">
-                  <div className="nr-content-details-head">
-                    <h4>Content Details</h4>
-                    <button className="nr-btn-edit-details" onClick={() => alert('Edit caption & tags')}>
-                      ✏ Edit
-                    </button>
-                  </div>
-
-                  <div className="nr-details-table-list">
-                    <div className="nr-details-item-row">
-                      <span className="nr-details-item-key">Caption</span>
-                      <span className="nr-details-item-val">{activeDeliverable.caption}</span>
-                    </div>
-                    <div className="nr-details-item-row">
-                      <span className="nr-details-item-key">Hashtags</span>
-                      <div className="nr-hashtags-pills">
-                        {activeDeliverable.hashtags.map((tag) => (
-                          <span key={tag} className="nr-hashtag-pill">{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="nr-details-item-row">
-                      <span className="nr-details-item-key">Location</span>
-                      <span className="nr-details-item-val">{activeDeliverable.location}</span>
-                    </div>
-                    <div className="nr-details-item-row">
-                      <span className="nr-details-item-key">Posted on</span>
-                      <span className="nr-details-item-val">{activeDeliverable.postedOn}</span>
-                    </div>
-                    <div className="nr-details-item-row">
-                      <span className="nr-details-item-key">Engagement (live)</span>
-                      <div className="nr-engagement-stats-inline">
-                        <span>❤️ {activeDeliverable.likes}</span>
-                        <span>💬 {activeDeliverable.comments}</span>
-                        <span>↗ {activeDeliverable.shares}</span>
-                        <span>🔖 {activeDeliverable.saves}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card 3: Actions */}
-                <div className="nr-drawer-actions-card">
-                  <button
-                    className="nr-btn-approve-payment"
-                    onClick={() =>
-                      alert(`Approved ${activeDeliverable.title} and released milestone payment to ${selectedCreator.name}!`)
-                    }
-                  >
-                    ✓ Approve & Release Payment
-                  </button>
-                  <button
-                    className="nr-btn-request-revision"
-                    onClick={() => alert(`Requested revision for ${activeDeliverable.title}.`)}
-                  >
-                    ✏ Request Revision
-                  </button>
-                  <div className="nr-actions-secondary-row">
-                    <button
-                      className="nr-btn-secondary-action"
-                      onClick={() => alert('Downloading video master file (MP4)...')}
-                    >
-                      ⬇ Download Content
-                    </button>
-                    <button
-                      className="nr-btn-secondary-action"
-                      onClick={() => window.open('https://instagram.com', '_blank')}
-                    >
-                      ↗ View on Instagram
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
+        <ContentReviewDrawer
+          creator={selectedCreator}
+          initialIndex={selectedDeliverableIndex}
+          photoOffset={creators.indexOf(selectedCreator) * 2}
+          reviews={reviews}
+          onReviewChange={handleReviewChange}
+          onClose={() => setIsDrawerOpen(false)}
+        />
       )}
 
     </BusinessLayout>

@@ -1,0 +1,580 @@
+/* Class-based on purpose: mobile-responsive.css rewrites generic buttons/headings on small screens. */
+.mpy {
+  --mpy-ink: #12153a;
+  --mpy-muted: #6b7180;
+  --mpy-coral: #e0603f;
+  --mpy-line: #f1e9e5;
+  --mpy-green: #1f9d55;
+  min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px calc(112px + env(safe-area-inset-bottom, 0px));
+  background: #fcfaf8;
+  color: var(--mpy-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mpy button {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: inherit !important;
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mpy ul,
+.mpy dl,
+.mpy dd,
+.mpy p {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- Heading ---------- */
+
+.mpy-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 14px;
+}
+
+.mpy .mpy-head__title {
+  margin: 0;
+  font-size: 23px !important;
+  font-weight: 800;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em;
+}
+
+.mpy-head__sub {
+  margin-top: 4px !important;
+  color: #3f4555;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.mpy .mpy-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--mpy-line);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--mpy-ink);
+}
+
+.mpy .mpy-icon-btn:active {
+  background: #f7f3f1;
+}
+
+/* ---------- Summary ---------- */
+
+.mpy-summary {
+  padding: 16px;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(239, 122, 99, 0.28) 0%, rgba(239, 122, 99, 0) 48%),
+    linear-gradient(150deg, #23242f 0%, #15161d 75%);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(18, 21, 58, 0.18);
+}
+
+.mpy-summary__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mpy-summary__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: rgba(239, 122, 99, 0.22);
+  color: #ff9a82;
+}
+
+.mpy-summary__label {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mpy-summary__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(63, 208, 138, 0.16);
+  color: #5fe0a2;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mpy-summary__value {
+  display: block;
+  margin-top: 12px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.mpy-summary__sub {
+  display: block;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12.5px;
+}
+
+.mpy-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px !important;
+  padding-top: 14px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mpy-summary__stat {
+  min-width: 0;
+}
+
+.mpy-summary__stat dt {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mpy-summary__stat dd {
+  margin-top: 3px !important;
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mpy-summary__hint {
+  display: block;
+  margin-top: 1px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10.5px;
+}
+
+/* ---------- Filters ---------- */
+
+.mpy-chips {
+  display: flex;
+  gap: 8px;
+  margin: 16px -16px 0;
+  padding: 2px 16px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mpy-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.mpy .mpy-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  min-height: 36px !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--mpy-line);
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 12.5px !important;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mpy-chip__count {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #f4efec;
+  color: var(--mpy-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mpy .mpy-chip.is-active {
+  border-color: #16171f;
+  background: #16171f;
+  color: #ffffff;
+}
+
+.mpy-chip.is-active .mpy-chip__count {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* ---------- List ---------- */
+
+.mpy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px !important;
+}
+
+.mpy-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--mpy-line);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(18, 21, 58, 0.05);
+}
+
+.mpy-item__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mpy-avatar {
+  display: block;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f1e9e5;
+}
+
+.mpy-avatar--initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #f8735f 0%, #e0603f 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.mpy-item__who {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mpy-item__name,
+.mpy-item__campaign {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mpy-item__name {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.mpy-item__campaign {
+  color: var(--mpy-muted);
+  font-size: 12.5px;
+}
+
+.mpy-item__amount {
+  flex-shrink: 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.mpy-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.mpy-item__milestone {
+  color: var(--mpy-muted);
+  font-size: 12px;
+}
+
+.mpy-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mpy-pill--committed {
+  background: #f1eeec;
+  color: var(--mpy-muted);
+}
+
+.mpy-pill--pending_release {
+  background: #fff4e0;
+  color: #b26a00;
+}
+
+.mpy-pill--processing {
+  background: #e8f0ff;
+  color: #2f5bd3;
+}
+
+.mpy-pill--paid {
+  background: #e6f7ee;
+  color: #13804b;
+}
+
+.mpy-pill--failed,
+.mpy-pill--disputed {
+  background: #fdecea;
+  color: #d9452f;
+}
+
+.mpy-item__processing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2f5bd3;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.mpy-spin {
+  animation: mpySpin 1.1s linear infinite;
+}
+
+.mpy .mpy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px !important;
+  padding: 0 16px !important;
+  border-radius: 12px;
+  font-size: 14px !important;
+  font-weight: 700;
+}
+
+.mpy .mpy-btn--release {
+  background: linear-gradient(135deg, #2bb673 0%, #1b7f4b 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(31, 157, 85, 0.25);
+}
+
+.mpy .mpy-btn--ghost {
+  border: 1px solid var(--mpy-line);
+  background: #fcfaf8;
+  color: var(--mpy-ink);
+}
+
+.mpy .mpy-btn--block {
+  width: 100%;
+  min-height: 50px !important;
+}
+
+.mpy-empty {
+  padding: 28px 12px;
+  color: var(--mpy-muted);
+  font-size: 13.5px;
+  text-align: center;
+}
+
+.mpy-note {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px !important;
+  padding: 12px 14px !important;
+  border-radius: 14px;
+  background: #f6f2ef;
+  color: var(--mpy-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.mpy-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ---------- Sheet & toast ---------- */
+
+.mpy-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.mpy .mpy-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background: rgba(10, 12, 30, 0.45);
+  cursor: default;
+  animation: mpyFade 0.18s ease-out;
+}
+
+.mpy-sheet__panel {
+  position: relative;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 8px 16px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -10px 30px rgba(18, 21, 58, 0.18);
+  outline: none;
+  animation: mpyUp 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mpy-sheet__grip {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 999px;
+  background: #e4dcd8;
+}
+
+.mpy-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mpy .mpy-sheet__title {
+  margin: 0;
+  font-size: 17px !important;
+  font-weight: 800;
+}
+
+.mpy .mpy-sheet__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f5f1ef;
+}
+
+.mpy-sheet__note {
+  margin-bottom: 8px !important;
+  color: var(--mpy-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.mpy-sheet__foot {
+  margin-top: 16px;
+}
+
+.mpy-facts {
+  padding: 2px 14px !important;
+  border: 1px solid var(--mpy-line);
+  border-radius: 16px;
+}
+
+.mpy-facts__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f4ece8;
+}
+
+.mpy-facts__row:last-child {
+  border-bottom: none;
+}
+
+.mpy-facts__row dt {
+  color: var(--mpy-muted);
+  font-size: 13px;
+}
+
+.mpy-facts__row dd {
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.mpy-toast-region {
+  position: fixed;
+  bottom: calc(100px + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 130;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.mpy-toast {
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #16171f;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(18, 21, 58, 0.25);
+  animation: mpyFade 0.2s ease-out;
+}
+
+@keyframes mpyFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mpyUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes mpySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mpy *,
+  .mpy *::before,
+  .mpy *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

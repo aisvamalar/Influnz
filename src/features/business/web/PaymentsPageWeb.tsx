@@ -2,27 +2,16 @@
  * Screen 19 — Payments
  * Payment lifecycle: committed → pending release → processing → paid
  */
-import { useState } from 'react';
-import BusinessLayout from './BusinessLayout';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BadgeCheck, Check, CreditCard } from 'lucide-react';
+import BusinessLayout from '../BusinessLayout';
+import { PAYMENTS, STATE_LABEL, type PayState } from '../paymentsData';
+import { maskTail, useBusinessProfile } from '../businessProfile';
+import PaymentSetupModal from '../profile/PaymentSetupModal';
+import '../profile/business-profile.css';
+import UiIcon from '../../../components/UiIcon';
 
-type PayState = 'committed' | 'pending_release' | 'processing' | 'paid' | 'failed' | 'disputed';
-
-const PAYMENTS = [
-  { id: 1, creator: 'Foodie Tamilan',  campaign: 'Chennai Café Launch',    amount: '₹10,000', state: 'pending_release' as PayState, milestone: 'Content approved', date: '25 Sep 2026' },
-  { id: 2, creator: 'Chennai Bites',   campaign: 'Chennai Café Launch',    amount: '₹11,500', state: 'committed' as PayState,       milestone: 'Awaiting content',   date: '28 Sep 2026' },
-  { id: 3, creator: 'Madras Food Trail', campaign: 'Chennai Café Launch',  amount: '₹6,200',  state: 'committed' as PayState,       milestone: 'Awaiting content',   date: '30 Sep 2026' },
-  { id: 4, creator: 'TechVoice India', campaign: 'Bangalore Tech Event',   amount: '₹22,000', state: 'paid' as PayState,            milestone: 'Completed',          date: '10 Sep 2026' },
-  { id: 5, creator: 'MumbaiStyle',     campaign: 'Mumbai Fashion Drop',    amount: '₹18,000', state: 'processing' as PayState,      milestone: 'Processing payment', date: '20 Sep 2026' },
-];
-
-const STATE_LABEL: Record<PayState, string> = {
-  committed: 'Committed',
-  pending_release: 'Pending Release',
-  processing: 'Processing',
-  paid: 'Paid',
-  failed: 'Failed',
-  disputed: 'Disputed',
-};
 const STATE_PILL: Record<PayState, string> = {
   committed: 'biz-pill--draft',
   pending_release: 'biz-pill--pending',
@@ -32,8 +21,32 @@ const STATE_PILL: Record<PayState, string> = {
   disputed: 'biz-pill--danger',
 };
 
-export default function PaymentsPage() {
+export default function PaymentsPageWeb() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('All');
+  const { payments } = useBusinessProfile();
+  const paymentsReady = Boolean(payments.completedAt);
+  const [setup, setSetup] = useState<{ open: boolean; reason?: string }>({ open: false });
+  const [toast, setToast] = useState('');
+
+  const closeSetup = useCallback(() => setSetup({ open: false }), []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const release = (creator: string, amount: string) => {
+    if (!paymentsReady) {
+      setSetup({
+        open: true,
+        reason: `Add your payment details once to release ${amount} to ${creator}. They appear on your invoices.`,
+      });
+      return;
+    }
+    setToast(`${amount} released to ${creator}`);
+  };
 
   const visible = filter === 'All'
     ? PAYMENTS
@@ -55,6 +68,35 @@ export default function PaymentsPage() {
           <button className="biz-btn biz-btn--ghost">Download invoices</button>
         </div>
       </div>
+
+      {paymentsReady ? (
+        <div className="bp-banner bp-banner--ok" style={{ marginBottom: 20 }}>
+          <span className="bp-banner__icon"><BadgeCheck size={20} /></span>
+          <div className="bp-banner__body">
+            <p className="bp-banner__title">Paying from {payments.legalName}</p>
+            <p className="bp-banner__text">
+              Bank account {maskTail(payments.bank.account, 4)} · PAN {maskTail(payments.pan, 4)}
+              {payments.gstApplicable ? ` · GSTIN ${maskTail(payments.gstin, 5)}` : ''}
+            </p>
+          </div>
+          <button type="button" className="bp-btn bp-btn--ghost" onClick={() => navigate('/business/settings?tab=payments')}>
+            Manage
+          </button>
+        </div>
+      ) : (
+        <div className="bp-banner" style={{ marginBottom: 20 }}>
+          <span className="bp-banner__icon"><CreditCard size={20} /></span>
+          <div className="bp-banner__body">
+            <p className="bp-banner__title">Set up payments before you pay creators</p>
+            <p className="bp-banner__text">
+              One-time step: legal entity, PAN, GST details, billing address and bank account. Takes about 3 minutes.
+            </p>
+          </div>
+          <button type="button" className="bp-btn bp-btn--primary" onClick={() => setSetup({ open: true })}>
+            Set up payments
+          </button>
+        </div>
+      )}
 
       {/* Summary */}
       <div className="biz-kpi-grid" style={{ marginBottom: 24 }}>
@@ -114,7 +156,11 @@ export default function PaymentsPage() {
                   <td style={{ color: 'var(--in-gray-light)', fontSize: '0.8125rem' }}>{p.date}</td>
                   <td>
                     {p.state === 'pending_release' && (
-                      <button className="biz-btn biz-btn--primary" style={{ height: 30, fontSize: '0.75rem', background: 'linear-gradient(135deg, var(--in-success), #1b5e20)' }}>
+                      <button
+                        className="biz-btn biz-btn--primary"
+                        style={{ height: 30, fontSize: '0.75rem', background: 'var(--in-success)' }}
+                        onClick={() => release(p.creator, p.amount)}
+                      >
                         Release payment
                       </button>
                     )}
@@ -135,8 +181,19 @@ export default function PaymentsPage() {
       </div>
 
       <p style={{ fontSize: '0.75rem', color: 'var(--in-gray-light)', marginTop: 16 }}>
-        🔒 Payments are protected and released only when the agreed milestone is met. Campaign status and payment status are always tracked independently.
+        <UiIcon name="lock" /> Payments are protected and released only when the agreed milestone is met. Campaign status and payment status are always tracked independently.
       </p>
+
+      <PaymentSetupModal
+        open={setup.open}
+        reason={setup.reason}
+        onClose={closeSetup}
+        onSaved={() => { closeSetup(); setToast('Payment details saved. You can now pay creators.'); }}
+      />
+
+      {toast && (
+        <div className="bp-toast" role="status"><Check size={16} strokeWidth={2.5} /> {toast}</div>
+      )}
     </BusinessLayout>
   );
 }

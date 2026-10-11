@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BusinessLayout from './BusinessLayout';
+import UiIcon from '../../components/UiIcon';
 
 interface Invitation {
   id: number;
@@ -95,11 +96,11 @@ export default function InvitationsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusStyles: Record<string, { bg: string; color: string; icon: string }> = {
-      invited: { bg: '#FEF3EC', color: '#F97316', icon: '📨' },
+      invited: { bg: '#FEF3EC', color: '#F97316', icon: 'send' },
       accepted: { bg: '#ECFDF5', color: '#10B981', icon: '✓' },
-      negotiating: { bg: '#FFF7ED', color: '#F59E0B', icon: '⚡' },
+      negotiating: { bg: '#FFF7ED', color: '#F59E0B', icon: 'zap' },
       declined: { bg: '#FEE2E2', color: '#EF4444', icon: '✕' },
-      pending: { bg: '#EFF6FF', color: '#3B82F6', icon: '⏱' }
+      pending: { bg: '#EFF6FF', color: '#3B82F6', icon: 'timer' }
     };
 
     const style = statusStyles[status] || statusStyles.invited;
@@ -116,7 +117,7 @@ export default function InvitationsPage() {
         fontWeight: 600,
         color: style.color
       }}>
-        <span>{style.icon}</span>
+        <span><UiIcon name={style.icon} /></span>
         <span style={{ textTransform: 'capitalize' }}>{status}</span>
       </div>
     );
@@ -124,9 +125,9 @@ export default function InvitationsPage() {
 
   return (
     <BusinessLayout breadcrumb="Invitation Status">
-      <div style={{ display: 'flex', gap: 24, height: 'calc(100vh - 140px)' }}>
+      <div className="inv-split" style={{ display: 'flex', gap: 24, height: 'calc(100dvh / var(--biz-zoom, 1) - 140px)' }}>
         {/* Left Panel - Invitations List */}
-        <div style={{ flex: '0 0 680px', display: 'flex', flexDirection: 'column' }}>
+        <div className="inv-split__list" style={{ flex: '0 0 680px', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div style={{ marginBottom: 20 }}>
             <h1 style={{
@@ -154,11 +155,11 @@ export default function InvitationsPage() {
             marginBottom: 20
           }}>
             {[
-              { key: 'invited', label: 'Invited', count: 5, color: '#F97316', icon: '📨' },
+              { key: 'invited', label: 'Invited', count: 5, color: '#F97316', icon: 'send' },
               { key: 'accepted', label: 'Accepted', count: 1, color: '#10B981', icon: '✓' },
-              { key: 'negotiating', label: 'Negotiating', count: 1, color: '#F59E0B', icon: '⚡' },
+              { key: 'negotiating', label: 'Negotiating', count: 1, color: '#F59E0B', icon: 'zap' },
               { key: 'declined', label: 'Declined', count: 1, color: '#EF4444', icon: '✕' },
-              { key: 'pending', label: 'Pending', count: 2, color: '#3B82F6', icon: '⏱' }
+              { key: 'pending', label: 'Pending', count: 2, color: '#3B82F6', icon: 'timer' }
             ].map(stat => (
               <div
                 key={stat.key}
@@ -447,7 +448,7 @@ export default function InvitationsPage() {
 
         {/* Right Panel - Creator Details */}
         {selectedCreator && (
-          <div style={{
+          <div className="inv-split__detail" style={{
             flex: 1,
             background: 'white',
             border: '1px solid #e5e7eb',

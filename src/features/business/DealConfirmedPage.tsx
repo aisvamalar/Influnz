@@ -53,7 +53,7 @@ export default function DealConfirmedPage() {
             position: 'relative',
             boxShadow: '0 8px 32px rgba(251, 146, 60, 0.15)'
           }}>
-            <div style={{ fontSize: 56 }}>🎉</div>
+            <div style={{ fontSize: 56 }}></div>
             
             {/* Checkmark badge */}
             <div style={{
@@ -402,7 +402,7 @@ export default function DealConfirmedPage() {
             fontSize: 20,
             flexShrink: 0
           }}>
-            👤
+           
           </div>
           <div style={{ flex: 1 }}>
             <p style={{

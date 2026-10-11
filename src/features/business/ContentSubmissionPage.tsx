@@ -49,9 +49,9 @@ export default function ContentSubmissionPage() {
             { icon: '✓', label: 'Deal Confirmed', active: true },
             { icon: '✓', label: 'Campaign Brief', active: true },
             { icon: '✓', label: 'Content Submission', active: true },
-            { icon: '📋', label: 'Review & Approval', active: false },
-            { icon: '💰', label: 'Payment', active: false },
-            { icon: '📊', label: 'Analytics', active: false }
+            { icon: '', label: 'Review & Approval', active: false },
+            { icon: '', label: 'Payment', active: false },
+            { icon: '', label: 'Analytics', active: false }
           ].map((step, idx) => (
             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               <div style={{
@@ -527,7 +527,7 @@ export default function ContentSubmissionPage() {
             fontSize: 20,
             flexShrink: 0
           }}>
-            👤
+           
           </div>
           <div style={{ flex: 1 }}>
             <p style={{

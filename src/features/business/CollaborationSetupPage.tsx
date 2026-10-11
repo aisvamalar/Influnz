@@ -47,10 +47,10 @@ export default function CollaborationSetupPage() {
         }}>
           {[
             { icon: '✓', label: 'Deal Confirmed', active: true },
-            { icon: '📝', label: 'Campaign Brief', active: true },
-            { icon: '📋', label: 'Content Approval', active: false },
-            { icon: '💰', label: 'Payment', active: false },
-            { icon: '📊', label: 'Analytics', active: false }
+            { icon: '', label: 'Campaign Brief', active: true },
+            { icon: '', label: 'Content Approval', active: false },
+            { icon: '', label: 'Payment', active: false },
+            { icon: '', label: 'Analytics', active: false }
           ].map((step, idx) => (
             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               <div style={{
@@ -224,7 +224,7 @@ export default function CollaborationSetupPage() {
                   justifyContent: 'center',
                   fontSize: 24
                 }}>
-                  📝
+                 
                 </div>
               </div>
               <h4 style={{
@@ -270,7 +270,7 @@ export default function CollaborationSetupPage() {
                   justifyContent: 'center',
                   fontSize: 24
                 }}>
-                  🔗
+                 
                 </div>
               </div>
               <h4 style={{
@@ -316,7 +316,7 @@ export default function CollaborationSetupPage() {
                   justifyContent: 'center',
                   fontSize: 24
                 }}>
-                  📦
+                 
                 </div>
               </div>
               <h4 style={{
@@ -360,8 +360,8 @@ export default function CollaborationSetupPage() {
               gap: 12
             }}>
               {[
-                { icon: '🎬', label: 'Post 1 Instagram Reel', detail: '30-60 sec video showcasing the cafe' },
-                { icon: '📸', label: 'Post 2 Instagram Stories', detail: 'Behind-the-scenes + cafe ambiance' }
+                { icon: '', label: 'Post 1 Instagram Reel', detail: '30-60 sec video showcasing the cafe' },
+                { icon: '', label: 'Post 2 Instagram Stories', detail: 'Behind-the-scenes + cafe ambiance' }
               ].map((item, idx) => (
                 <div
                   key={idx}
@@ -444,7 +444,7 @@ export default function CollaborationSetupPage() {
               fontSize: 24,
               flexShrink: 0
             }}>
-              👤
+             
             </div>
             <div style={{ flex: 1 }}>
               <h4 style={{

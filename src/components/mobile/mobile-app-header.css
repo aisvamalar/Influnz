@@ -1,0 +1,137 @@
+/* Class-based on purpose: mobile-responsive.css rewrites inline-styled buttons on small screens. */
+.mah {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mah button {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: inherit !important;
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mah__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* logo.png ships with a white background; multiply drops it onto the tinted page. */
+.mah__logo {
+  display: block;
+  width: auto;
+  height: 30px;
+  mix-blend-mode: multiply;
+}
+
+.mah__badge {
+  padding: 4px 9px;
+  border: 1px solid #f8c9c2;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #e5483a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.mah__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mah .mah__bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #12153a;
+}
+
+.mah__dot {
+  position: absolute;
+  top: 9px;
+  right: 11px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fcfaf8;
+  border-radius: 50%;
+  background: #ef4f3c;
+}
+
+.mah__account {
+  position: relative;
+}
+
+.mah .mah__account-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  color: #6b7180;
+}
+
+.mah__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f8735f 0%, #ef4f3c 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.mah__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 60;
+  min-width: 176px;
+  padding: 6px;
+  border: 1px solid #f1e9e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(18, 21, 58, 0.14);
+  animation: mahMenuIn 0.14s ease-out;
+}
+
+.mah .mah__menu-item {
+  display: block;
+  width: 100%;
+  padding: 11px 12px !important;
+  border-radius: 8px;
+  color: #12153a;
+  font-size: 14px !important;
+  text-align: left;
+}
+
+.mah .mah__menu-item:active {
+  background: #f7f3f1;
+}
+
+.mah .mah__menu-item--danger {
+  color: #dc2626;
+}
+
+@keyframes mahMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

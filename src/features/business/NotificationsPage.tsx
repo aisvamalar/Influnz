@@ -1,15 +1,16 @@
 /**
  * Notifications Page — Business side
  */
-import BusinessLayout from './BusinessLayout';
+import BusinessLayout from './BusinessLayout';
+import UiIcon from '../../components/UiIcon';
 
 const NOTIFS = [
-  { icon: '🎥', title: 'Content submitted', body: 'Foodie Tamilan submitted 1 Reel + 2 Stories for Chennai Café Launch.', time: '10 min ago', unread: true },
-  { icon: '💬', title: 'Counter offer received', body: 'Chennai Bites countered at ₹14,500. AI is negotiating within your ₹12,000 limit.', time: '1 hr ago', unread: true },
-  { icon: '✅', title: 'Creator accepted', body: 'Foodie Tamilan accepted the invitation at ₹10,000.', time: '3 hrs ago', unread: true },
-  { icon: '🔄', title: 'Replacement ready', body: 'Local Food Guide declined. 2 replacement creators available for review.', time: '4 hrs ago', unread: false },
-  { icon: '📊', title: 'Performance update', body: 'Chennai Café Launch has exceeded the engagement target. See optimization suggestions.', time: 'Yesterday', unread: false },
-  { icon: '🤖', title: 'AI recommendation', body: 'Consider reallocating ₹8,000 to Foodie Tamilan based on their current ROI.', time: 'Yesterday', unread: false },
+  { icon: 'video', title: 'Content submitted', body: 'Foodie Tamilan submitted 1 Reel + 2 Stories for Chennai Café Launch.', time: '10 min ago', unread: true },
+  { icon: 'message', title: 'Counter offer received', body: 'Chennai Bites countered at ₹14,500. AI is negotiating within your ₹12,000 limit.', time: '1 hr ago', unread: true },
+  { icon: 'check-circle', title: 'Creator accepted', body: 'Foodie Tamilan accepted the invitation at ₹10,000.', time: '3 hrs ago', unread: true },
+  { icon: 'refresh', title: 'Replacement ready', body: 'Local Food Guide declined. 2 replacement creators available for review.', time: '4 hrs ago', unread: false },
+  { icon: 'chart', title: 'Performance update', body: 'Chennai Café Launch has exceeded the engagement target. See optimization suggestions.', time: 'Yesterday', unread: false },
+  { icon: 'bot', title: 'AI recommendation', body: 'Consider reallocating ₹8,000 to Foodie Tamilan based on their current ROI.', time: 'Yesterday', unread: false },
 ];
 
 export default function NotificationsPage() {
@@ -43,7 +44,7 @@ export default function NotificationsPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '1.125rem',
             }}>
-              {n.icon}
+              <UiIcon name={n.icon} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>

@@ -50,8 +50,8 @@ export default function ReviewApprovalPage() {
             { icon: '✓', label: 'Campaign Brief', active: true },
             { icon: '✓', label: 'Content Submission', active: true },
             { icon: '✓', label: 'Review & Approval', active: true },
-            { icon: '💰', label: 'Payment', active: false },
-            { icon: '📊', label: 'Analytics', active: false }
+            { icon: '', label: 'Payment', active: false },
+            { icon: '', label: 'Analytics', active: false }
           ].map((step, idx) => (
             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{
@@ -477,7 +477,7 @@ export default function ReviewApprovalPage() {
             fontSize: 20,
             flexShrink: 0
           }}>
-            👤
+           
           </div>
           <div style={{ flex: 1 }}>
             <p style={{

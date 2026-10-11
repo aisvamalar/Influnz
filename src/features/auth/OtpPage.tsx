@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
 import Logo from '../../components/Logo';
-import { Spinner } from './AuthFormParts';
+import { Spinner } from './AuthFormParts';
+import UiIcon from '../../components/UiIcon';
 
 const OTP_LENGTH     = 6;
 const RESEND_SECONDS = 30;
@@ -115,7 +116,7 @@ export default function OtpPage() {
           boxShadow: '0 8px 24px rgba(242,132,107,0.35)',
           fontSize: '1.75rem',
         }}>
-          {otpType === 'email' ? '✉️' : '📱'}
+          <UiIcon name={otpType === 'email' ? 'mail' : 'phone'} />
         </div>
 
         {/* Copy */}

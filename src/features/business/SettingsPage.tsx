@@ -1,25 +1,57 @@
 /**
- * Screen 02 & Settings — Business Profile + Settings
+ * Settings — business profile (Levels 1 & 2), payments (Level 3) and preferences.
  */
-import { useState } from 'react';
-import { useAuth } from '../../app/AuthContext';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  AtSign, BadgeCheck, Briefcase, Building2, Check, ChevronDown, CreditCard, Globe, Mail, MapPin,
+  Pencil, Phone, UserRound,
+} from 'lucide-react';
 import BusinessLayout from './BusinessLayout';
+import FormField from '../auth/FormField';
+import ProfileLevels from './profile/ProfileLevels';
+import BusinessVerificationCard from './profile/BusinessVerificationCard';
+import PaymentSetupForm, { PaymentDetailsSummary } from './profile/PaymentSetupForm';
+import {
+  BUSINESS_TYPES, POPULAR_CITIES, presenceKind, updateBusinessAccount, useBusinessProfile,
+} from './businessProfile';
+import './profile/business-profile.css';
 
-const TABS = ['Profile', 'Payments', 'Notifications', 'Team', 'Security'];
+const TABS = [
+  { key: 'profile', label: 'Profile' },
+  { key: 'payments', label: 'Payments' },
+  { key: 'notifications', label: 'Notifications' },
+  { key: 'security', label: 'Security' },
+] as const;
+
+type TabKey = typeof TABS[number]['key'];
+
+function isTab(value: string | null): value is TabKey {
+  return TABS.some(t => t.key === value);
+}
 
 export default function SettingsPage() {
-  const { state } = useAuth();
-  const [tab, setTab] = useState('Profile');
-  const [businessName, setBusinessName] = useState(state.user?.businessName ?? 'Brew & Bites');
-  const [category, setCategory] = useState('Restaurant / Café');
-  const [location, setLocation] = useState('Chennai, Tamil Nadu');
-  const [website, setWebsite] = useState('https://brewandbites.in');
-  const [description, setDescription] = useState('A modern café serving great coffee, food and community. We want to bring more people to our café through local creators.');
-  const [saved, setSaved] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const tabParam = params.get('tab');
+  const tab: TabKey = isTab(tabParam) ? tabParam : 'profile';
+  const [toast, setToast] = useState('');
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const setTab = (key: TabKey) => setParams(key === 'profile' ? {} : { tab: key }, { replace: true });
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  useEffect(() => {
+    if (tab !== 'profile' || window.location.hash !== '#verification') return;
+    requestAnimationFrame(() => document.getElementById('verification')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, [tab]);
+
+  const goVerify = () => {
+    if (tab !== 'profile') setTab('profile');
+    requestAnimationFrame(() => document.getElementById('verification')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
   return (
@@ -27,140 +59,249 @@ export default function SettingsPage() {
       <div className="biz-page-head">
         <div>
           <h1 className="biz-page-head__title">Settings</h1>
-          <p className="biz-page-head__sub">Manage your business profile, payments and preferences.</p>
+          <p className="biz-page-head__sub">Manage your business profile, verification and payment details.</p>
         </div>
       </div>
 
-      {/* Tab row */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid var(--in-border)', marginBottom: 24, overflowX: 'auto' }}>
-        {TABS.map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{
-              height: 42, padding: '0 18px', borderRadius: '8px 8px 0 0',
-              fontSize: '0.875rem', fontWeight: tab === t ? 700 : 500,
-              border: 'none',
-              borderBottom: `2px solid ${tab === t ? 'var(--in-coral)' : 'transparent'}`,
-              background: 'none',
-              color: tab === t ? 'var(--in-coral-text)' : 'var(--in-gray)',
-              cursor: 'pointer', fontFamily: 'inherit',
-              marginBottom: -2, transition: 'color 0.15s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="bset">
+        <div className="bset-tabs" role="tablist" aria-label="Settings sections">
+          {TABS.map(t => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.key}
+              className={`bset-tabs__btn${tab === t.key ? ' is-active' : ''}`}
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'profile' && (
+          <div className="bset-stack">
+            <ProfileLevels onVerify={goVerify} onPayments={() => setTab('payments')} />
+            <AccountDetailsCard onSaved={() => setToast('Profile updated')} />
+            <BusinessVerificationCard />
+          </div>
+        )}
+
+        {tab === 'payments' && (
+          <div className="bset-stack">
+            <PaymentsCard onSaved={() => setToast('Payment details saved')} />
+          </div>
+        )}
+
+        {(tab === 'notifications' || tab === 'security') && (
+          <div className="biz-card" style={{ maxWidth: 600 }}>
+            <div className="biz-empty" style={{ padding: '36px 0' }}>
+              <p className="biz-empty__title">{tab === 'notifications' ? 'Notifications' : 'Security'} settings</p>
+              <p className="biz-empty__desc">This section is coming in the next phase.</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Profile tab */}
-      {tab === 'Profile' && (
-        <div style={{ maxWidth: 600 }}>
-          {/* Logo */}
-          <div className="biz-card" style={{ marginBottom: 16 }}>
-            <p className="biz-card__title" style={{ marginBottom: 14 }}>Business Logo</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{
-                width: 72, height: 72, borderRadius: 18,
-                background: 'linear-gradient(135deg, var(--in-peach), var(--in-blush))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '2rem', border: '1px solid var(--in-border)',
-              }}>
-                ☕
-              </div>
-              <div>
-                <button className="biz-btn biz-btn--ghost">Change logo</button>
-                <p style={{ fontSize: '0.75rem', color: 'var(--in-gray-light)', marginTop: 4 }}>PNG, JPG up to 2MB. Min 200×200px.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Fields */}
-          <div className="biz-card">
-            <p className="biz-card__title" style={{ marginBottom: 18 }}>Business Details</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { label: 'Business name', value: businessName, set: setBusinessName, type: 'text' },
-                { label: 'Website', value: website, set: setWebsite, type: 'url' },
-                { label: 'Category', value: category, set: setCategory, type: 'text' },
-                { label: 'Location', value: location, set: setLocation, type: 'text' },
-              ].map(f => (
-                <div key={f.label}>
-                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-charcoal)', marginBottom: 5 }}>
-                    {f.label}
-                  </label>
-                  <input
-                    type={f.type}
-                    value={f.value}
-                    onChange={e => f.set(e.target.value)}
-                    style={{
-                      width: '100%', height: 46, padding: '0 14px',
-                      border: '1.5px solid rgba(242,132,107,0.2)', borderRadius: 10,
-                      background: '#fafafa', fontFamily: 'inherit', fontSize: '0.9375rem',
-                      color: 'var(--in-charcoal)', outline: 'none', transition: 'border-color 0.2s',
-                    }}
-                    onFocus={e => (e.target.style.borderColor = 'var(--in-coral)')}
-                    onBlur={e => (e.target.style.borderColor = 'rgba(242,132,107,0.2)')}
-                  />
-                </div>
-              ))}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-charcoal)', marginBottom: 5 }}>
-                  Business description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  rows={3}
-                  style={{
-                    width: '100%', padding: '12px 14px',
-                    border: '1.5px solid rgba(242,132,107,0.2)', borderRadius: 10,
-                    background: '#fafafa', fontFamily: 'inherit', fontSize: '0.9375rem',
-                    color: 'var(--in-charcoal)', outline: 'none', resize: 'vertical', lineHeight: 1.6,
-                  }}
-                  onFocus={e => (e.target.style.borderColor = 'var(--in-coral)')}
-                  onBlur={e => (e.target.style.borderColor = 'rgba(242,132,107,0.2)')}
-                />
-                <p style={{ fontSize: '0.75rem', color: 'var(--in-gray-light)', marginTop: 4 }}>{description.length} / 500</p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 20, alignItems: 'center' }}>
-              <button className="biz-btn biz-btn--primary biz-btn--lg" onClick={handleSave}>
-                {saved ? '✓ Saved!' : 'Save changes'}
-              </button>
-              {saved && <span style={{ fontSize: '0.875rem', color: 'var(--in-success)' }}>Profile updated</span>}
-            </div>
-          </div>
-        </div>
+      {toast && (
+        <div className="bp-toast" role="status"><Check size={16} strokeWidth={2.5} /> {toast}</div>
       )}
 
-      {tab === 'Payments' && (
-        <div className="biz-card" style={{ maxWidth: 600 }}>
-          <p className="biz-card__title" style={{ marginBottom: 14 }}>Payment Method</p>
-          <div style={{ padding: '16px', borderRadius: 12, border: '1.5px solid var(--in-border)', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-            <span style={{ fontSize: '1.5rem' }}>💳</span>
-            <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9375rem' }}>HDFC Business Card ending 4242</p>
-              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--in-gray-light)' }}>Expires 08/28 · Verified</p>
-            </div>
-            <button className="biz-btn biz-btn--ghost" style={{ marginLeft: 'auto' }}>Change</button>
-          </div>
-          <button className="biz-btn biz-btn--ghost">+ Add payment method</button>
-          <p style={{ fontSize: '0.75rem', color: 'var(--in-gray-light)', marginTop: 14 }}>Payments are processed securely. Exact escrow and settlement terms will be communicated before launch.</p>
-        </div>
-      )}
-
-      {['Notifications', 'Team', 'Security'].includes(tab) && (
-        <div className="biz-card" style={{ maxWidth: 600 }}>
-          <div className="biz-empty" style={{ padding: '36px 0' }}>
-            <span className="biz-empty__icon">🔧</span>
-            <p className="biz-empty__title">{tab} settings</p>
-            <p className="biz-empty__desc">This section is coming in the next phase.</p>
-          </div>
-        </div>
-      )}
+      <style>{`
+        .bset { display: flex; flex-direction: column; gap: 20px; max-width: 920px; }
+        .bset-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #f1ece8; align-self: flex-start; max-width: 100%; overflow-x: auto; }
+        .bset-tabs__btn { height: 38px; padding: 0 18px; border: 0; border-radius: 9px; background: none; font: inherit; font-size: 0.875rem; font-weight: 600; color: #6b7280; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+        .bset-tabs__btn:hover { color: #1f2430; }
+        .bset-tabs__btn.is-active { background: #fff; color: #1f2430; box-shadow: 0 1px 3px rgba(31,36,48,0.08); }
+        .bset-stack { display: flex; flex-direction: column; gap: 20px; }
+      `}</style>
     </BusinessLayout>
+  );
+}
+
+function AccountDetailsCard({ onSaved }: { onSaved: () => void }) {
+  const { account } = useBusinessProfile();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(account);
+  const [error, setError] = useState<Partial<Record<'businessName' | 'contactPerson' | 'city' | 'presence', string>>>({});
+
+  const startEdit = () => { setDraft(account); setError({}); setEditing(true); };
+
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    const next: typeof error = {};
+    if (draft.businessName.trim().length < 2) next.businessName = 'Enter your business name';
+    if (draft.contactPerson.trim().length < 2) next.contactPerson = 'Enter a contact person';
+    if (draft.city.trim().length < 2) next.city = 'Enter your city';
+    if (draft.presence.trim() && !presenceKind(draft.presence)) next.presence = 'Enter a website, @instagram handle or LinkedIn link';
+    setError(next);
+    if (Object.keys(next).length) return;
+    const presence = draft.presence.trim();
+    updateBusinessAccount({
+      businessName: draft.businessName.trim(),
+      contactPerson: draft.contactPerson.trim(),
+      businessType: draft.businessType,
+      city: draft.city.trim(),
+      presence,
+      presenceVerified: presence === account.presence ? account.presenceVerified : false,
+    });
+    setEditing(false);
+    onSaved();
+  };
+
+  const kind = presenceKind(account.presence);
+
+  return (
+    <section className="bp-card aw-scope" aria-labelledby="bp-account-title">
+      <header className="bp-card__head">
+        <span className="bp-card__icon is-done"><Building2 size={20} /></span>
+        <div>
+          <span className="bp-card__level">Level 1</span>
+          <h2 className="bp-card__title" id="bp-account-title">Account details</h2>
+          <p className="bp-card__sub">What you shared at sign-up. Creators see your business name, type and city.</p>
+        </div>
+        {!editing && (
+          <button type="button" className="bp-btn bp-btn--ghost" onClick={startEdit}>
+            <Pencil size={14} /> Edit
+          </button>
+        )}
+      </header>
+
+      {!editing ? (
+        <dl className="bp-facts">
+          <div><dt>Business name</dt><dd>{account.businessName}</dd></div>
+          <div><dt>Contact person</dt><dd>{account.contactPerson || '—'}</dd></div>
+          <div><dt>Business type</dt><dd>{account.businessType}</dd></div>
+          <div><dt>City</dt><dd>{account.city || '—'}</dd></div>
+          <div>
+            <dt>Phone</dt>
+            <dd className="bset-verified">
+              +91 {account.phone.slice(0, 5)} {account.phone.slice(5)}
+              <span className="bp-chip bp-chip--ok"><BadgeCheck size={13} /> Verified</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Work email</dt>
+            <dd className="bset-verified">
+              {account.email || 'Not added'}
+              {account.email && (account.emailVerified
+                ? <span className="bp-chip bp-chip--ok"><BadgeCheck size={13} /> Verified</span>
+                : <span className="bp-chip bp-chip--warn">Unverified</span>)}
+            </dd>
+          </div>
+          <div>
+            <dt>{kind === 'instagram' ? 'Instagram' : kind === 'linkedin' ? 'LinkedIn' : 'Website'}</dt>
+            <dd className="bset-verified">
+              {account.presence || 'Not added'}
+              {account.presence && (account.presenceVerified
+                ? <span className="bp-chip bp-chip--ok"><BadgeCheck size={13} /> Verified</span>
+                : <span className="bp-chip bp-chip--warn">Unverified</span>)}
+            </dd>
+          </div>
+        </dl>
+      ) : (
+        <form className="bp-form" onSubmit={save} noValidate>
+          <div className="aw-grid">
+            <FormField id="ac-name" label="Business name" error={error.businessName}>
+              <div className={`aw-control${error.businessName ? ' is-invalid' : ''}`}>
+                <Building2 className="aw-control__icon" size={17} />
+                <input id="ac-name" value={draft.businessName} onChange={e => setDraft({ ...draft, businessName: e.target.value })} />
+              </div>
+            </FormField>
+            <FormField id="ac-contact" label="Contact person" error={error.contactPerson}>
+              <div className={`aw-control${error.contactPerson ? ' is-invalid' : ''}`}>
+                <UserRound className="aw-control__icon" size={17} />
+                <input id="ac-contact" value={draft.contactPerson} onChange={e => setDraft({ ...draft, contactPerson: e.target.value })} />
+              </div>
+            </FormField>
+            <FormField id="ac-type" label="Business type">
+              <div className="aw-control aw-control--select">
+                <Briefcase className="aw-control__icon" size={17} />
+                <select id="ac-type" value={draft.businessType} onChange={e => setDraft({ ...draft, businessType: e.target.value })}>
+                  {BUSINESS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <ChevronDown className="aw-control__chevron" size={16} />
+              </div>
+            </FormField>
+            <FormField id="ac-city" label="City" error={error.city}>
+              <div className={`aw-control${error.city ? ' is-invalid' : ''}`}>
+                <MapPin className="aw-control__icon" size={17} />
+                <input id="ac-city" list="ac-city-list" value={draft.city} onChange={e => setDraft({ ...draft, city: e.target.value })} />
+                <datalist id="ac-city-list">{POPULAR_CITIES.map(c => <option key={c} value={c} />)}</datalist>
+              </div>
+            </FormField>
+            <FormField
+              id="ac-presence" label="Website / Instagram / LinkedIn" optional full error={error.presence}
+              help={draft.presence.trim() && draft.presence.trim() !== account.presence ? 'Changed links need to be verified again.' : undefined}
+            >
+              <div className={`aw-control${error.presence ? ' is-invalid' : ''}`}>
+                {presenceKind(draft.presence) === 'instagram' ? <AtSign className="aw-control__icon" size={17} /> : <Globe className="aw-control__icon" size={17} />}
+                <input id="ac-presence" value={draft.presence} onChange={e => setDraft({ ...draft, presence: e.target.value })} />
+              </div>
+            </FormField>
+            <FormField id="ac-phone" label="Phone" help="Used to sign in. Contact support to change it.">
+              <div className="aw-control is-verified">
+                <Phone className="aw-control__icon" size={17} />
+                <input id="ac-phone" value={`+91 ${account.phone}`} readOnly />
+              </div>
+            </FormField>
+            <FormField id="ac-email" label="Work email">
+              <div className={`aw-control${account.emailVerified && account.email ? ' is-verified' : ''}`}>
+                <Mail className="aw-control__icon" size={17} />
+                <input id="ac-email" value={account.email || 'Not added'} readOnly />
+              </div>
+            </FormField>
+          </div>
+          <div className="bp-form__actions">
+            <button type="button" className="bp-btn bp-btn--ghost" onClick={() => setEditing(false)}>Cancel</button>
+            <button type="submit" className="bp-btn bp-btn--primary">Save changes</button>
+          </div>
+        </form>
+      )}
+
+      <style>{`
+        .bset-verified { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      `}</style>
+    </section>
+  );
+}
+
+function PaymentsCard({ onSaved }: { onSaved: () => void }) {
+  const { payments } = useBusinessProfile();
+  const done = Boolean(payments.completedAt);
+  const [editing, setEditing] = useState(!done);
+
+  return (
+    <section className="bp-card aw-scope" aria-labelledby="bp-payments-title">
+      <header className="bp-card__head">
+        <span className={`bp-card__icon${done ? ' is-done' : ''}`}><CreditCard size={20} /></span>
+        <div>
+          <span className="bp-card__level">Level 3</span>
+          <h2 className="bp-card__title" id="bp-payments-title">
+            Payment details
+            {done
+              ? <span className="bp-chip bp-chip--ok"><BadgeCheck size={13} /> Ready to pay creators</span>
+              : <span className="bp-chip">Needed before your first payment</span>}
+          </h2>
+          <p className="bp-card__sub">
+            Used for invoices, tax compliance and refunds. You only need this when you are ready to pay creators.
+          </p>
+        </div>
+        {done && !editing && (
+          <button type="button" className="bp-btn bp-btn--ghost" onClick={() => setEditing(true)}>
+            <Pencil size={14} /> Edit
+          </button>
+        )}
+      </header>
+
+      {done && !editing ? (
+        <PaymentDetailsSummary payments={payments} />
+      ) : (
+        <PaymentSetupForm
+          onCancel={done ? () => setEditing(false) : undefined}
+          onSaved={() => { setEditing(false); onSaved(); }}
+        />
+      )}
+    </section>
   );
 }
