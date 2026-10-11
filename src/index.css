@@ -981,15 +981,52 @@ input, textarea, select { font-family: var(--font-sans); font-size: 16px; }
 /* Chips */
 .cr-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: 20px;
+  padding: 7px 14px; border-radius: 20px;
   font-size: 0.8125rem; font-weight: 600;
   border: 1.5px solid var(--in-border); background: #fff; color: var(--in-gray);
-  cursor: pointer; transition: all 0.15s; font-family: inherit;
+  cursor: pointer; font-family: inherit;
+  transition: border-color 0.18s, color 0.18s, background 0.18s, box-shadow 0.18s, transform 0.15s;
+  user-select: none;
+  position: relative; overflow: hidden;
 }
-.cr-chip:hover { border-color: var(--in-coral); color: var(--in-coral-text); }
-.cr-chip--active { background: rgba(242,132,107,0.1); border-color: var(--in-coral); color: var(--in-coral-text); }
+.cr-chip::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(242,132,107,0.18) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  border-radius: inherit;
+}
+.cr-chip:hover {
+  border-color: var(--in-coral);
+  color: var(--in-coral-text);
+  background: rgba(242,132,107,0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(242,132,107,0.15);
+}
+.cr-chip:active { transform: scale(0.95); }
+.cr-chip--active {
+  background: linear-gradient(135deg, rgba(242,132,107,0.15), rgba(248,208,196,0.2));
+  border-color: var(--in-coral);
+  color: var(--in-coral-text);
+  box-shadow: 0 2px 10px rgba(242,132,107,0.2), inset 0 1px 0 rgba(255,255,255,0.6);
+  transform: translateY(-1px);
+}
+.cr-chip--active::after { opacity: 1; }
+.cr-chip--active:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(242,132,107,0.28); }
+.cr-chip--active:active { transform: scale(0.95) translateY(0); }
 .cr-chip--static { cursor: default; }
-.cr-chip--static:hover { border-color: var(--in-border); color: var(--in-gray); }
+.cr-chip--static:hover { border-color: var(--in-border); color: var(--in-gray); background: #fff; transform: none; box-shadow: none; }
+
+/* Chip check icon (injected via CSS for active state) */
+@keyframes chipPop {
+  0%   { transform: scale(0.85) translateY(0); opacity: 0.5; }
+  60%  { transform: scale(1.06) translateY(-2px); }
+  100% { transform: scale(1) translateY(-1px); opacity: 1; }
+}
+.cr-chip--active { animation: chipPop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.cr-chip--static { animation: none; }
 
 /* Progress bar */
 .cr-progress { height: 8px; border-radius: 8px; background: rgba(242,132,107,0.12); overflow: hidden; }

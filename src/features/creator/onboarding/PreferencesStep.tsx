@@ -8,6 +8,7 @@ import type { CreatorPreferences, Platform } from '../types';
 const ALL_CATEGORIES = ['Food', 'Lifestyle', 'Travel', 'Fashion', 'Fitness', 'Technology', 'Beauty', 'Education'];
 const ALL_LANGUAGES = ['Tamil', 'English', 'Hindi', 'Telugu', 'Malayalam', 'Kannada'];
 const ALL_PLATFORMS: Platform[] = ['instagram', 'youtube', 'tiktok'];
+const ALL_FORMATS = ['Instagram Reel', 'Instagram Story', 'Instagram Post', 'YouTube Short', 'YouTube Video', 'UGC'];
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter(v => v !== value) : [...list, value];
@@ -51,8 +52,8 @@ export default function PreferencesStep() {
 
       {/* Interests */}
       <Card>
-        <div className="cr-card__title" style={{ marginBottom: 8 }}>What do you create content about?</div>
-        <div className="cr-card__sub" style={{ marginBottom: 12 }}>Pick everything that fits — brands use this to match you.</div>
+        <div className="cr-card__title" style={{ marginBottom: 8 }}>Content categories</div>
+        <div className="cr-card__sub" style={{ marginBottom: 12 }}>What topics do you create content about?</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {ALL_CATEGORIES.map(c => (
             <Chip key={c} active={draft.categories.includes(c)} onClick={() => set('categories', toggle(draft.categories, c))}>{c}</Chip>
@@ -60,7 +61,7 @@ export default function PreferencesStep() {
         </div>
       </Card>
 
-      {/* Platforms & Languages */}
+      {/* Platforms & Languages & Formats */}
       <Card>
         <div className="cr-card__title" style={{ marginBottom: 8 }}>Platforms you're active on</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
@@ -71,9 +72,15 @@ export default function PreferencesStep() {
           ))}
         </div>
         <div className="cr-card__title" style={{ marginBottom: 8 }}>Languages you create in</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
           {ALL_LANGUAGES.map(l => (
             <Chip key={l} active={draft.languages.includes(l)} onClick={() => set('languages', toggle(draft.languages, l))}>{l}</Chip>
+          ))}
+        </div>
+        <div className="cr-card__title" style={{ marginBottom: 8 }}>Content formats</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {ALL_FORMATS.map(f => (
+            <Chip key={f} active={draft.contentFormats.includes(f)} onClick={() => set('contentFormats', toggle(draft.contentFormats, f))}>{f}</Chip>
           ))}
         </div>
       </Card>
@@ -82,7 +89,7 @@ export default function PreferencesStep() {
         <Button variant="ghost" onClick={() => navigate('/creator/onboarding/passport')}>
           <ArrowLeft size={16} /> Back
         </Button>
-        <Button variant="ghost" onClick={skip}>Skip for now</Button>
+        <Button variant="ghost" onClick={skip}>Skip</Button>
         <Button onClick={finish}><Check size={16} /> Save & go to Dashboard</Button>
       </div>
 

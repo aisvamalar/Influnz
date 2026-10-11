@@ -1,17 +1,17 @@
-import { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Mail, Phone, IdCard, Camera, Video, ShieldCheck, Check, ArrowRight,
-  ArrowLeft, RefreshCw, AlertCircle, Link as LinkIcon,
+  Mail, Phone, IdCard, ShieldCheck, Check, ArrowRight,
+  RefreshCw, AlertCircle, Link as LinkIcon,
 } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
 import { Card, Button } from '../ui';
-import type { VerificationStatus, PlatformConnection } from '../types';
+import type { PlatformConnection } from '../types';
 
-// ── Phone OTP inline ──────────────────────────────────────────────────
 const OTP_LEN = 6;
 
-function PhoneOtpInline({ onVerified }: { onVerified: () => void }) {
+// ── Reusable OTP widget ───────────────────────────────────────────────
+function OtpWidget({ onVerified }: { onVerified: () => void }) {
   const [digits, setDigits] = useState<string[]>(Array(OTP_LEN).fill(''));
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,11 +26,8 @@ function PhoneOtpInline({ onVerified }: { onVerified: () => void }) {
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !digits[i] && i > 0) refs.current[i - 1]?.focus();
-  };
-
-  const sendOtp = () => {
-    setSent(true);
-    setTimeout(() => refs.current[0]?.focus(), 100);
+    if (e.key === 'ArrowLeft'  && i > 0)              refs.current[i - 1]?.focus();
+    if (e.key === 'ArrowRight' && i < OTP_LEN - 1)   refs.current[i + 1]?.focus();
   };
 
   const confirm = () => {
@@ -39,44 +36,61 @@ function PhoneOtpInline({ onVerified }: { onVerified: () => void }) {
     setLoading(true);
     setTimeout(() => {
       if (otp === '123456') { onVerified(); }
-      else { setError('Invalid code — try 123456'); setDigits(Array(OTP_LEN).fill('')); refs.current[0]?.focus(); }
+      else {
+        setError('Invalid code — use 123456 in mock mode');
+        setDigits(Array(OTP_LEN).fill(''));
+        refs.current[0]?.focus();
+      }
       setLoading(false);
     }, 600);
   };
 
   if (!sent) {
     return (
-      <div style={{ marginTop: 8 }}>
-        <Button variant="ghost" small onClick={sendOtp}>Send OTP</Button>
-        <span style={{ fontSize: '0.75rem', color: 'var(--in-gray)', marginLeft: 10 }}>
-          Mock mode: code will be 123456
-        </span>
+      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => { setSent(true); setTimeout(() => refs.current[0]?.focus(), 100); }}
+          style={{
+            padding: '7px 16px', borderRadius: 10,
+            border: '1.5px solid var(--in-coral)', background: 'rgba(242,132,107,0.08)',
+            color: 'var(--in-coral-text)', fontSize: '0.8125rem', fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          Send OTP →
+        </button>
+        <span style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>Mock: 123456</span>
       </div>
     );
   }
 
   return (
     <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         {digits.map((d, i) => (
-          <input
-            key={i}
-            ref={el => { refs.current[i] = el; }}
+          <input key={i} ref={el => { refs.current[i] = el; }}
             type="text" inputMode="numeric" maxLength={1} value={d}
             onChange={e => handleChange(i, e.target.value)}
             onKeyDown={e => handleKeyDown(i, e)}
             disabled={loading}
             style={{
-              width: 36, height: 40, borderRadius: 8, border: `1.5px solid ${error ? 'var(--in-danger)' : 'var(--in-gray-light)'}`,
-              textAlign: 'center', fontSize: '1rem', fontWeight: 700, outline: 'none',
+              width: 38, height: 44, borderRadius: 10,
+              border: `1.5px solid ${error ? 'var(--in-danger)' : 'var(--in-gray-light)'}`,
+              textAlign: 'center', fontSize: '1.0625rem', fontWeight: 700, outline: 'none',
               color: 'var(--in-charcoal)', background: 'white',
             }}
-            aria-label={`Digit ${i + 1}`}
-          />
+            aria-label={`Digit ${i + 1}`} />
         ))}
-        <Button small onClick={confirm} disabled={loading || digits.join('').length < OTP_LEN} style={{ marginLeft: 4 }}>
+        <button type="button" onClick={confirm}
+          disabled={loading || digits.join('').length < OTP_LEN}
+          style={{
+            marginLeft: 4, padding: '10px 18px', borderRadius: 10,
+            background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))',
+            color: '#fff', fontWeight: 700, fontSize: '0.875rem', border: 'none', cursor: 'pointer',
+            opacity: digits.join('').length < OTP_LEN ? 0.5 : 1,
+          }}>
           {loading ? 'Verifying…' : 'Confirm'}
-        </Button>
+        </button>
       </div>
       {error && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-danger)' }}>
@@ -87,75 +101,230 @@ function PhoneOtpInline({ onVerified }: { onVerified: () => void }) {
   );
 }
 
-// ── Social URL input row ──────────────────────────────────────────────
-const PLATFORM_PLACEHOLDER: Record<string, string> = {
-  instagram: 'instagram.com/yourhandle',
-  youtube: 'youtube.com/@yourchannel',
-  tiktok: 'tiktok.com/@yourhandle',
-};
+// ── Email input + OTP ─────────────────────────────────────────────────
+function EmailVerifyBlock({ onVerified }: { onVerified: (email: string) => void }) {
+  const [email, setEmail] = useState('');
+  const [stage, setStage] = useState<'input' | 'otp'>('input');
+  const [emailErr, setEmailErr] = useState('');
 
-function SocialUrlRow({
-  platform, state, onVerified,
-}: {
-  platform: PlatformConnection['platform'];
-  state: PlatformConnection['state'];
-  onVerified: (handle: string) => void;
-}) {
-  const [url, setUrl] = useState('');
-  const [verifying, setVerifying] = useState(false);
-  const [error, setError] = useState('');
-  const Icon = platform === 'youtube' ? Video : Camera;
-  const connected = state === 'connected';
+  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-  const verify = () => {
-    if (!url.trim()) { setError('Paste your profile URL'); return; }
-    setError(''); setVerifying(true);
-    setTimeout(() => {
-      // extract handle from URL or use the raw input
-      const match = url.trim().match(/(?:@|\/)([\w.]+)\/?$/);
-      const handle = match ? `@${match[1]}` : url.trim();
-      onVerified(handle);
-      setVerifying(false);
-    }, 800);
+  const handleVerify = () => {
+    if (!isValid) { setEmailErr('Enter a valid email address'); return; }
+    setEmailErr('');
+    setStage('otp');
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, paddingBottom: 12, borderBottom: '1px solid var(--in-border)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(242,132,107,0.1)', color: 'var(--in-coral-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon size={18} />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--in-charcoal)', textTransform: 'capitalize' }}>{platform}</div>
+    <div style={{ paddingLeft: 48, marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Email input row */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+          border: `1.5px solid ${emailErr ? 'var(--in-danger)' : 'var(--in-gray-light)'}`,
+          borderRadius: 10, padding: '8px 12px', background: 'white',
+        }}>
+          <Mail size={14} style={{ color: 'var(--in-gray)', flexShrink: 0 }} />
+          <input
+            type="email" value={email}
+            onChange={e => { setEmail(e.target.value); setEmailErr(''); }}
+            placeholder="you@email.com"
+            disabled={stage === 'otp'}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '0.875rem', color: 'var(--in-charcoal)', background: 'transparent', minWidth: 0 }}
+            autoComplete="email" inputMode="email"
+            onKeyDown={e => e.key === 'Enter' && stage === 'input' && handleVerify()}
+          />
         </div>
-        {connected && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: 'var(--in-success)', flexShrink: 0 }}>
-            <Check size={15} /> Connected
+        {stage === 'input' && (
+          <button type="button" onClick={handleVerify} disabled={!isValid}
+            style={{
+              padding: '8px 16px', borderRadius: 10, whiteSpace: 'nowrap',
+              background: isValid ? 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))' : 'var(--in-gray-light)',
+              color: '#fff', fontWeight: 700, fontSize: '0.8125rem', border: 'none',
+              cursor: isValid ? 'pointer' : 'not-allowed',
+            }}>
+            Verify →
+          </button>
+        )}
+        {stage === 'otp' && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-gray)', whiteSpace: 'nowrap', padding: '0 4px' }}>
+            Code sent
           </span>
         )}
       </div>
-      {!connected && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 48 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, border: `1.5px solid ${error ? 'var(--in-danger)' : 'var(--in-gray-light)'}`, borderRadius: 10, padding: '6px 10px', background: 'white' }}>
-              <LinkIcon size={14} style={{ color: 'var(--in-gray)', flexShrink: 0 }} />
-              <input
-                type="url"
-                value={url}
-                onChange={e => { setUrl(e.target.value); setError(''); }}
-                placeholder={PLATFORM_PLACEHOLDER[platform]}
-                disabled={verifying}
-                style={{ flex: 1, border: 'none', outline: 'none', fontSize: '0.8125rem', color: 'var(--in-charcoal)', background: 'transparent', minWidth: 0 }}
-              />
-            </div>
-            <Button small onClick={verify} disabled={verifying || !url.trim()}>
-              {verifying ? <><RefreshCw size={13} style={{ animation: 'spin 0.65s linear infinite' }} /> Verifying…</> : 'Verify'}
-            </Button>
-          </div>
-          {error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-danger)' }}>
-              <AlertCircle size={12} /> {error}
-            </div>
+      {emailErr && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-danger)' }}>
+          <AlertCircle size={12} /> {emailErr}
+        </div>
+      )}
+
+      {/* OTP boxes — shown after clicking Verify */}
+      {stage === 'otp' && (
+        <div>
+          <p style={{ fontSize: '0.75rem', color: 'var(--in-gray)', margin: '0 0 8px' }}>
+            Enter the 6-digit code sent to <strong style={{ color: 'var(--in-charcoal)' }}>{email}</strong>
+            <span style={{ marginLeft: 8, fontSize: '0.7rem', background: 'rgba(242,132,107,0.08)', padding: '2px 8px', borderRadius: 6, color: 'var(--in-coral-text)' }}>
+              Mock: 123456
+            </span>
+          </p>
+          <OtpWidget onVerified={() => onVerified(email.trim())} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Social platform picker + URL verify ──────────────────────────────
+type SocialPlatform = {
+  id: string;
+  label: string;
+  placeholder: string;
+  icon: string; // emoji fallback — keeps it simple and avoids missing icon issues
+};
+
+const ALL_SOCIAL_PLATFORMS: SocialPlatform[] = [
+  { id: 'instagram', label: 'Instagram',  placeholder: 'instagram.com/yourhandle',    icon: '📸' },
+  { id: 'youtube',   label: 'YouTube',    placeholder: 'youtube.com/@yourchannel',    icon: '▶️' },
+  { id: 'linkedin',  label: 'LinkedIn',   placeholder: 'linkedin.com/in/yourprofile', icon: '💼' },
+  { id: 'twitter',   label: 'X (Twitter)',placeholder: 'x.com/yourhandle',            icon: '🐦' },
+  { id: 'tiktok',    label: 'TikTok',     placeholder: 'tiktok.com/@yourhandle',      icon: '🎵' },
+  { id: 'facebook',  label: 'Facebook',   placeholder: 'facebook.com/yourpage',       icon: '👤' },
+];
+
+type UrlVerifyState = { url: string; status: 'idle' | 'verifying' | 'done'; handle: string; error: string };
+
+function SocialConnectSection({
+  onVerified,
+}: {
+  onVerified: (platforms: { id: string; handle: string }[]) => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [urlStates, setUrlStates] = useState<Record<string, UrlVerifyState>>({});
+
+  const togglePlatform = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const setUrl = (id: string, url: string) => {
+    setUrlStates(prev => ({ ...prev, [id]: { ...prev[id] ?? { status: 'idle', handle: '', error: '' }, url } }));
+  };
+
+  const verifyUrl = (id: string) => {
+    const s = urlStates[id];
+    if (!s?.url?.trim()) {
+      setUrlStates(prev => ({ ...prev, [id]: { ...prev[id], error: 'Paste your profile URL' } }));
+      return;
+    }
+    setUrlStates(prev => ({ ...prev, [id]: { ...prev[id], status: 'verifying', error: '' } }));
+    setTimeout(() => {
+      const match = s.url.trim().match(/(?:@|\/)([\w.]+)\/?$/);
+      const handle = match ? `@${match[1]}` : s.url.trim();
+      const next = { ...urlStates[id], status: 'done' as const, handle };
+      setUrlStates(prev => ({ ...prev, [id]: next }));
+      // notify parent
+      const verified = Object.entries({ ...urlStates, [id]: next })
+        .filter(([, v]) => v.status === 'done')
+        .map(([pid, v]) => ({ id: pid, handle: v.handle }));
+      onVerified(verified);
+    }, 800);
+  };
+
+  const verifiedCount = Object.values(urlStates).filter(v => v.status === 'done').length;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Step 1: pick platforms */}
+      <div>
+        <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--in-charcoal)', margin: '0 0 6px' }}>
+          Which platforms are you active on?
+        </p>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--in-gray)', margin: '0 0 12px' }}>
+          Select all that apply — you'll paste your profile URL for each.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {ALL_SOCIAL_PLATFORMS.map(p => {
+            const active = selected.has(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => togglePlatform(p.id)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 7,
+                  padding: '8px 14px', borderRadius: 20,
+                  border: `2px solid ${active ? 'var(--in-coral)' : 'var(--in-gray-light)'}`,
+                  background: active ? 'rgba(242,132,107,0.09)' : 'white',
+                  color: active ? 'var(--in-coral-text)' : 'var(--in-charcoal)',
+                  fontWeight: active ? 700 : 500, fontSize: '0.875rem',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                <span>{p.icon}</span> {p.label}
+                {active && <Check size={13} style={{ marginLeft: 2 }} />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Step 2: URL inputs for selected */}
+      {selected.size > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--in-charcoal)', margin: 0 }}>
+            Paste your profile URL for each selected platform:
+          </p>
+          {Array.from(selected).map(id => {
+            const plat = ALL_SOCIAL_PLATFORMS.find(p => p.id === id)!;
+            const s = urlStates[id] ?? { url: '', status: 'idle', handle: '', error: '' };
+            const done = s.status === 'done';
+            const verifying = s.status === 'verifying';
+            return (
+              <div key={id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: '0.875rem' }}>{plat.icon}</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.8125rem', color: 'var(--in-charcoal)' }}>{plat.label}</span>
+                  {done && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.75rem', fontWeight: 700, color: 'var(--in-success)', marginLeft: 4 }}>
+                      <Check size={12} /> Connected as {s.handle}
+                    </span>
+                  )}
+                </div>
+                {!done && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{
+                      flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                      border: `1.5px solid ${s.error ? 'var(--in-danger)' : 'var(--in-gray-light)'}`,
+                      borderRadius: 10, padding: '6px 10px', background: 'white',
+                    }}>
+                      <LinkIcon size={13} style={{ color: 'var(--in-gray)', flexShrink: 0 }} />
+                      <input
+                        type="url" value={s.url}
+                        onChange={e => setUrl(id, e.target.value)}
+                        placeholder={plat.placeholder} disabled={verifying}
+                        style={{ flex: 1, border: 'none', outline: 'none', fontSize: '0.8125rem', color: 'var(--in-charcoal)', background: 'transparent', minWidth: 0 }}
+                      />
+                    </div>
+                    <Button small onClick={() => verifyUrl(id)} disabled={verifying || !s.url?.trim()}>
+                      {verifying ? <><RefreshCw size={13} style={{ animation: 'spin 0.65s linear infinite' }} /> Verifying…</> : 'Verify'}
+                    </Button>
+                  </div>
+                )}
+                {s.error && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-danger)' }}>
+                    <AlertCircle size={12} /> {s.error}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {verifiedCount > 0 && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--in-success)', fontWeight: 600, margin: 0 }}>
+              ✓ {verifiedCount} platform{verifiedCount > 1 ? 's' : ''} connected
+            </p>
           )}
         </div>
       )}
@@ -163,32 +332,38 @@ function SocialUrlRow({
   );
 }
 
-// ── Main VerifyStep ───────────────────────────────────────────────────
-const STATUS_LABEL: Record<VerificationStatus, string> = {
-  pending: 'Pending',
-  in_progress: 'In progress',
-  verified: 'Verified',
-  failed: 'Failed',
-};
-
+// ── Main ─────────────────────────────────────────────────────────────
 export default function VerifyStep() {
   const navigate = useNavigate();
   const { profile, verification, setVerification, completeOnboardingStep, updateProfile } = useCreator();
-  const [platforms, setPlatforms] = useState<PlatformConnection[]>(profile.platforms);
+  const [platforms, setPlatforms] = useState<PlatformConnection[]>(
+    profile.platforms.map(p => ({ ...p, state: 'disconnected' as const, handle: '', followers: 0 }))
+  );
   const [busy, setBusy] = useState<string | null>(null);
 
   const connectedSocial = platforms.some(p => p.state === 'connected');
 
-  const handlePhoneVerified = () => setVerification('phone', 'verified');
+  const handleEmailVerified = (email: string) => {
+    updateProfile({ username: profile.username || email.split('@')[0] });
+    setVerification('email', 'verified');
+  };
 
-  const handleSocialVerified = (platform: PlatformConnection['platform'], handle: string) => {
-    setPlatforms(list => list.map(p =>
-      p.platform === platform ? { ...p, state: 'connected', handle, followers: p.followers || 5200 } : p
-    ));
+  const handleSocialsVerified = (verified: { id: string; handle: string }[]) => {
+    setPlatforms(prev => {
+      const next = [...prev];
+      verified.forEach(v => {
+        const idx = next.findIndex(p => p.platform === v.id);
+        if (idx >= 0) {
+          next[idx] = { ...next[idx], state: 'connected', handle: v.handle, followers: next[idx].followers || 5200 };
+        } else {
+          next.push({ platform: v.id as PlatformConnection['platform'], handle: v.handle, followers: 5200, state: 'connected' });
+        }
+      });
+      return next;
+    });
     setVerification('social', 'verified');
   };
 
-  // identity verify (mock button — KYC would be a real flow)
   const verifyIdentity = () => {
     setBusy('identity');
     setVerification('identity', 'in_progress');
@@ -225,47 +400,45 @@ export default function VerifyStep() {
         <div className="cr-card__title" style={{ marginBottom: 12 }}>Account verification</div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
 
-          {/* Email — always verified from signup */}
-          <div className="cr-row" style={{ paddingTop: 12, paddingBottom: 12 }}>
+          {/* Email — input + OTP */}
+          <div style={{ paddingBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(242,132,107,0.1)', color: 'var(--in-coral-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Mail size={18} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--in-charcoal)' }}>Email</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>
+                  {verification.email === 'verified' ? 'Verified' : 'Enter your email and confirm with OTP'}
+                </div>
+              </div>
+              {verification.email === 'verified' && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: 'var(--in-success)', flexShrink: 0 }}>
+                  <Check size={15} /> Verified
+                </span>
+              )}
+            </div>
+            {verification.email !== 'verified' && (
+              <EmailVerifyBlock onVerified={handleEmailVerified} />
+            )}
+          </div>
+
+          {/* Phone — verified during signup */}
+          <div className="cr-row" style={{ paddingTop: 12, paddingBottom: 12, borderTop: '1px solid var(--in-border)' }}>
             <span style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(242,132,107,0.1)', color: 'var(--in-coral-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Mail size={18} />
+              <Phone size={18} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--in-charcoal)' }}>Email</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>Confirmed via OTP during signup</div>
+              <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--in-charcoal)' }}>Phone</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>Verified during signup</div>
             </div>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: 'var(--in-success)', flexShrink: 0 }}>
               <Check size={15} /> Verified
             </span>
           </div>
 
-          {/* Phone — inline OTP */}
-          <div style={{ paddingTop: 12, paddingBottom: 12, borderTop: '1px solid var(--in-border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(242,132,107,0.1)', color: 'var(--in-coral-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Phone size={18} />
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--in-charcoal)' }}>Phone</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>
-                  {verification.phone === 'verified' ? STATUS_LABEL.verified : 'Verify your mobile number'}
-                </div>
-              </div>
-              {verification.phone === 'verified' && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: 'var(--in-success)', flexShrink: 0 }}>
-                  <Check size={15} /> Verified
-                </span>
-              )}
-            </div>
-            {verification.phone !== 'verified' && (
-              <div style={{ paddingLeft: 48 }}>
-                <PhoneOtpInline onVerified={handlePhoneVerified} />
-              </div>
-            )}
-          </div>
-
           {/* Identity */}
-          <div style={{ paddingTop: 12, paddingBottom: 0, borderTop: '1px solid var(--in-border)' }}>
+          <div style={{ paddingTop: 12, borderTop: '1px solid var(--in-border)' }}>
             <div className="cr-row">
               <span style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(242,132,107,0.1)', color: 'var(--in-coral-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <IdCard size={18} />
@@ -290,28 +463,13 @@ export default function VerifyStep() {
         </div>
       </Card>
 
-      {/* Social accounts */}
+      {/* Social platforms */}
       <Card>
-        <div className="cr-card__title" style={{ marginBottom: 4 }}>Connect social accounts</div>
-        <div className="cr-card__sub" style={{ marginBottom: 12 }}>
-          Paste your profile URL for each platform and hit Verify. Connect at least one.
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {platforms.map(p => (
-            <SocialUrlRow
-              key={p.platform}
-              platform={p.platform}
-              state={p.state}
-              onVerified={handle => handleSocialVerified(p.platform, handle)}
-            />
-          ))}
-        </div>
+        <SocialConnectSection onVerified={handleSocialsVerified} />
       </Card>
 
       <div className="cr-onboarding__actions">
-        <Button variant="ghost" onClick={handleSkip}>
-          <ArrowLeft size={16} /> Skip for now
-        </Button>
+        <Button variant="ghost" onClick={handleSkip}>Skip</Button>
         <Button onClick={handleContinue} disabled={!canContinue}>
           Continue <ArrowRight size={16} />
         </Button>

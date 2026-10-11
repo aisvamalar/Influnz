@@ -17,9 +17,9 @@ export function makeSignupSchema(accountType: SignupAccountType = 'business') {
       .min(2, isCreator ? 'Name must be at least 2 characters' : 'Business name must be at least 2 characters')
       .max(80, isCreator ? 'Name must be 80 characters or fewer' : 'Business name must be 80 characters or fewer'),
 
-    email: z
-      .string()
-      .email('Please enter a valid email address'),
+    email: isCreator
+      ? z.string().optional().or(z.literal(''))   // email collected later in onboarding verify step
+      : z.string().email('Please enter a valid email address'),
 
     phone: z
       .string()
@@ -39,9 +39,8 @@ export function makeSignupSchema(accountType: SignupAccountType = 'business') {
       .boolean()
       .refine(val => val === true, 'You must accept the terms to continue'),
   }).superRefine((data, ctx) => {
-    const emailLower = data.email.toLowerCase();
-    // Soft warn if free-mail domain — business accounts only
-    if (!isCreator) {
+    if (!isCreator && data.email) {
+      const emailLower = data.email.toLowerCase();
       const domain = emailLower.split('@')[1];
       if (FREE_MAIL_DOMAINS.includes(domain)) {
         ctx.addIssue({
@@ -50,15 +49,6 @@ export function makeSignupSchema(accountType: SignupAccountType = 'business') {
           path: ['email'],
         });
       }
-    }
-    // Password must not contain email local part
-    const local = emailLower.split('@')[0];
-    if (data.password.toLowerCase().includes(local)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Password should not contain your email',
-        path: ['password'],
-      });
     }
   });
 }

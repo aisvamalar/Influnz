@@ -52,6 +52,12 @@ export function Chip({ active, onClick, children, staticChip }: { active?: boole
       onClick={onClick}
       aria-pressed={active}
     >
+      {active && !staticChip && (
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+          <circle cx="6.5" cy="6.5" r="6.5" fill="var(--in-coral)" />
+          <path d="M3.5 6.5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
       {children}
     </button>
   );

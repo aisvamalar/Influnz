@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Megaphone, Building2 } from 'lucide-react';
+import { Megaphone, Building2, Check, AlertCircle } from 'lucide-react';
 import { makeSignupSchema, type SignupFormValues } from './schemas';
 import { authService } from '../../lib/auth/authService';
 import { extractAuthError } from './authErrors';
@@ -44,12 +44,156 @@ function LockIcon() {
     </svg>
   );
 }
+const OTP_LEN = 6;
 
+/* ── Inline phone OTP widget (creator signup only) ── */
+function PhoneOtpWidget({
+  phone,
+  onVerified,
+  disabled,
+}: {
+  phone: string;
+  onVerified: () => void;
+  disabled: boolean;
+}) {
+  const [stage, setStage] = useState<'idle' | 'sending' | 'otp' | 'confirming' | 'done'>('idle');
+  const [digits, setDigits] = useState<string[]>(Array(OTP_LEN).fill(''));
+  const [otpErr, setOtpErr] = useState('');
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const phoneClean = phone.replace(/\D/g, '');
+  const canSend = phoneClean.length === 10;
+
+  const sendOtp = () => {
+    if (!canSend) return;
+    setStage('sending');
+    setTimeout(() => {
+      setStage('otp');
+      setTimeout(() => refs.current[0]?.focus(), 80);
+    }, 600);
+  };
+
+  const handleChange = (i: number, val: string) => {
+    const d = val.replace(/\D/g, '').slice(-1);
+    const next = [...digits]; next[i] = d; setDigits(next); setOtpErr('');
+    if (d && i < OTP_LEN - 1) refs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) refs.current[i - 1]?.focus();
+    if (e.key === 'ArrowLeft'  && i > 0)              refs.current[i - 1]?.focus();
+    if (e.key === 'ArrowRight' && i < OTP_LEN - 1)   refs.current[i + 1]?.focus();
+  };
+
+  const confirm = () => {
+    const otp = digits.join('');
+    if (otp.length < OTP_LEN) { setOtpErr('Enter the 6-digit code'); return; }
+    setStage('confirming');
+    setTimeout(() => {
+      if (otp === '123456') {
+        setStage('done');
+        onVerified();
+      } else {
+        setOtpErr('Invalid code — use 123456 in mock mode');
+        setDigits(Array(OTP_LEN).fill(''));
+        setStage('otp');
+        setTimeout(() => refs.current[0]?.focus(), 80);
+      }
+    }, 700);
+  };
+
+  if (stage === 'done') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: '0.8125rem', color: 'var(--in-success)', fontWeight: 700 }}>
+        <Check size={15} /> Phone verified
+      </div>
+    );
+  }
+
+  if (stage === 'idle' || stage === 'sending') {
+    return (
+      <button
+        type="button"
+        onClick={sendOtp}
+        disabled={disabled || !canSend || stage === 'sending'}
+        style={{
+          marginTop: 8,
+          padding: '7px 16px',
+          borderRadius: 10,
+          border: '1.5px solid var(--in-coral)',
+          background: canSend ? 'rgba(242,132,107,0.08)' : 'transparent',
+          color: canSend ? 'var(--in-coral-text)' : 'var(--in-gray-light)',
+          fontSize: '0.8125rem',
+          fontWeight: 700,
+          cursor: canSend ? 'pointer' : 'not-allowed',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        {stage === 'sending' ? 'Sending…' : 'Verify phone →'}
+      </button>
+    );
+  }
+
+  // otp | confirming
+  return (
+    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <p style={{ fontSize: '0.75rem', color: 'var(--in-gray)', margin: 0 }}>
+        Enter the 6-digit code sent to <strong>+91 {phoneClean}</strong>
+        <span style={{ marginLeft: 8, fontSize: '0.7rem', background: 'rgba(242,132,107,0.08)', padding: '2px 8px', borderRadius: 6, color: 'var(--in-coral-text)' }}>
+          Mock: 123456
+        </span>
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        {digits.map((d, i) => (
+          <input
+            key={i}
+            ref={el => { refs.current[i] = el; }}
+            type="text" inputMode="numeric" maxLength={1} value={d}
+            onChange={e => handleChange(i, e.target.value)}
+            onKeyDown={e => handleKeyDown(i, e)}
+            disabled={stage === 'confirming'}
+            style={{
+              width: 38, height: 44, borderRadius: 10,
+              border: `1.5px solid ${otpErr ? 'var(--in-danger)' : 'var(--in-gray-light)'}`,
+              textAlign: 'center', fontSize: '1.0625rem', fontWeight: 700, outline: 'none',
+              color: 'var(--in-charcoal)', background: 'white',
+              transition: 'border-color 0.15s',
+            }}
+            aria-label={`Digit ${i + 1}`}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={confirm}
+          disabled={stage === 'confirming' || digits.join('').length < OTP_LEN}
+          style={{
+            marginLeft: 4, padding: '10px 18px', borderRadius: 10,
+            background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))',
+            color: '#fff', fontWeight: 700, fontSize: '0.875rem',
+            border: 'none', cursor: 'pointer', opacity: digits.join('').length < OTP_LEN ? 0.5 : 1,
+          }}
+        >
+          {stage === 'confirming' ? 'Verifying…' : 'Confirm'}
+        </button>
+      </div>
+      {otpErr && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-danger)' }}>
+          <AlertCircle size={12} /> {otpErr}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Role options ── */
 const ROLE_OPTIONS: { type: AccountType; icon: typeof Megaphone; title: string; desc: string }[] = [
   { type: 'creator',  icon: Megaphone,  title: "I'm a Creator",  desc: 'Get discovered by brands and get paid for your content.' },
-  { type: 'business', icon: Building2, title: "I'm a Business", desc: 'Run creator campaigns that drive real results.' },
+  { type: 'business', icon: Building2,  title: "I'm a Business", desc: 'Run creator campaigns that drive real results.' },
 ];
 
+/* ── Page ── */
 export default function SignupPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -59,9 +203,10 @@ export default function SignupPage() {
   );
   const isCreator = accountType === 'creator';
 
-  const [showPwd, setShowPwd]       = useState(false);
-  const [apiErr, setApiErr]         = useState('');
-  const [googleLoad, setGoogleLoad] = useState(false);
+  const [showPwd, setShowPwd]         = useState(false);
+  const [apiErr, setApiErr]           = useState('');
+  const [googleLoad, setGoogleLoad]   = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
   const {
     register, handleSubmit, watch,
@@ -72,21 +217,25 @@ export default function SignupPage() {
   });
 
   const passwordValue = watch('password', '');
+  const phoneValue    = watch('phone', '');
   const emailErr      = errors.email?.message ?? '';
   const isEmailWarn   = emailErr.startsWith('Tip:');
   const postAuthPath  = isCreator ? '/creator/onboarding' : '/onboarding';
-
   const onSubmit = async (data: SignupFormValues) => {
     setApiErr('');
     try {
       const res = await authService.signup({
         businessName: data.businessName,
-        email:        data.email,
+        email:        data.email ?? '',
         phone:        data.phone,
         password:     data.password,
         accountType:  accountType!,
       });
-      if (res.requiresOtp) {
+      // Creators skip the standalone OTP page — phone was already verified inline,
+      // email is verified inside the onboarding verify step.
+      if (isCreator) {
+        navigate(postAuthPath);
+      } else if (res.requiresOtp) {
         navigate('/verify', { state: { identifier: res.otpTarget, type: res.otpType, context: 'signup', accountType } });
       } else {
         navigate(postAuthPath);
@@ -104,6 +253,8 @@ export default function SignupPage() {
   };
 
   const busy = isSubmitting || googleLoad;
+  // Creator must verify phone before submitting
+  const canSubmit = isCreator ? phoneVerified : true;
 
   return (
     <main id="main-content" className="in-auth-page" aria-label="Sign up">
@@ -114,13 +265,8 @@ export default function SignupPage() {
         <AuthPanel mode="signup" onSwitch={() => navigate('/login')}/>
 
         <div className="in-auth-form-side">
+          <div className="in-auth-mobile-logo"><Logo size="lg"/></div>
 
-          {/* Mobile logo */}
-          <div className="in-auth-mobile-logo">
-            <Logo size="lg"/>
-          </div>
-
-          {/* Tab switcher */}
           <div style={{ width: '100%', maxWidth: 400, marginBottom: 24 }}>
             <div className="in-auth-tabs" role="tablist" aria-label="Auth mode">
               <button role="tab" aria-selected={false} className="in-auth-tabs__btn" onClick={() => navigate('/login')}>Log In</button>
@@ -130,14 +276,13 @@ export default function SignupPage() {
 
           <div className="in-auth-form-card">
 
-            {/* ── STAGE 1: Role picker (no accountType chosen yet) ── */}
+            {/* ── STAGE 1: Role picker ── */}
             {!accountType ? (
               <>
                 <div className="in-auth-form-header">
                   <h1 className="in-auth-form-title">Create your account</h1>
                   <p className="in-auth-form-sub">Choose how you want to use Influnz.</p>
                 </div>
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
                   {ROLE_OPTIONS.map(opt => (
                     <button
@@ -148,25 +293,13 @@ export default function SignupPage() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 14,
                         padding: '14px 16px', borderRadius: 14, cursor: 'pointer', textAlign: 'left',
-                        border: '2px solid var(--in-gray-light)',
-                        background: 'white',
-                        transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
-                        width: '100%',
+                        border: '2px solid var(--in-gray-light)', background: 'white', width: '100%',
+                        transition: 'border-color 0.15s, background 0.15s',
                       }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--in-coral)';
-                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(242,132,107,0.05)';
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--in-gray-light)';
-                        (e.currentTarget as HTMLButtonElement).style.background = 'white';
-                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--in-coral)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(242,132,107,0.05)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--in-gray-light)'; (e.currentTarget as HTMLButtonElement).style.background = 'white'; }}
                     >
-                      <span style={{
-                        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                        background: 'rgba(242,132,107,0.1)', color: 'var(--in-coral-text)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
+                      <span style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: 'rgba(242,132,107,0.1)', color: 'var(--in-coral-text)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <opt.icon size={22} />
                       </span>
                       <div style={{ flex: 1 }}>
@@ -179,32 +312,23 @@ export default function SignupPage() {
                     </button>
                   ))}
                 </div>
-
                 <p className="in-switch" style={{ marginTop: 20 }}>
                   Already have an account? <Link to="/login" className="in-link">Sign in →</Link>
                 </p>
               </>
             ) : (
 
-              /* ── STAGE 2: Signup form (accountType chosen) ── */
+              /* ── STAGE 2: Signup form ── */
               <>
                 <div className="in-auth-form-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                    <span style={{
-                      width: 32, height: 32, borderRadius: 10, flexShrink: 0,
-                      background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))',
-                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
+                    <span style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {isCreator ? <Megaphone size={16} /> : <Building2 size={16} />}
                     </span>
                     <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-coral-text)' }}>
                       {isCreator ? 'Creator account' : 'Business account'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setAccountType(null)}
-                      style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--in-gray)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, textDecoration: 'underline' }}
-                    >
+                    <button type="button" onClick={() => setAccountType(null)} style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--in-gray)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, textDecoration: 'underline' }}>
                       Change
                     </button>
                   </div>
@@ -212,22 +336,23 @@ export default function SignupPage() {
                     {isCreator ? 'Create your creator account' : 'Create your business account'}
                   </h1>
                   <p className="in-auth-form-sub">
-                    {isCreator
-                      ? 'Get discovered by brands and get paid for your content.'
-                      : 'Start growing with creator marketing in minutes.'}
+                    {isCreator ? 'Get discovered by brands and get paid for your content.' : 'Start growing with creator marketing in minutes.'}
                   </p>
                 </div>
 
-                {/* Google */}
-                <button type="button" className="in-google-btn" onClick={handleGoogle} disabled={busy} aria-label="Continue with Google">
-                  <GoogleIcon/> Continue with Google
-                </button>
+                {/* Google — business only */}
+                {!isCreator && (
+                  <>
+                    <button type="button" className="in-google-btn" onClick={handleGoogle} disabled={busy} aria-label="Continue with Google">
+                      <GoogleIcon/> Continue with Google
+                    </button>
+                    <div className="in-divider"><span>or fill in your details</span></div>
+                  </>
+                )}
 
-                <div className="in-divider"><span>or fill in your details</span></div>
-
-                {/* Form */}
                 <form onSubmit={handleSubmit(onSubmit)} noValidate className="in-form" aria-label="Sign up form">
 
+                  {/* Name */}
                   <Field label={isCreator ? 'Your name' : 'Business name'} error={errors.businessName?.message} htmlFor="su-biz">
                     <div className={`in-input-wrap${errors.businessName ? ' in-input-wrap--err' : ''}`}>
                       <span className="in-icon">{isCreator ? <UserIcon/> : <BuildingIcon/>}</span>
@@ -238,32 +363,19 @@ export default function SignupPage() {
                     </div>
                   </Field>
 
-                  <Field
-                    label={isCreator ? 'Email' : 'Work email'}
-                    error={isEmailWarn ? undefined : emailErr}
-                    hint={isEmailWarn ? emailErr : undefined}
-                    htmlFor="su-email"
-                  >
-                    <div className={`in-input-wrap${emailErr && !isEmailWarn ? ' in-input-wrap--err' : ''}`}>
-                      <span className="in-icon"><MailIcon/></span>
-                      <input id="su-email" type="email" placeholder={isCreator ? 'you@email.com' : 'you@company.com'}
-                        autoComplete="email" inputMode="email" disabled={busy}
-                        className="in-input" {...register('email')}/>
-                    </div>
-                  </Field>
+                  {/* Email — business only; creator provides email during onboarding verification */}
+                  {!isCreator && (
+                    <Field label="Work email" error={isEmailWarn ? undefined : emailErr} hint={isEmailWarn ? emailErr : undefined} htmlFor="su-email">
+                      <div className={`in-input-wrap${emailErr && !isEmailWarn ? ' in-input-wrap--err' : ''}`}>
+                        <span className="in-icon"><MailIcon/></span>
+                        <input id="su-email" type="email" placeholder="you@company.com"
+                          autoComplete="email" inputMode="email" disabled={busy}
+                          className="in-input" {...register('email')}/>
+                      </div>
+                    </Field>
+                  )}
 
-                  <Field label="Phone number" error={errors.phone?.message} htmlFor="su-phone">
-                    <div className={`in-input-wrap${errors.phone ? ' in-input-wrap--err' : ''}`}>
-                      <span className="in-phone-prefix" aria-label="India +91">🇮🇳 +91</span>
-                      <input id="su-phone" type="tel" placeholder="9XXXXXXXXX"
-                        autoComplete="tel-national" inputMode="tel" enterKeyHint="next"
-                        disabled={busy}
-                        className="in-input in-input--phone"
-                        style={{ paddingLeft: 12 }}
-                        {...register('phone')}/>
-                    </div>
-                  </Field>
-
+                  {/* Password */}
                   <Field label="Password" error={errors.password?.message} htmlFor="su-pwd">
                     <div className={`in-input-wrap${errors.password ? ' in-input-wrap--err' : ''}`}>
                       <span className="in-icon"><LockIcon/></span>
@@ -277,6 +389,34 @@ export default function SignupPage() {
                     <PasswordStrengthBar password={passwordValue}/>
                   </Field>
 
+                  {/* Phone + inline OTP */}
+                  <Field label="Phone number" error={errors.phone?.message} htmlFor="su-phone">
+                    <div className={`in-input-wrap${errors.phone ? ' in-input-wrap--err' : ''}`}>
+                      <span className="in-phone-prefix" aria-label="India +91">🇮🇳 +91</span>
+                      <input id="su-phone" type="tel" placeholder="9XXXXXXXXX"
+                        autoComplete="tel-national" inputMode="tel" enterKeyHint="next"
+                        disabled={busy || (isCreator && phoneVerified)}
+                        className="in-input in-input--phone"
+                        style={{ paddingLeft: 12 }}
+                        {...register('phone')}/>
+                      {isCreator && phoneVerified && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, paddingRight: 10, fontSize: '0.75rem', fontWeight: 700, color: 'var(--in-success)', flexShrink: 0 }}>
+                          <Check size={14} /> Verified
+                        </span>
+                      )}
+                    </div>
+                  </Field>
+
+                  {/* Phone OTP widget — creator only */}
+                  {isCreator && !phoneVerified && (
+                    <PhoneOtpWidget
+                      phone={phoneValue}
+                      onVerified={() => setPhoneVerified(true)}
+                      disabled={busy}
+                    />
+                  )}
+
+                  {/* Consent */}
                   <div>
                     <label className="in-consent" htmlFor="su-consent">
                       <input id="su-consent" type="checkbox" disabled={busy} {...register('consent')}/>
@@ -294,6 +434,14 @@ export default function SignupPage() {
                     )}
                   </div>
 
+                  {/* Creator hint when phone not yet verified */}
+                  {isCreator && !phoneVerified && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: 'var(--in-gray)', padding: '8px 12px', background: 'rgba(242,132,107,0.06)', borderRadius: 8 }}>
+                      <AlertCircle size={13} style={{ color: 'var(--in-coral-text)', flexShrink: 0 }} />
+                      Verify your phone number above to continue
+                    </div>
+                  )}
+
                   {apiErr && (
                     <div className="in-api-err" role="alert">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
@@ -304,7 +452,7 @@ export default function SignupPage() {
                     </div>
                   )}
 
-                  <button type="submit" className="in-submit" disabled={busy}>
+                  <button type="submit" className="in-submit" disabled={busy || !canSubmit}>
                     {isSubmitting ? <><Spinner/> Creating account…</> : <>Create account <span aria-hidden="true">→</span></>}
                   </button>
                 </form>
@@ -312,7 +460,6 @@ export default function SignupPage() {
                 <p className="in-switch">
                   Already have an account? <Link to="/login" className="in-link">Sign in →</Link>
                 </p>
-
                 <p className="in-auth-footer">
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                     <path d="M6 1L2 3v3c0 2.5 1.8 4.8 4 5.5C8.2 10.8 10 8.5 10 6V3L6 1z" stroke="currentColor" strokeWidth="1.2"/>
@@ -321,7 +468,6 @@ export default function SignupPage() {
                 </p>
               </>
             )}
-
           </div>
         </div>
       </div>

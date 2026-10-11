@@ -225,7 +225,7 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
   const [deliverables, setDeliverables] = useState<Record<string, Deliverable[]>>({});
   const [payments, setPayments] = useState<Payment[]>(seedPayments);
   const [verification, setVerificationState] = useState<Record<VerificationStep, VerificationStatus>>({
-    email: 'verified', phone: 'pending', identity: 'pending', social: 'in_progress',
+    email: 'pending', phone: 'pending', identity: 'pending', social: 'in_progress',
   });
   const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>([]);
   const [contracts, setContracts] = useState<Record<string, Contract>>({});
