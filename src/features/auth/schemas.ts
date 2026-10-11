@@ -2,54 +2,69 @@ import { z } from 'zod';
 
 const FREE_MAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'rediffmail.com'];
 
-export const signupSchema = z.object({
-  businessName: z
-    .string()
-    .min(2, 'Business name must be at least 2 characters')
-    .max(80, 'Business name must be 80 characters or fewer'),
+type SignupAccountType = 'creator' | 'business';
 
-  email: z
-    .string()
-    .email('Please enter a valid email address'),
+/**
+ * Build a signup schema tailored to the account type.
+ * The free-mail "work email" tip only applies to business accounts —
+ * creators are expected to use personal email addresses.
+ */
+export function makeSignupSchema(accountType: SignupAccountType = 'business') {
+  const isCreator = accountType === 'creator';
+  return z.object({
+    businessName: z
+      .string()
+      .min(2, isCreator ? 'Name must be at least 2 characters' : 'Business name must be at least 2 characters')
+      .max(80, isCreator ? 'Name must be 80 characters or fewer' : 'Business name must be 80 characters or fewer'),
 
-  phone: z
-    .string()
-    .refine(
-      (v) => /^[6-9]\d{9}$/.test(v.replace(/^\+91\s?/, '').replace(/\s/g, '')),
-      'Enter a valid 10-digit Indian mobile number'
-    ),
+    email: z
+      .string()
+      .email('Please enter a valid email address'),
 
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Include at least one uppercase letter')
-    .regex(/[0-9]/, 'Include at least one number')
-    .regex(/[^A-Za-z0-9]/, 'Include at least one special character'),
+    phone: z
+      .string()
+      .refine(
+        (v) => /^[6-9]\d{9}$/.test(v.replace(/^\+91\s?/, '').replace(/\s/g, '')),
+        'Enter a valid 10-digit Indian mobile number'
+      ),
 
-  consent: z
-    .boolean()
-    .refine(val => val === true, 'You must accept the terms to continue'),
-}).superRefine((data, ctx) => {
-  // Soft warn if free-mail domain
-  const emailLower = data.email.toLowerCase();
-  const domain = emailLower.split('@')[1];
-  if (FREE_MAIL_DOMAINS.includes(domain)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Tip: using a work email helps with business verification',
-      path: ['email'],
-    });
-  }
-  // Password must not contain email local part
-  const local = emailLower.split('@')[0];
-  if (data.password.toLowerCase().includes(local)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Password should not contain your email',
-      path: ['password'],
-    });
-  }
-});
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Include at least one uppercase letter')
+      .regex(/[0-9]/, 'Include at least one number')
+      .regex(/[^A-Za-z0-9]/, 'Include at least one special character'),
+
+    consent: z
+      .boolean()
+      .refine(val => val === true, 'You must accept the terms to continue'),
+  }).superRefine((data, ctx) => {
+    const emailLower = data.email.toLowerCase();
+    // Soft warn if free-mail domain — business accounts only
+    if (!isCreator) {
+      const domain = emailLower.split('@')[1];
+      if (FREE_MAIL_DOMAINS.includes(domain)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Tip: using a work email helps with business verification',
+          path: ['email'],
+        });
+      }
+    }
+    // Password must not contain email local part
+    const local = emailLower.split('@')[0];
+    if (data.password.toLowerCase().includes(local)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password should not contain your email',
+        path: ['password'],
+      });
+    }
+  });
+}
+
+// Default (business) schema kept for backwards compatibility
+export const signupSchema = makeSignupSchema('business');
 
 export type SignupFormValues = z.infer<typeof signupSchema>;
 

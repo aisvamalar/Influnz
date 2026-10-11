@@ -27,7 +27,7 @@ let mockSession: User | null = null;
 
 // ── Mock implementation ──
 export const mockAuthService: IAuthService = {
-  async signup({ businessName, email, phone, password }) {
+  async signup({ businessName, email, phone, password, accountType }) {
     await delay(1200);
     const emailKey = email.toLowerCase();
     if (MOCK_USERS.has(emailKey)) {
@@ -39,10 +39,11 @@ export const mockAuthService: IAuthService = {
       email,
       phone,
       role: 'owner',
+      accountType,
       avatarInitials: businessName.slice(0, 2).toUpperCase(),
     };
     MOCK_USERS.set(emailKey, { user, password });
-    return { user, requiresOtp: true, otpTarget: email, otpType: 'email' };
+    return { user, requiresOtp: true, otpTarget: email, otpType: 'email', accountType };
   },
 
   async login({ identifier, password, remember }) {
@@ -54,7 +55,7 @@ export const mockAuthService: IAuthService = {
       throw { code: 'INVALID_CREDENTIALS', message: 'Incorrect email or password.' };
     }
     if (remember) mockSession = record.user;
-    return { user: record.user, requiresOtp: false };
+    return { user: record.user, requiresOtp: false, accountType: record.user.accountType };
   },
 
   async verifyOtp({ identifier, otp }) {
@@ -83,11 +84,12 @@ export const mockAuthService: IAuthService = {
       email: 'demo@gmail.com',
       phone: '9000000001',
       role: 'owner',
+      accountType: 'business',
       avatarInitials: 'DB',
     };
     mockSession = user;
     MOCK_USERS.set(user.email, { user, password: '' });
-    return { user, requiresOtp: false };
+    return { user, requiresOtp: false, accountType: user.accountType };
   },
 
   async forgotPassword(_identifier) {

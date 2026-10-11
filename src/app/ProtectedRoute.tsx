@@ -25,7 +25,10 @@ export function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { state } = useAuth();
 
   if (state.isLoading) return null;
-  if (state.isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (state.isAuthenticated) {
+    const home = state.user?.accountType === 'creator' ? '/creator' : '/dashboard';
+    return <Navigate to={home} replace />;
+  }
 
   return <>{children}</>;
 }

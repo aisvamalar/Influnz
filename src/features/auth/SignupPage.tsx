@@ -200,6 +200,7 @@ export default function SignupPage() {
         email,
         phone: form.phone,
         role: 'owner',
+        accountType: 'business',
         avatarInitials: businessName.slice(0, 2).toUpperCase(),
       });
       navigate('/business', { replace: true });

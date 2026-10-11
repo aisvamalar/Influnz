@@ -57,6 +57,7 @@ export default function LoginPage() {
       email: account.email,
       phone,
       role: 'owner',
+      accountType: 'business',
       avatarInitials: businessName.slice(0, 2).toUpperCase(),
     });
     navigate(safeRedirect(params.get('redirect')), { replace: true });
