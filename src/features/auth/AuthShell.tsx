@@ -1,12 +1,16 @@
 /**
  * Web auth layout: photo brand panel on the left, form on a warm canvas on the right.
  * The panel hides below 900px and the logo moves above the form.
+ *
+ * The Business / Creator switch above the form is driven by the `?type=creator`
+ * query param, so deep links from the landing page open the right form and the
+ * choice survives moving between /signup and /login. The brand panel copy follows it.
  */
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
-  ArrowRight, BadgeCheck, Building2, ChartNoAxesColumn, CreditCard, Headset, Quote, ShieldCheck,
-  Sparkles, Users, Zap, type LucideIcon,
+  ArrowRight, BadgeCheck, Building2, ChartNoAxesColumn, CreditCard, Handshake, Headset, Mail, Quote,
+  ShieldCheck, Sparkles, TrendingUp, Users, Wallet, Zap, type LucideIcon,
 } from 'lucide-react';
 import logoImg from '../../assets/logo.png';
 import LogoLight from '../../components/LogoLight';
@@ -14,62 +18,149 @@ import FormField from './FormField';
 import { PATTERNS } from '../business/businessProfile';
 import './auth-web.css';
 
-const BRAND_PHOTO = 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1400&q=75&auto=format&fit=crop';
+export type Audience = 'business' | 'creator';
 
-const FEATURES: Array<{ icon: LucideIcon; title: string; text: string }> = [
-  { icon: Users, title: 'Work with verified creators', text: 'Authentic creators across India' },
-  { icon: ChartNoAxesColumn, title: 'Track real performance', text: 'Reach, engagement and ROI' },
-  { icon: ShieldCheck, title: 'Secure, milestone-based payments', text: 'Pay only when content is approved' },
-  { icon: Headset, title: 'Dedicated support', text: 'From brief to final delivery' },
-];
+interface BrandCopy {
+  photo: string;
+  eyebrow: string;
+  title: Record<'signup' | 'login', ReactNode>;
+  heroTitle: Record<'signup' | 'login', ReactNode>;
+  levels: Array<{ title: string; text: string }>;
+  features: Array<{ icon: LucideIcon; title: string; text: string }>;
+  quote: { text: string; name: string; role: string; photo: string };
+  stats: Array<{ value: string; label: string }>;
+  strip: Array<{ icon: LucideIcon; label: string }>;
+  note: ReactNode;
+}
 
-const LEVELS = [
-  { title: 'Create your account', text: 'Business details and a verified phone. About 2 minutes.' },
-  { title: 'Verify your business', text: 'Add your GSTIN from your profile, whenever you are ready.' },
-  { title: 'Set up payments', text: 'PAN, billing and bank details, only when you pay creators.' },
-];
-
-const STATS = [
-  { value: '15,000+', label: 'Verified creators' },
-  { value: '500+', label: 'Brands trust us' },
-  { value: '3x', label: 'Average growth' },
-];
-
-const STRIP: Array<{ icon: LucideIcon; label: string }> = [
-  { icon: Zap, label: 'Manage campaigns' },
-  { icon: ChartNoAxesColumn, label: 'Track performance' },
-  { icon: CreditCard, label: 'Make payments' },
-];
+const BRAND: Record<Audience, BrandCopy> = {
+  business: {
+    photo: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1400&q=75&auto=format&fit=crop',
+    eyebrow: 'For brands & businesses',
+    title: {
+      signup: <>Start collaborating with creators in <em>three simple steps.</em></>,
+      login: <>Collaborate with verified creators and drive <em>real results.</em></>,
+    },
+    heroTitle: {
+      signup: <>Start with creators in <em>three simple steps.</em></>,
+      login: <>Collaborate with verified creators, <em>drive real results.</em></>,
+    },
+    levels: [
+      { title: 'Create your account', text: 'Business details and a verified phone. About 2 minutes.' },
+      { title: 'Verify your business', text: 'Add your GSTIN from your profile, whenever you are ready.' },
+      { title: 'Set up payments', text: 'PAN, billing and bank details, only when you pay creators.' },
+    ],
+    features: [
+      { icon: Users, title: 'Work with verified creators', text: 'Authentic creators across India' },
+      { icon: ChartNoAxesColumn, title: 'Track real performance', text: 'Reach, engagement and ROI' },
+      { icon: ShieldCheck, title: 'Secure, milestone-based payments', text: 'Pay only when content is approved' },
+      { icon: Headset, title: 'Dedicated support', text: 'From brief to final delivery' },
+    ],
+    quote: {
+      text: 'We filled every creator slot for our café launch in two days, and paid everyone from one place.',
+      name: 'Karthik Sundar',
+      role: 'Owner, Brew & Bites · Chennai',
+      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces&auto=format',
+    },
+    stats: [
+      { value: '15,000+', label: 'Verified creators' },
+      { value: '500+', label: 'Brands trust us' },
+      { value: '3x', label: 'Average growth' },
+    ],
+    strip: [
+      { icon: Zap, label: 'Manage campaigns' },
+      { icon: ChartNoAxesColumn, label: 'Track performance' },
+      { icon: CreditCard, label: 'Make payments' },
+    ],
+    note: <>Same account,<br />across all your<br />brand campaigns</>,
+  },
+  creator: {
+    photo: 'https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=1400&q=75&auto=format&fit=crop',
+    eyebrow: 'For creators',
+    title: {
+      signup: <>Turn your audience into <em>paid brand deals.</em></>,
+      login: <>Welcome back. Your next <em>brand deal is waiting.</em></>,
+    },
+    heroTitle: {
+      signup: <>Turn your audience into <em>paid brand deals.</em></>,
+      login: <>Your next brand deal <em>is waiting.</em></>,
+    },
+    levels: [
+      { title: 'Create your account', text: 'Your name and a verified phone. About a minute.' },
+      { title: 'Verify & connect', text: 'Confirm your email and link the platforms you post on.' },
+      { title: 'Build your passport', text: 'Photo, bio and the kind of content you love making.' },
+    ],
+    features: [
+      { icon: Sparkles, title: 'Brand deals that fit your audience', text: 'Matched by niche, language and city' },
+      { icon: Handshake, title: 'AI negotiates for you', text: 'Set your floor, we handle the back-and-forth' },
+      { icon: Wallet, title: 'Paid on time, every time', text: 'Milestone payouts straight to your bank' },
+      { icon: TrendingUp, title: 'Grow your reputation', text: 'Ratings and badges brands can trust' },
+    ],
+    quote: {
+      text: 'Three brand deals in my first month, and I never had to chase a single payment.',
+      name: 'Shruti Menon',
+      role: 'Food creator · 320K followers · Chennai',
+      photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces&auto=format',
+    },
+    stats: [
+      { value: '500+', label: 'Brands hiring' },
+      { value: '₹2.4Cr+', label: 'Paid to creators' },
+      { value: '48h', label: 'To first offer' },
+    ],
+    strip: [
+      { icon: Mail, label: 'Get invitations' },
+      { icon: Handshake, label: 'Negotiate with AI' },
+      { icon: Wallet, label: 'Track payouts' },
+    ],
+    note: <>One profile,<br />every brand deal,<br />paid on time</>,
+  },
+};
 
 interface AuthShellProps {
   mode: 'login' | 'signup';
+  /** Business form. */
   children: ReactNode;
+  /** Creator form. When omitted the Creator tab shows the coming-soon panel. */
+  creator?: ReactNode;
 }
 
-export default function AuthShell({ mode, children }: AuthShellProps) {
+/** Reads the audience from `?type=`; anything other than "creator" means business. */
+export function useAudience(): [Audience, (next: Audience) => void] {
+  const [params, setParams] = useSearchParams();
+  const audience: Audience = params.get('type') === 'creator' ? 'creator' : 'business';
+  const setAudience = (next: Audience) => {
+    const copy = new URLSearchParams(params);
+    if (next === 'creator') copy.set('type', 'creator');
+    else copy.delete('type');
+    setParams(copy, { replace: true });
+  };
+  return [audience, setAudience];
+}
+
+export default function AuthShell({ mode, children, creator }: AuthShellProps) {
   const isSignup = mode === 'signup';
-  const [audience, setAudience] = useState<'business' | 'creator'>('business');
+  const [audience, setAudience] = useAudience();
+  const copy = BRAND[audience];
+  const isCreator = audience === 'creator';
+  const query = isCreator ? '?type=creator' : '';
+  const otherPath = `${isSignup ? '/login' : '/signup'}${query}`;
 
   return (
-    <main id="main-content" className={`aw aw--${mode}`}>
+    <main id="main-content" className={`aw aw--${mode} aw--${audience}`}>
       <aside className="aw-brand" aria-label="About Influnz">
-        <img className="aw-brand__photo" src={BRAND_PHOTO} alt="" />
+        <img className="aw-brand__photo" src={copy.photo} alt="" />
         <div className="aw-brand__inner">
           <Link to="/" className="aw-brand__logo-link" aria-label="Influnz home">
             <LogoLight className="aw-brand__logo" height={42} />
           </Link>
 
           <div className="aw-brand__body">
-            <span className="aw-brand__eyebrow">For brands &amp; businesses</span>
-            <h2 className="aw-brand__title">
-              {isSignup
-                ? <>Start collaborating with creators in <em>three simple steps.</em></>
-                : <>Collaborate with verified creators and drive <em>real results.</em></>}
-            </h2>
+            <span className="aw-brand__eyebrow">{copy.eyebrow}</span>
+            <h2 className="aw-brand__title">{copy.title[mode]}</h2>
 
             {isSignup ? (
               <ol className="aw-feats">
-                {LEVELS.map((level, i) => (
+                {copy.levels.map((level, i) => (
                   <li key={level.title} className={i === 0 ? 'is-current' : undefined}>
                     <span className="aw-feats__icon aw-feats__icon--num">{i + 1}</span>
                     <span>
@@ -81,7 +172,7 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
               </ol>
             ) : (
               <ul className="aw-feats">
-                {FEATURES.map(({ icon: Icon, title, text }) => (
+                {copy.features.map(({ icon: Icon, title, text }) => (
                   <li key={title}>
                     <span className="aw-feats__icon"><Icon size={19} /></span>
                     <span>
@@ -96,24 +187,18 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
 
           <figure className="aw-quote">
             <Quote className="aw-quote__mark" size={26} />
-            <blockquote>
-              We filled every creator slot for our café launch in two days, and paid everyone from one place.
-            </blockquote>
+            <blockquote>{copy.quote.text}</blockquote>
             <figcaption>
-              <img
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces&auto=format"
-                alt=""
-                loading="lazy"
-              />
+              <img src={copy.quote.photo} alt="" loading="lazy" />
               <span>
-                <strong>Karthik Sundar</strong>
-                <small>Owner, Brew &amp; Bites · Chennai</small>
+                <strong>{copy.quote.name}</strong>
+                <small>{copy.quote.role}</small>
               </span>
             </figcaption>
           </figure>
 
           <dl className="aw-stats">
-            {STATS.map(s => (
+            {copy.stats.map(s => (
               <div key={s.label}>
                 <dt>{s.label}</dt>
                 <dd>{s.value}</dd>
@@ -128,19 +213,15 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
         <span className="aw-deco aw-deco--b" aria-hidden="true" />
 
         <div className="aw-hero">
-          <img className="aw-hero__photo" src={BRAND_PHOTO} alt="" />
+          <img className="aw-hero__photo" src={copy.photo} alt="" />
           <div className="aw-hero__bar">
             <Link to="/" aria-label="Influnz home"><LogoLight height={30} /></Link>
-            <Link to={isSignup ? '/login' : '/signup'} className="aw-hero__link">
+            <Link to={otherPath} className="aw-hero__link">
               {isSignup ? 'Sign in' : 'Create account'}
             </Link>
           </div>
-          <span className="aw-hero__eyebrow">For brands &amp; businesses</span>
-          <p className="aw-hero__title">
-            {isSignup
-              ? <>Start with creators in <em>three simple steps.</em></>
-              : <>Collaborate with verified creators, <em>drive real results.</em></>}
-          </p>
+          <span className="aw-hero__eyebrow">{copy.eyebrow}</span>
+          <p className="aw-hero__title">{copy.heroTitle[mode]}</p>
         </div>
 
         <header className="aw-top">
@@ -149,8 +230,8 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
           </Link>
           <p className="aw-top__switch">
             <span>{isSignup ? 'Already have an account?' : 'New to Influnz?'}</span>
-            <Link to={isSignup ? '/login' : '/signup'} className="aw-top__link">
-              {isSignup ? 'Sign in' : 'Create a business account'}
+            <Link to={otherPath} className="aw-top__link">
+              {isSignup ? 'Sign in' : isCreator ? 'Create a creator account' : 'Create a business account'}
               <ArrowRight size={15} />
             </Link>
           </p>
@@ -160,34 +241,33 @@ export default function AuthShell({ mode, children }: AuthShellProps) {
           <div className={`aw-stage aw-stage--${mode}`}>
             <div className="aw-audience" role="tablist" aria-label="Account type">
               <button
-                type="button" role="tab" aria-selected={audience === 'business'}
-                className={`aw-audience__btn${audience === 'business' ? ' is-active' : ''}`}
+                type="button" role="tab" aria-selected={!isCreator}
+                className={`aw-audience__btn${!isCreator ? ' is-active' : ''}`}
                 onClick={() => setAudience('business')}
               >
                 <Building2 size={17} /> Business
               </button>
               <button
-                type="button" role="tab" aria-selected={audience === 'creator'}
-                className={`aw-audience__btn${audience === 'creator' ? ' is-active' : ''}`}
+                type="button" role="tab" aria-selected={isCreator}
+                className={`aw-audience__btn${isCreator ? ' is-active' : ''}`}
                 onClick={() => setAudience('creator')}
               >
-                <Sparkles size={17} /> Creator <span className="aw-audience__soon">Soon</span>
+                <Sparkles size={17} /> Creator
+                {!creator && <span className="aw-audience__soon">Soon</span>}
               </button>
             </div>
-            {audience === 'business'
+            {!isCreator
               ? children
-              : <CreatorComingSoon mode={mode} onBusiness={() => setAudience('business')} />}
+              : creator ?? <CreatorComingSoon mode={mode} onBusiness={() => setAudience('business')} />}
           </div>
         </div>
 
         {!isSignup && (
-          <p className="aw-note" aria-hidden="true">
-            Same account,<br />across all your<br />brand campaigns
-          </p>
+          <p className="aw-note" aria-hidden="true">{copy.note}</p>
         )}
 
         <footer className="aw-strip">
-          {STRIP.map(({ icon: Icon, label }) => (
+          {copy.strip.map(({ icon: Icon, label }) => (
             <span key={label} className="aw-strip__item">
               <Icon size={18} />
               {label}

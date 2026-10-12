@@ -213,7 +213,7 @@ export default function LandingPageWeb() {
                   Start a campaign
                   <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
                 </button>
-                <button type="button" className="wlp-btn wlp-btn--ghost wlp-btn--lg" onClick={() => navigate('/signup')}>
+                <button type="button" className="wlp-btn wlp-btn--ghost wlp-btn--lg" onClick={() => navigate('/signup?type=creator')}>
                   I'm a creator
                 </button>
               </div>
@@ -629,7 +629,7 @@ export default function LandingPageWeb() {
               <button type="button" onClick={() => navigate('/signup')}>
                 Start a campaign
               </button>
-              <button type="button" onClick={() => navigate('/signup')}>
+              <button type="button" onClick={() => navigate('/signup?type=creator')}>
                 Join as a creator
               </button>
               <button type="button" onClick={() => navigate('/login')}>

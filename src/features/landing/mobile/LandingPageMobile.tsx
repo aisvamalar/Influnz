@@ -105,7 +105,7 @@ export default function LandingPageMobile() {
               Start a campaign
               <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
             </button>
-            <button type="button" className="mlp-btn mlp-btn--ghost mlp-btn--lg" onClick={() => navigate('/signup')}>
+            <button type="button" className="mlp-btn mlp-btn--ghost mlp-btn--lg" onClick={() => navigate('/signup?type=creator')}>
               I'm a creator
             </button>
           </div>

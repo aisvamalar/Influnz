@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import { useAuth } from '../../app/AuthContext';
+import { getCreatorAccount, updateCreatorAccount, usernameFrom } from './creatorAccount';
 import type {
   CreatorProfile, CreatorPreferences, Invitation,
   NegotiationMessage, Deliverable, Payment, VerificationStep, VerificationStatus,
@@ -217,8 +219,32 @@ function deliverablesFor(inv: Invitation): Deliverable[] {
   return items;
 }
 
+/**
+ * Profile a creator starts with. A creator who just signed up gets a blank passport
+ * under their own name; the demo creator (or anyone else) gets the seeded profile.
+ */
+function initialProfile(displayName: string | undefined, fresh: boolean): CreatorProfile {
+  if (!displayName) return seedProfile;
+  const identity = { displayName, username: usernameFrom(displayName) };
+  if (!fresh) return { ...seedProfile, ...identity };
+  return {
+    ...seedProfile,
+    ...identity,
+    verified: false,
+    bio: '',
+    location: '',
+    avatarUrl: undefined,
+    platforms: seedProfile.platforms.map(p => ({ ...p, state: 'disconnected' as const, handle: '', followers: 0 })),
+  };
+}
+
 export function CreatorProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<CreatorProfile>(seedProfile);
+  const { state: auth } = useAuth();
+  const account = getCreatorAccount();
+  const isCreatorUser = auth.user?.accountType === 'creator';
+  const [profile, setProfile] = useState<CreatorProfile>(() =>
+    initialProfile(isCreatorUser ? (account?.displayName || auth.user?.businessName) : undefined, Boolean(account) && !account?.onboardingComplete),
+  );
   const [preferences, setPreferences] = useState<CreatorPreferences>(seedPreferences);
   const [invitations, setInvitations] = useState<Invitation[]>(seedInvitations);
   const [negotiations, setNegotiations] = useState<Record<string, NegotiationMessage[]>>({});
@@ -227,7 +253,10 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
   const [verification, setVerificationState] = useState<Record<VerificationStep, VerificationStatus>>({
     email: 'pending', phone: 'pending', identity: 'pending', social: 'in_progress',
   });
-  const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>([]);
+  // A creator who already finished onboarding in this browser goes straight to the dashboard.
+  const [completedSteps, setCompletedSteps] = useState<OnboardingStep[]>(() =>
+    account?.onboardingComplete ? [...ONBOARDING_STEPS] : [],
+  );
   const [contracts, setContracts] = useState<Record<string, Contract>>({});
   const [referrals] = useState<Referral[]>(seedReferrals);
 
@@ -278,7 +307,17 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
     setCompletedSteps(prev => (prev.includes(step) ? prev : [...prev, step]));
   }, []);
 
-  const resetOnboarding = useCallback(() => setCompletedSteps([]), []);
+  const resetOnboarding = useCallback(() => {
+    setCompletedSteps([]);
+    updateCreatorAccount({ onboardingComplete: false });
+  }, []);
+
+  // Remember completion so sign-in skips the stepper next time.
+  useEffect(() => {
+    if (onboarding.complete && !getCreatorAccount()?.onboardingComplete) {
+      updateCreatorAccount({ onboardingComplete: true, displayName: profile.displayName });
+    }
+  }, [onboarding.complete, profile.displayName]);
 
   const getContract = useCallback((id: string) => contracts[id], [contracts]);
 

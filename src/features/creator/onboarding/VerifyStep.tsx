@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Mail, Phone, IdCard, ShieldCheck, Check, ArrowRight,
@@ -7,169 +7,54 @@ import {
 import { useCreator } from '../CreatorContext';
 import { Card, Button } from '../ui';
 import type { PlatformConnection } from '../types';
+import { OtpPanel } from '../../auth/VerifyControls';
+import { DEMO_OTP, useOtpVerification } from '../../auth/useOtpVerification';
+import { PATTERNS } from '../../business/businessProfile';
+import { updateCreatorAccount } from '../creatorAccount';
+import '../../auth/auth-web.css';
 
-const OTP_LEN = 6;
-
-// ── Reusable OTP widget ───────────────────────────────────────────────
-function OtpWidget({ onVerified }: { onVerified: () => void }) {
-  const [digits, setDigits] = useState<string[]>(Array(OTP_LEN).fill(''));
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const refs = useRef<Array<HTMLInputElement | null>>([]);
-
-  const handleChange = (i: number, val: string) => {
-    const d = val.replace(/\D/g, '').slice(-1);
-    const next = [...digits]; next[i] = d; setDigits(next); setError('');
-    if (d && i < OTP_LEN - 1) refs.current[i + 1]?.focus();
-  };
-
-  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !digits[i] && i > 0) refs.current[i - 1]?.focus();
-    if (e.key === 'ArrowLeft'  && i > 0)              refs.current[i - 1]?.focus();
-    if (e.key === 'ArrowRight' && i < OTP_LEN - 1)   refs.current[i + 1]?.focus();
-  };
-
-  const confirm = () => {
-    const otp = digits.join('');
-    if (otp.length < OTP_LEN) { setError('Enter the 6-digit code'); return; }
-    setLoading(true);
-    setTimeout(() => {
-      if (otp === '123456') { onVerified(); }
-      else {
-        setError('Invalid code — use 123456 in mock mode');
-        setDigits(Array(OTP_LEN).fill(''));
-        refs.current[0]?.focus();
-      }
-      setLoading(false);
-    }, 600);
-  };
-
-  if (!sent) {
-    return (
-      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button
-          type="button"
-          onClick={() => { setSent(true); setTimeout(() => refs.current[0]?.focus(), 100); }}
-          style={{
-            padding: '7px 16px', borderRadius: 10,
-            border: '1.5px solid var(--in-coral)', background: 'rgba(242,132,107,0.08)',
-            color: 'var(--in-coral-text)', fontSize: '0.8125rem', fontWeight: 700, cursor: 'pointer',
-          }}
-        >
-          Send OTP →
-        </button>
-        <span style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>Mock: 123456</span>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        {digits.map((d, i) => (
-          <input key={i} ref={el => { refs.current[i] = el; }}
-            type="text" inputMode="numeric" maxLength={1} value={d}
-            onChange={e => handleChange(i, e.target.value)}
-            onKeyDown={e => handleKeyDown(i, e)}
-            disabled={loading}
-            style={{
-              width: 38, height: 44, borderRadius: 10,
-              border: `1.5px solid ${error ? 'var(--in-danger)' : 'var(--in-gray-light)'}`,
-              textAlign: 'center', fontSize: '1.0625rem', fontWeight: 700, outline: 'none',
-              color: 'var(--in-charcoal)', background: 'white',
-            }}
-            aria-label={`Digit ${i + 1}`} />
-        ))}
-        <button type="button" onClick={confirm}
-          disabled={loading || digits.join('').length < OTP_LEN}
-          style={{
-            marginLeft: 4, padding: '10px 18px', borderRadius: 10,
-            background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))',
-            color: '#fff', fontWeight: 700, fontSize: '0.875rem', border: 'none', cursor: 'pointer',
-            opacity: digits.join('').length < OTP_LEN ? 0.5 : 1,
-          }}>
-          {loading ? 'Verifying…' : 'Confirm'}
-        </button>
-      </div>
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-danger)' }}>
-          <AlertCircle size={12} /> {error}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Email input + OTP ─────────────────────────────────────────────────
+// ── Email input + OTP (same controls as sign-up) ─────────────────────
 function EmailVerifyBlock({ onVerified }: { onVerified: (email: string) => void }) {
   const [email, setEmail] = useState('');
-  const [stage, setStage] = useState<'input' | 'otp'>('input');
   const [emailErr, setEmailErr] = useState('');
+  const otp = useOtpVerification();
+  const isValid = PATTERNS.email.test(email.trim());
 
-  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  useEffect(() => {
+    if (otp.status === 'verified') onVerified(email.trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp.status]);
 
-  const handleVerify = () => {
+  const send = () => {
     if (!isValid) { setEmailErr('Enter a valid email address'); return; }
     setEmailErr('');
-    setStage('otp');
+    otp.send();
   };
 
+  const locked = otp.status !== 'idle';
+
   return (
-    <div style={{ paddingLeft: 48, marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {/* Email input row */}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-          border: `1.5px solid ${emailErr ? 'var(--in-danger)' : 'var(--in-gray-light)'}`,
-          borderRadius: 10, padding: '8px 12px', background: 'white',
-        }}>
-          <Mail size={14} style={{ color: 'var(--in-gray)', flexShrink: 0 }} />
-          <input
-            type="email" value={email}
-            onChange={e => { setEmail(e.target.value); setEmailErr(''); }}
-            placeholder="you@email.com"
-            disabled={stage === 'otp'}
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: '0.875rem', color: 'var(--in-charcoal)', background: 'transparent', minWidth: 0 }}
-            autoComplete="email" inputMode="email"
-            onKeyDown={e => e.key === 'Enter' && stage === 'input' && handleVerify()}
-          />
-        </div>
-        {stage === 'input' && (
-          <button type="button" onClick={handleVerify} disabled={!isValid}
-            style={{
-              padding: '8px 16px', borderRadius: 10, whiteSpace: 'nowrap',
-              background: isValid ? 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))' : 'var(--in-gray-light)',
-              color: '#fff', fontWeight: 700, fontSize: '0.8125rem', border: 'none',
-              cursor: isValid ? 'pointer' : 'not-allowed',
-            }}>
-            Verify →
-          </button>
-        )}
-        {stage === 'otp' && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-gray)', whiteSpace: 'nowrap', padding: '0 4px' }}>
-            Code sent
-          </span>
+    <div className="aw-scope" style={{ paddingLeft: 48, marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className={`aw-control${emailErr ? ' is-invalid' : ''}`}>
+        <Mail className="aw-control__icon" size={17} />
+        <input
+          type="email" inputMode="email" autoComplete="email" placeholder="you@email.com"
+          aria-label="Email address" value={email} readOnly={locked}
+          aria-invalid={Boolean(emailErr)}
+          onChange={e => { setEmail(e.target.value); setEmailErr(''); }}
+          onKeyDown={e => { if (e.key === 'Enter' && !locked) { e.preventDefault(); send(); } }}
+        />
+        {!locked ? (
+          <button type="button" className="aw-inline-btn" onClick={send} disabled={!isValid}>Send code</button>
+        ) : (
+          <button type="button" className="aw-inline-btn" onClick={otp.reset}>Change</button>
         )}
       </div>
       {emailErr && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--in-danger)' }}>
-          <AlertCircle size={12} /> {emailErr}
-        </div>
+        <p className="aw-error" role="alert"><AlertCircle size={13} /> {emailErr}</p>
       )}
-
-      {/* OTP boxes — shown after clicking Verify */}
-      {stage === 'otp' && (
-        <div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--in-gray)', margin: '0 0 8px' }}>
-            Enter the 6-digit code sent to <strong style={{ color: 'var(--in-charcoal)' }}>{email}</strong>
-            <span style={{ marginLeft: 8, fontSize: '0.7rem', background: 'rgba(242,132,107,0.08)', padding: '2px 8px', borderRadius: 6, color: 'var(--in-coral-text)' }}>
-              Mock: 123456
-            </span>
-          </p>
-          <OtpWidget onVerified={() => onVerified(email.trim())} />
-        </div>
-      )}
+      <OtpPanel otp={otp} target={email.trim()} onResend={send} />
+      {otp.status === 'code' && <p className="aw-demo" style={{ margin: 0 }}>Demo mode: the code is {DEMO_OTP}.</p>}
     </div>
   );
 }
@@ -345,6 +230,7 @@ export default function VerifyStep() {
 
   const handleEmailVerified = (email: string) => {
     updateProfile({ username: profile.username || email.split('@')[0] });
+    updateCreatorAccount({ email, emailVerified: true });
     setVerification('email', 'verified');
   };
 

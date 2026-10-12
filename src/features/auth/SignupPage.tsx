@@ -1,15 +1,16 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  ArrowRight, AtSign, BadgeCheck, Briefcase, Building2, ChevronDown, Copy, Eye, EyeOff,
+  ArrowRight, AtSign, Briefcase, Building2, ChevronDown, Copy, Eye, EyeOff,
   Globe, Lock, Mail, MapPin, UserRound,
 } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
 import { passwordStrength } from './schemas';
 import AuthShell, { IndiaFlag } from './AuthShell';
 import FormField from './FormField';
-import OtpInput from './OtpInput';
-import { DEMO_OTP, useOtpVerification, type OtpVerification } from './useOtpVerification';
+import CreatorSignupForm from './CreatorSignupForm';
+import { OtpPanel, VerifyAction } from './VerifyControls';
+import { DEMO_OTP, useOtpVerification } from './useOtpVerification';
 import {
   BUSINESS_TYPES, PATTERNS, POPULAR_CITIES, createBusinessAccount, presenceKind, type PresenceKind,
 } from '../business/businessProfile';
@@ -210,7 +211,7 @@ export default function SignupPage() {
   const invalid = (key: keyof SignupForm) => (errors[key] ? ' is-invalid' : '');
 
   return (
-    <AuthShell mode="signup">
+    <AuthShell mode="signup" creator={<CreatorSignupForm />}>
       <div className="aw-card aw-card--wide">
         <div className="aw-head">
           <span className="aw-step">Step 1 of 3 · Account</span>
@@ -447,67 +448,6 @@ export default function SignupPage() {
         </form>
       </div>
     </AuthShell>
-  );
-}
-
-function VerifyAction({
-  show, verified, busy, started, onVerify, onChange, label = 'Verify',
-}: {
-  show: boolean;
-  verified: boolean;
-  busy: boolean;
-  started: boolean;
-  onVerify: () => void;
-  onChange: () => void;
-  label?: string;
-}) {
-  if (verified) {
-    return (
-      <span className="aw-verified">
-        <BadgeCheck size={16} />
-        Verified
-        <button type="button" className="aw-verified__change" onClick={onChange}>Change</button>
-      </span>
-    );
-  }
-  if (!show || started) return null;
-  return (
-    <button type="button" className="aw-inline-btn" onClick={onVerify} disabled={busy}>
-      {busy ? <span className="aw-spin" /> : label}
-    </button>
-  );
-}
-
-function OtpPanel({ otp, target, onResend }: { otp: OtpVerification; target: string; onResend: () => void }) {
-  if (otp.status === 'idle' || otp.status === 'verified') return null;
-  const sending = otp.status === 'sending';
-  return (
-    <div className="aw-verify" aria-live="polite">
-      {sending ? (
-        <p className="aw-verify__text"><span className="aw-spin" /> Sending code to {target}…</p>
-      ) : (
-        <>
-          <p className="aw-verify__text">
-            Enter the 6-digit code sent to <strong>{target}</strong>
-          </p>
-          <div className="aw-verify__row">
-            <OtpInput
-              size="sm" value={otp.code} onChange={otp.enter} autoFocus
-              invalid={Boolean(otp.error)} disabled={otp.status === 'checking'}
-            />
-            {otp.status === 'checking' && <span className="aw-verify__checking"><span className="aw-spin" /> Checking…</span>}
-          </div>
-          {otp.error && <p className="aw-error" role="alert">{otp.error}</p>}
-          <p className="aw-verify__meta">
-            {otp.timer > 0 ? <>Resend code in {otp.timer}s</> : (
-              <button type="button" className="aw-link" onClick={onResend}>Resend code</button>
-            )}
-            <span aria-hidden="true">·</span>
-            <button type="button" className="aw-link aw-link--muted" onClick={otp.reset}>Cancel</button>
-          </p>
-        </>
-      )}
-    </div>
   );
 }
 
