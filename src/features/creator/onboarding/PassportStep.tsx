@@ -1,8 +1,14 @@
-import React, { useMemo, useRef, useState } from 'react';
+/**
+ * Onboarding step 2 — Creator Passport.
+ * Photo, display name, bio and location, with a live preview of how brands see the profile.
+ */
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCircle, ArrowLeft, ArrowRight, MapPin, Camera } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, Camera, ChevronDown, FileText, MapPin, Trash2, Upload, UserRound } from 'lucide-react';
+import PlatformMark from '../../../components/mobile/PlatformMark';
 import { useCreator } from '../CreatorContext';
-import { Card, Button } from '../ui';
+import FormField from '../../auth/FormField';
+import { Actions, Btn, ProgressRail, Section, StepHead } from './parts';
 
 const BIO_MAX = 240;
 
@@ -51,62 +57,52 @@ function parseLocation(loc: string): { state: string; city: string } {
   const parts = loc.split(',').map(s => s.trim());
   if (parts.length >= 2) {
     const state = parts[parts.length - 1];
-    const city = parts.slice(0, parts.length - 1).join(', ');
+    const city = parts.slice(0, -1).join(', ');
     if (INDIA_LOCATIONS[state]) return { state, city };
   }
   return { state: '', city: '' };
 }
 
-function LocationDropdowns({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function LocationFields({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const parsed = parseLocation(value);
-  const [selectedState, setSelectedState] = useState(parsed.state);
-  const [selectedCity, setSelectedCity] = useState(parsed.city);
-  const cities = selectedState ? INDIA_LOCATIONS[selectedState] ?? [] : [];
+  const [state, setState] = useState(parsed.state);
+  const [city, setCity] = useState(parsed.city);
+  const cities = state ? INDIA_LOCATIONS[state] ?? [] : [];
 
-  const handleState = (state: string) => { setSelectedState(state); setSelectedCity(''); onChange(state); };
-  const handleCity  = (city: string)  => { setSelectedCity(city); onChange(city && selectedState ? `${city}, ${selectedState}` : selectedState); };
-
-  const sel: React.CSSProperties = {
-    width: '100%', height: 48, padding: '0 36px 0 14px',
-    border: '1.5px solid rgba(242,132,107,0.2)', borderRadius: 12, background: '#fafafa',
-    fontSize: '0.9375rem', color: 'var(--in-charcoal)', fontFamily: 'inherit',
-    outline: 'none', cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  };
-  const chevron = (
-    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--in-gray)' }}>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-    </span>
-  );
+  const pickState = (s: string) => { setState(s); setCity(''); onChange(s); };
+  const pickCity = (c: string) => { setCity(c); onChange(c && state ? `${c}, ${state}` : state); };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ position: 'relative' }}>
-        <select value={selectedState} onChange={e => handleState(e.target.value)} style={sel} aria-label="State"
-          onFocus={e => { e.currentTarget.style.borderColor = 'var(--in-coral)'; e.currentTarget.style.background = 'white'; }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'rgba(242,132,107,0.2)'; e.currentTarget.style.background = '#fafafa'; }}>
-          <option value="">Select state / UT</option>
-          {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>{chevron}
-      </div>
-      <div style={{ position: 'relative' }}>
-        <select value={selectedCity} onChange={e => handleCity(e.target.value)} disabled={!selectedState}
-          style={{ ...sel, opacity: selectedState ? 1 : 0.5, cursor: selectedState ? 'pointer' : 'not-allowed' }} aria-label="City"
-          onFocus={e => { if (selectedState) { e.currentTarget.style.borderColor = 'var(--in-coral)'; e.currentTarget.style.background = 'white'; } }}
-          onBlur={e => { e.currentTarget.style.borderColor = 'rgba(242,132,107,0.2)'; e.currentTarget.style.background = '#fafafa'; }}>
-          <option value="">Select city</option>
-          {cities.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>{chevron}
-      </div>
+    <div className="aw-grid">
+      <FormField id="pp-state" label="State / UT" optional>
+        <div className="aw-control aw-control--select">
+          <MapPin className="aw-control__icon" size={17} />
+          <select id="pp-state" value={state} onChange={e => pickState(e.target.value)}>
+            <option value="">Select state</option>
+            {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <ChevronDown className="aw-control__chevron" size={16} />
+        </div>
+      </FormField>
+      <FormField id="pp-city" label="City" optional>
+        <div className="aw-control aw-control--select" style={{ opacity: state ? 1 : 0.6 }}>
+          <MapPin className="aw-control__icon" size={17} />
+          <select id="pp-city" value={city} disabled={!state} onChange={e => pickCity(e.target.value)}>
+            <option value="">{state ? 'Select city' : 'Pick a state first'}</option>
+            {cities.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <ChevronDown className="aw-control__chevron" size={16} />
+        </div>
+      </FormField>
     </div>
   );
 }
 
-// ── Profile picture uploader ──────────────────────────────────────────
-function AvatarUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+function AvatarUpload({ value, name, onChange }: { value: string; name: string; onChange: (url: string) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const initials = name.trim().split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -115,53 +111,27 @@ function AvatarUpload({ value, onChange }: { value: string; onChange: (url: stri
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
-      {/* Avatar circle */}
+    <div className="cro-avatar">
       <button
         type="button"
+        className={`cro-avatar__circle${value ? ' has-image' : ''}`}
         onClick={() => fileRef.current?.click()}
         aria-label="Upload profile picture"
-        style={{
-          width: 80, height: 80, borderRadius: '50%', flexShrink: 0,
-          background: value ? 'transparent' : 'rgba(242,132,107,0.1)',
-          border: '2px dashed var(--in-coral)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', overflow: 'hidden', padding: 0,
-          transition: 'border-color 0.15s',
-        }}
       >
-        {value
-          ? <img src={value} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <Camera size={28} style={{ color: 'var(--in-coral-text)' }} />}
+        {value ? <img src={value} alt="" /> : initials ? <span style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--cr-coral-ink)' }}>{initials}</span> : <Camera size={26} />}
       </button>
-
-      <div>
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          style={{
-            padding: '7px 16px', borderRadius: 10,
-            border: '1.5px solid var(--in-coral)',
-            background: 'rgba(242,132,107,0.07)',
-            color: 'var(--in-coral-text)', fontWeight: 700,
-            fontSize: '0.8125rem', cursor: 'pointer',
-          }}
-        >
-          {value ? 'Change photo' : 'Upload photo'}
-        </button>
-        <p style={{ fontSize: '0.75rem', color: 'var(--in-gray)', margin: '5px 0 0' }}>
-          Optional · JPG or PNG, up to 5 MB
-        </p>
-        {value && (
-          <button type="button" onClick={() => onChange('')}
-            style={{ fontSize: '0.75rem', color: 'var(--in-gray)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 2, textDecoration: 'underline' }}>
-            Remove
-          </button>
-        )}
+      <div className="cro-avatar__meta">
+        <div className="cro-avatar__row">
+          <Btn variant="ghost" small onClick={() => fileRef.current?.click()}>
+            <Upload size={14} /> {value ? 'Change photo' : 'Upload photo'}
+          </Btn>
+          {value && (
+            <Btn variant="link" small onClick={() => onChange('')}><Trash2 size={14} /> Remove</Btn>
+          )}
+        </div>
+        <p className="cro-avatar__hint">JPG, PNG or WebP, up to 5 MB. A clear face photo gets more brand replies.</p>
       </div>
-
-      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp"
-        style={{ display: 'none' }} onChange={handleFile} />
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={handleFile} />
     </div>
   );
 }
@@ -170,85 +140,121 @@ export default function PassportStep() {
   const navigate = useNavigate();
   const { profile, updateProfile, completeOnboardingStep } = useCreator();
 
-  const [avatarUrl, setAvatarUrl]     = useState(profile.avatarUrl ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? '');
   const [displayName, setDisplayName] = useState(profile.displayName);
-  const [bio, setBio]                 = useState(profile.bio);
-  const [location, setLocation]       = useState(profile.location);
+  const [bio, setBio] = useState(profile.bio);
+  const [location, setLocation] = useState(profile.location);
+  const [touched, setTouched] = useState(false);
 
-  // Only display name is required now — categories moved to Preferences
-  const canContinue = useMemo(() => displayName.trim().length > 0, [displayName]);
+  const nameOk = displayName.trim().length > 0;
+  const canContinue = useMemo(() => nameOk, [nameOk]);
+  const connected = profile.platforms.filter(p => p.state === 'connected');
 
-  const handleContinue = () => {
-    if (!canContinue) return;
-    updateProfile({
-      avatarUrl: avatarUrl || undefined,
-      displayName: displayName.trim(),
-      bio: bio.trim(),
-      location: location.trim(),
-    });
+  const finish = (save: boolean) => {
+    if (save) {
+      updateProfile({ avatarUrl: avatarUrl || undefined, displayName: displayName.trim(), bio: bio.trim(), location: location.trim() });
+    }
     completeOnboardingStep('passport');
     navigate('/creator/onboarding/preferences');
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <h1 className="cr-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <UserCircle size={22} style={{ color: 'var(--in-coral-text)' }} /> Build your Creator Passport
-        </h1>
-        <p className="cr-page-sub">This is what brands see when they discover you.</p>
+    <>
+      <div className="cro-main">
+        <StepHead
+          eyebrow="Step 2 · Creator Passport"
+          title={<>This is what brands see <em>first.</em></>}
+          sub="A complete passport is the difference between being found and being skipped. Only your name is required; everything else can be added later."
+        />
+
+        <Section title="Profile" sub="Your photo and name appear on every invitation and in brand searches.">
+          <AvatarUpload value={avatarUrl} name={displayName} onChange={setAvatarUrl} />
+
+          <FormField
+            id="pp-name" label="Display name" full
+            error={touched && !nameOk ? 'Display name is required' : undefined}
+            help="Use the name your audience knows you by."
+          >
+            <div className={`aw-control${touched && !nameOk ? ' is-invalid' : ''}`}>
+              <UserRound className="aw-control__icon" size={17} />
+              <input
+                id="pp-name" type="text" placeholder="Your creator name" autoComplete="nickname"
+                value={displayName} aria-invalid={touched && !nameOk}
+                onChange={e => setDisplayName(e.target.value)}
+                onBlur={() => setTouched(true)}
+              />
+            </div>
+          </FormField>
+        </Section>
+
+        <Section title="About you" sub="A short bio and your base city help brands match you with local campaigns.">
+          <FormField id="pp-bio" label="Bio" optional full>
+            <div className="aw-control" style={{ height: 'auto', alignItems: 'flex-start' }}>
+              <FileText className="aw-control__icon" size={17} style={{ marginTop: 14 }} />
+              <textarea
+                id="pp-bio" rows={4} maxLength={BIO_MAX} value={bio}
+                placeholder="Tell brands what makes your content unique — your niche, your style, the audience you reach."
+                onChange={e => setBio(e.target.value)}
+                style={{ flex: 1, minWidth: 0, padding: '12px 14px 12px 10px', border: 0, outline: 0, background: 'transparent', font: 'inherit', fontSize: '0.9375rem', lineHeight: 1.55, color: 'var(--aw-ink)', resize: 'vertical' }}
+              />
+            </div>
+            <span className="cro-counter">{bio.length}/{BIO_MAX}</span>
+          </FormField>
+
+          <LocationFields value={location} onChange={setLocation} />
+        </Section>
       </div>
 
-      <Card>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Profile pic — optional */}
-          <div className="cr-field">
-            <span className="cr-field__label">Profile picture <span style={{ fontWeight: 400, color: 'var(--in-gray)' }}>(optional)</span></span>
-            <AvatarUpload value={avatarUrl} onChange={setAvatarUrl} />
-          </div>
-
-          {/* Display name */}
-          <label className="cr-field">
-            <span className="cr-field__label">Display name</span>
-            <input className="cr-input" value={displayName}
-              onChange={e => setDisplayName(e.target.value)}
-              placeholder="Your creator name" />
-            {displayName.trim().length === 0 && <span className="cr-field__err">Display name is required.</span>}
-          </label>
-
-          {/* Bio */}
-          <label className="cr-field">
-            <span className="cr-field__label">Bio <span style={{ fontWeight: 400, color: 'var(--in-gray)' }}>(optional)</span></span>
-            <textarea className="cr-input cr-input--area" value={bio} maxLength={BIO_MAX} rows={3}
-              onChange={e => setBio(e.target.value)}
-              placeholder="Tell brands what makes your content unique" />
-            <span className="cr-field__hint">{bio.length}/{BIO_MAX}</span>
-          </label>
-
-          {/* Location */}
-          <div className="cr-field">
-            <span className="cr-field__label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <MapPin size={13} style={{ color: 'var(--in-coral-text)' }} /> Location <span style={{ fontWeight: 400, color: 'var(--in-gray)' }}>(optional)</span>
+      <div className="cro-aside">
+        <section className="cro-panel cro-preview" aria-label="Passport preview">
+          <p className="cro-eyebrow" style={{ margin: 0 }}>How brands see you</p>
+          <div className="cro-preview__who">
+            <span className="cro-preview__avatar">
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : (displayName.trim()[0] ?? 'C').toUpperCase()}
             </span>
-            <LocationDropdowns value={location} onChange={setLocation} />
-            {location && <span className="cr-field__hint" style={{ marginTop: 4 }}>📍 {location}</span>}
+            <div>
+              <p className="cro-preview__name">
+                {displayName.trim() || 'Your name'}
+                {profile.verified && <BadgeCheck size={16} />}
+              </p>
+              <p className="cro-preview__handle">@{profile.username}</p>
+            </div>
           </div>
+          <p className={`cro-preview__bio${bio.trim() ? '' : ' is-empty'}`}>
+            {bio.trim() || 'Your bio will appear here.'}
+          </p>
+          <div className="cro-preview__meta">
+            {location && <span className="cro-preview__tag"><MapPin size={12} /> {location}</span>}
+            {connected.map(p => (
+              <span key={p.platform} className="cro-preview__tag"><PlatformMark id={p.platform} size={12} /> {p.handle || p.platform}</span>
+            ))}
+          </div>
+        </section>
 
-        </div>
-      </Card>
-
-      <div className="cr-onboarding__actions">
-        <Button variant="ghost" onClick={() => navigate('/creator/onboarding/verify')}>
-          <ArrowLeft size={16} /> Back
-        </Button>
-        <Button variant="ghost" onClick={() => { completeOnboardingStep('passport'); navigate('/creator/onboarding/preferences'); }}>
-          Skip
-        </Button>
-        <Button onClick={handleContinue} disabled={!canContinue}>
-          Continue <ArrowRight size={16} />
-        </Button>
+        <ProgressRail
+          title="Passport strength"
+          items={[
+            { label: 'Display name', done: nameOk },
+            { label: 'Profile photo', done: Boolean(avatarUrl), meta: 'optional' },
+            { label: 'Bio', done: bio.trim().length > 0, meta: 'optional' },
+            { label: 'Location', done: location.trim().length > 0, meta: 'optional' },
+          ]}
+          note={<>Passports with a photo and bio get <strong>2x more invitations</strong> than name-only profiles.</>}
+        />
       </div>
-    </div>
+
+      <Actions
+        left={
+          <>
+            <Btn variant="ghost" onClick={() => navigate('/creator/onboarding/verify')}><ArrowLeft size={16} /> Back</Btn>
+            <Btn variant="link" onClick={() => finish(false)}>Skip for now</Btn>
+          </>
+        }
+      >
+        <Btn onClick={() => finish(true)} disabled={!canContinue}>
+          Continue to preferences <ArrowRight size={16} />
+        </Btn>
+      </Actions>
+    </>
   );
 }

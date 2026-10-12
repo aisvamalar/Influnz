@@ -1,97 +1,454 @@
-import { useState } from 'react';
-import { NavLink, useNavigate, Outlet } from 'react-router-dom';
+/**
+ * CreatorLayout — the creator app shell, built on the same components as BusinessLayout:
+ * - Floating sidebar (bsb): brand, main screens, passport + preferences at the foot.
+ *   Collapses to an icon rail with tooltips (default on tablets, toggle remembered).
+ * - Desktop header: breadcrumb, search bar, notification bell, profile chip.
+ * - Mobile: sticky header with drawer + bottom tab bar.
+ * Nested creator routes render through <Outlet />.
+ */
+import React, { useEffect, useRef, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Mail, Briefcase, Wallet, TrendingUp,
-  UserCircle, SlidersHorizontal, Star, Gift, Share2, Menu, X, LogOut,
+  LayoutDashboard, Mail, Briefcase, Wallet, TrendingUp, UserCircle, SlidersHorizontal,
+  Star, Gift, Share2, Bell, Search, Menu, ChevronDown, ChevronLeft,
 } from 'lucide-react';
-import Logo from '../../components/Logo';
 import { useAuth } from '../../app/AuthContext';
+import LogoLight from '../../components/LogoLight';
+import logoImg from '../../assets/logo.png';
+import { useResponsive } from '../../hooks/useResponsive';
+import { useViewportScale } from '../../hooks/useViewportScale';
 import { useCreator } from './CreatorContext';
-import { Avatar } from './ui';
+import '../../styles/web-responsive.css';
+import '../business/business-sidebar.css';
+import '../../components/mobile/mobile-app-header.css';
+import './creator-ui.css';
 
-const NAV = [
-  { to: '/creator/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/creator/invitations', label: 'Invitations', icon: Mail, badgeKey: 'newInvites' },
-  { to: '/creator/campaigns', label: 'Campaigns', icon: Briefcase },
-  { to: '/creator/earnings', label: 'Earnings', icon: Wallet },
-  { to: '/creator/reputation', label: 'Reputation', icon: Star },
-  { to: '/creator/growth', label: 'Growth', icon: TrendingUp },
-  { to: '/creator/referrals', label: 'Referrals', icon: Share2 },
-  { to: '/creator/rewards', label: 'Rewards', icon: Gift },
-  { to: '/creator/profile', label: 'Creator Passport', icon: UserCircle },
-  { to: '/creator/preferences', label: 'Preferences', icon: SlidersHorizontal },
-] as const;
+/** Width the screens are designed at; wider viewports scale the whole shell up. */
+const DESIGN_WIDTH = 1680;
+const SCREEN_HEIGHT = 'calc(100dvh / var(--biz-zoom, 1))';
+const COLLAPSE_KEY = 'influnz.creator.sidebarCollapsed';
+/** Below this width the sidebar starts as an icon rail unless the user expanded it. */
+const RAIL_BELOW = 1200;
+
+function readCollapsePref(): boolean | null {
+  try {
+    const v = localStorage.getItem(COLLAPSE_KEY);
+    return v === null ? null : v === '1';
+  } catch {
+    return null;
+  }
+}
+
+interface NavItem {
+  key: string;
+  label: string;
+  path: string;
+  icon: React.ReactNode;
+  badge?: number;
+}
+
+const PRIMARY: Omit<NavItem, 'badge'>[] = [
+  { key: 'dashboard',   label: 'Dashboard',   path: '/creator/dashboard',   icon: <LayoutDashboard size={18} /> },
+  { key: 'invitations', label: 'Invitations', path: '/creator/invitations', icon: <Mail size={18} /> },
+  { key: 'campaigns',   label: 'Campaigns',   path: '/creator/campaigns',   icon: <Briefcase size={18} /> },
+  { key: 'earnings',    label: 'Earnings',    path: '/creator/earnings',    icon: <Wallet size={18} /> },
+  { key: 'reputation',  label: 'Reputation',  path: '/creator/reputation',  icon: <Star size={18} /> },
+  { key: 'growth',      label: 'Growth',      path: '/creator/growth',      icon: <TrendingUp size={18} /> },
+  { key: 'referrals',   label: 'Referrals',   path: '/creator/referrals',   icon: <Share2 size={18} /> },
+  { key: 'rewards',     label: 'Rewards',     path: '/creator/rewards',     icon: <Gift size={18} /> },
+];
+
+const PASSPORT_NAV: NavItem = { key: 'profile', label: 'Creator Passport', path: '/creator/profile', icon: <UserCircle size={18} /> };
+const PREFS_NAV: NavItem = { key: 'preferences', label: 'Preferences', path: '/creator/preferences', icon: <SlidersHorizontal size={18} /> };
+
+/** Pages reached from a list get their parent's breadcrumb. */
+const CRUMBS: Array<{ prefix: string; label: string }> = [
+  { prefix: '/creator/dashboard', label: 'Dashboard' },
+  { prefix: '/creator/invitations', label: 'Invitations' },
+  { prefix: '/creator/negotiation', label: 'Negotiation' },
+  { prefix: '/creator/deal', label: 'Deal room' },
+  { prefix: '/creator/contract', label: 'Contract' },
+  { prefix: '/creator/campaigns', label: 'Campaigns' },
+  { prefix: '/creator/earnings', label: 'Earnings' },
+  { prefix: '/creator/reputation', label: 'Reputation' },
+  { prefix: '/creator/growth', label: 'Growth' },
+  { prefix: '/creator/referrals', label: 'Referrals' },
+  { prefix: '/creator/rewards', label: 'Rewards' },
+  { prefix: '/creator/profile', label: 'Creator Passport' },
+  { prefix: '/creator/preferences', label: 'Preferences' },
+];
 
 export default function CreatorLayout() {
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
   const { logout } = useAuth();
   const { profile, invitations } = useCreator();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const scale = useViewportScale(DESIGN_WIDTH);
+  const { width } = useResponsive();
+  const [collapsePref, setCollapsePref] = useState<boolean | null>(readCollapsePref);
+  const collapsed = width > 768 && (collapsePref ?? width < RAIL_BELOW);
+  const isMobile = width <= 768;
 
   const newInvites = invitations.filter(i => i.status === 'new').length;
+  const primaryNav: NavItem[] = PRIMARY.map(item => (item.key === 'invitations' && newInvites > 0 ? { ...item, badge: newInvites } : item));
+  const bottomNav: NavItem[] = [primaryNav[0], primaryNav[1], primaryNav[2], primaryNav[3], PREFS_NAV];
+
+  const displayName = profile.displayName || 'Creator';
+  const subtitle = `@${profile.username}`;
+  const initial = displayName.trim()[0]?.toUpperCase() ?? 'C';
+  const breadcrumb = CRUMBS.find(c => location.pathname.startsWith(c.prefix))?.label ?? 'Creator';
+
+  const setCollapsed = (next: boolean) => {
+    setCollapsePref(next);
+    try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* storage unavailable */ }
+  };
+  const toggleCollapsed = () => setCollapsed(!collapsed);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [profileOpen]);
+
+  useEffect(() => { setDrawerOpen(false); setProfileOpen(false); }, [location.pathname]);
+
+  const isActive = (item: NavItem) => location.pathname.startsWith(item.path);
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login', { replace: true });
+    navigate('/login?type=creator', { replace: true });
   };
 
-  return (
-    <div className="cr-shell">
-      {open && <div className="cr-sidebar-overlay" onClick={() => setOpen(false)} />}
+  const renderNavItem = (item: NavItem, railed: boolean) => {
+    const active = isActive(item);
+    return (
+      <button
+        key={item.key}
+        type="button"
+        className={`bsb__item${active ? ' is-active' : ''}`}
+        onClick={() => {
+          if (railed) setCollapsed(false);
+          navigate(item.path);
+          setDrawerOpen(false);
+        }}
+        aria-current={active ? 'page' : undefined}
+        aria-label={railed ? item.label : undefined}
+      >
+        <span className="bsb__icon">{item.icon}</span>
+        <span className="bsb__label">{item.label}</span>
+        {item.badge ? <span className="bsb__badge">{item.badge}</span> : null}
+        <span className="bsb__tip" aria-hidden="true">{item.label}</span>
+      </button>
+    );
+  };
 
-      <aside className={`cr-sidebar ${open ? 'cr-sidebar--open' : ''}`}>
-        <div className="cr-sidebar__logo"><Logo size="md" /></div>
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {NAV.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `cr-nav-link ${isActive ? 'cr-nav-link--active' : ''}`}
-              onClick={() => setOpen(false)}
-            >
-              <item.icon size={19} />
-              <span>{item.label}</span>
-              {'badgeKey' in item && item.badgeKey === 'newInvites' && newInvites > 0 && (
-                <span className="cr-nav-link__badge">{newInvites}</span>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--in-border)' }}>
-          <button className="cr-nav-link" onClick={() => { navigate('/creator/profile'); setOpen(false); }}>
-            <Avatar name={profile.displayName} size={34} />
-            <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' }}>
-              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-charcoal)' }}>{profile.displayName}</span>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--in-gray)' }}>@{profile.username}</span>
-            </span>
-          </button>
-          <button className="cr-nav-link" onClick={handleLogout} style={{ color: 'var(--in-gray)' }}>
-            <LogOut size={19} /> <span>Log out</span>
+  const renderSidebar = (railed: boolean, withToggle: boolean) => (
+    <aside className={`bsb biz-aside${railed ? ' is-collapsed' : ''}`} aria-label="Creator navigation">
+      <div className="bsb__panel">
+        <div className="bsb__brand">
+          <LogoLight className="bsb__logo" height={40} />
+          <button type="button" className="bsb__mark" onClick={() => setCollapsed(false)} aria-label="Expand sidebar">
+            <LogoLight variant="mark" height={34} title="" />
           </button>
         </div>
-      </aside>
 
-      <div className="cr-main">
-        <header className="cr-topbar">
-          <button className="cr-hamburger" onClick={() => setOpen(v => !v)} aria-label="Toggle menu">
-            {open ? <X size={20} /> : <Menu size={20} />}
+        {withToggle && (
+          <button
+            type="button"
+            className="bsb__toggle"
+            onClick={toggleCollapsed}
+            aria-label={railed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!railed}
+          >
+            <ChevronLeft size={12} strokeWidth={2.4} />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--in-coral-text)', background: 'rgba(242,132,107,0.1)', padding: '4px 10px', borderRadius: 20 }}>
-              Rising Creator · {profile.reliability}/100
+        )}
+
+        <nav className="bsb__nav" aria-label="Primary">
+          {primaryNav.map(item => renderNavItem(item, railed))}
+        </nav>
+
+        <div className="bsb__foot">
+          <div className="bsb__divider" />
+          <button
+            type="button"
+            className={`bsb__profile${profile.verified ? '' : ' is-incomplete'}`}
+            title={railed ? `${displayName} · ${subtitle}` : undefined}
+            onClick={() => {
+              if (railed) { setCollapsed(false); return; }
+              navigate(PASSPORT_NAV.path);
+              setDrawerOpen(false);
+            }}
+          >
+            <span className="bsb__avatar" aria-hidden="true">{initial}</span>
+            <span className="bsb__who">
+              <strong>{displayName}</strong>
+              <small>{subtitle}</small>
             </span>
+          </button>
+          {renderNavItem(PREFS_NAV, railed)}
+        </div>
+      </div>
+    </aside>
+  );
+
+  /* Phone header — same top app bar the business mobile screens use (mah). */
+  const mobileHeader = (
+    <div className="mah" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
+      <div className="mah__brand">
+        <button
+          type="button"
+          className="biz-header__menu"
+          onClick={() => setDrawerOpen(v => !v)}
+          aria-label="Open navigation"
+          aria-expanded={drawerOpen}
+          style={{ marginRight: 4 }}
+        >
+          <Menu size={18} />
+        </button>
+        <img src={logoImg} alt="Influnz" className="mah__logo" />
+        <span className="mah__badge">CREATOR</span>
+      </div>
+      <div className="mah__actions">
+        <button type="button" className="mah__bell" aria-label={newInvites > 0 ? `${newInvites} new invitations` : 'Invitations'} onClick={() => navigate('/creator/invitations')}>
+          <Bell size={22} strokeWidth={1.8} />
+          {newInvites > 0 && <span className="mah__dot" />}
+        </button>
+        <div className="mah__account" ref={profileRef}>
+          <button type="button" className="mah__account-btn" aria-label="Account menu" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => setProfileOpen(v => !v)}>
+            <span className="mah__avatar">{initial}</span>
+          </button>
+          {profileOpen && (
+            <div className="mah__menu" role="menu">
+              <button type="button" role="menuitem" className="mah__menu-item" onClick={() => { setProfileOpen(false); navigate('/creator/profile'); }}>Creator Passport</button>
+              <button type="button" role="menuitem" className="mah__menu-item" onClick={() => { setProfileOpen(false); navigate('/creator/preferences'); }}>Preferences</button>
+              <button type="button" role="menuitem" className="mah__menu-item mah__menu-item--danger" onClick={handleLogout}>Sign out</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      style={{ display: 'flex', minHeight: SCREEN_HEIGHT, background: '#faf8f5', zoom: scale, '--biz-zoom': scale } as React.CSSProperties}
+      className="business-layout creator-layout"
+    >
+      {/* ── Desktop sidebar slot ── */}
+      <div className={`biz-sidebar-slot${collapsed ? ' is-collapsed' : ''}`}>{renderSidebar(collapsed, width > 768)}</div>
+
+      {/* ── Mobile drawer ── */}
+      {drawerOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)' }}
+          onClick={() => setDrawerOpen(false)}
+          role="presentation"
+        >
+          <div
+            style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 280, animation: 'slideInLeft 0.22s ease' }}
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+          >
+            <button
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close menu"
+              style={{
+                position: 'absolute', top: 30, right: 22, zIndex: 3,
+                width: 28, height: 28, borderRadius: 8,
+                background: '#f6f3f1', border: 'none', color: '#5b6472', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem', fontWeight: 700,
+              }}
+            >✕</button>
+            {renderSidebar(false, false)}
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Avatar name={profile.displayName} size={34} />
+        </div>
+      )}
+
+      {/* ── Main body ── */}
+      <div className="biz-main-content" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: SCREEN_HEIGHT }}>
+        {isMobile ? mobileHeader : (
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 100,
+          height: 56,
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '0 20px',
+          background: '#fdfaf8',
+          borderBottom: '1px solid var(--in-border)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+        }}>
+          <button
+            className="biz-header__menu mobile-only"
+            onClick={() => setDrawerOpen(v => !v)}
+            aria-label="Open navigation"
+            aria-expanded={drawerOpen}
+            style={{ flexShrink: 0 }}
+          >
+            <Menu size={18} />
+          </button>
+
+          <nav className="biz-crumb desktop-only" aria-label="Breadcrumb">
+            <span style={{ color: '#a8a8a8', fontSize: '0.875rem', fontWeight: 500 }}>Influnz</span>
+            <span style={{ color: '#a8a8a8', margin: '0 6px', fontSize: '0.875rem' }}>›</span>
+            <span style={{ fontWeight: 700, color: '#2d2d2d', fontSize: '0.875rem' }}>{breadcrumb}</span>
+          </nav>
+
+          <span className="biz-header__page-title mobile-only">{breadcrumb}</span>
+
+          <div style={{ flex: 1 }} />
+
+          <div
+            className="biz-header-search desktop-only"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              height: 36, padding: '0 14px',
+              background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 10,
+              width: 'clamp(160px, 22vw, 280px)',
+            }}
+          >
+            <span style={{ color: '#a8a8a8', display: 'flex', flexShrink: 0 }}><Search size={16} /></span>
+            <input
+              placeholder="Search invitations, campaigns..."
+              style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.8125rem', color: '#2d2d2d', fontFamily: 'inherit', width: '100%' }}
+              aria-label="Search invitations and campaigns"
+            />
+          </div>
+
+          <button
+            style={{
+              position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer',
+              color: '#6b6b6b', transition: 'background 0.15s', flexShrink: 0,
+            }}
+            aria-label={newInvites > 0 ? `${newInvites} new invitations` : 'Invitations'}
+            onClick={() => navigate('/creator/invitations')}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.08)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+          >
+            <Bell size={18} />
+            {newInvites > 0 && (
+              <span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, borderRadius: '50%', background: 'var(--in-coral)', border: '1.5px solid white' }} aria-hidden="true" />
+            )}
+          </button>
+
+          <div ref={profileRef} style={{ position: 'relative', flexShrink: 0 }}>
+            <button
+              onClick={() => setProfileOpen(v => !v)}
+              aria-expanded={profileOpen}
+              aria-haspopup="menu"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '4px 10px 4px 4px',
+                background: 'rgba(242,132,107,0.06)', border: '1px solid var(--in-border)',
+                borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.12)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.06)')}
+            >
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))',
+                color: 'white', fontSize: '0.8125rem', fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                {initial}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }} className="biz-profile__text">
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#2d2d2d', maxWidth: 110, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {displayName}
+                </span>
+                <span style={{ fontSize: '0.625rem', color: '#a8a8a8' }}>Creator</span>
+              </div>
+              <span style={{ color: '#a8a8a8', display: 'flex' }}><ChevronDown size={12} strokeWidth={2.2} /></span>
+            </button>
+
+            {profileOpen && (
+              <div
+                style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                  minWidth: 190, background: 'white',
+                  border: '1px solid var(--in-border)', borderRadius: 14,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)', overflow: 'hidden', zIndex: 200,
+                  animation: 'fadeInScale 0.2s ease',
+                }}
+                role="menu"
+              >
+                {[
+                  { label: 'Creator Passport', onClick: () => navigate('/creator/profile') },
+                  { label: 'Dashboard', onClick: () => navigate('/creator/dashboard') },
+                  { label: 'Preferences', onClick: () => navigate('/creator/preferences') },
+                ].map(m => (
+                  <button
+                    key={m.label}
+                    role="menuitem"
+                    onClick={() => { setProfileOpen(false); m.onClick(); }}
+                    style={{
+                      display: 'block', width: '100%', padding: '11px 16px', textAlign: 'left',
+                      fontSize: '0.875rem', fontWeight: 500, color: '#2d2d2d',
+                      background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.07)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+                <div style={{ height: 1, background: 'var(--in-border)', margin: '4px 0' }} />
+                <button
+                  role="menuitem"
+                  onClick={handleLogout}
+                  style={{
+                    display: 'block', width: '100%', padding: '11px 16px', textAlign: 'left',
+                    fontSize: '0.875rem', fontWeight: 500, color: 'var(--in-danger)',
+                    background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(224,82,82,0.06)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </header>
+        )}
 
-        <main id="main-content" className="cr-content">
+        <main
+          id="main-content"
+          className="biz-canvas"
+          style={{ flex: 1, padding: 'clamp(16px, 2vw, 28px)', maxWidth: 1600, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
+        >
           <Outlet />
         </main>
       </div>
+
+      {/* ── Mobile bottom tab bar ── */}
+      <nav className="biz-bottom-nav" aria-label="Main navigation">
+        {bottomNav.map(item => {
+          const active = isActive(item);
+          return (
+            <button
+              key={item.key}
+              className={`biz-bottom-nav__item${active ? ' biz-bottom-nav__item--active' : ''}`}
+              onClick={() => navigate(item.path)}
+              aria-current={active ? 'page' : undefined}
+              aria-label={item.label}
+            >
+              {item.badge ? <span className="biz-bottom-nav__badge">{item.badge}</span> : null}
+              <span className="biz-bottom-nav__icon-wrap" aria-hidden="true">{item.icon}</span>
+              <span className="biz-bottom-nav__label">{item.key === 'dashboard' ? 'Home' : item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

@@ -1,0 +1,344 @@
+/*
+ * Creator app surfaces, restyled to the business design language.
+ *
+ * The creator pages are built from a small set of `cr-*` primitives (ui.tsx).
+ * This sheet redefines those primitives with the same tokens, radii, weights and
+ * tints the business dashboard uses (business-dashboard-web.css, prefix bdw), so
+ * both sides of the product read as one system. It loads after index.css and
+ * overrides the older creator rules there.
+ */
+
+.creator-layout,
+.cro {
+  --cr-ink: #18181b;
+  --cr-text: #3f3f46;
+  --cr-muted: #71717a;
+  --cr-faint: #a1a1aa;
+  --cr-line: #ece7e3;
+  --cr-soft: #faf7f5;
+  --cr-coral: var(--in-coral);
+  --cr-coral-ink: #c4532f;
+  --cr-coral-tint: #fdeee9;
+  --cr-up: #15803d;
+  --cr-up-tint: #e8f6ec;
+  --cr-amber: #b45309;
+  --cr-amber-tint: #fdf3e2;
+  --cr-teal: #0f766e;
+  --cr-teal-tint: #e3f5f2;
+  --cr-violet: #5b4bc4;
+  --cr-violet-tint: #efedfd;
+  --cr-blue: #1d4ed8;
+  --cr-blue-tint: #e8eefc;
+  --cr-red: #b91c1c;
+  --cr-red-tint: #fdecec;
+  --cr-grey: #52525b;
+  --cr-grey-tint: #f1f1f4;
+
+  color: var(--cr-text);
+}
+
+/* ── Page header ── */
+.cr-page-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; }
+.cr-page-title {
+  margin: 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cr-ink);
+}
+.cr-page-sub { margin: 4px 0 0; font-size: 0.9375rem; color: var(--cr-muted); }
+
+/* ── Panels ── */
+.cr-card {
+  background: #fff;
+  border: 1px solid var(--cr-line);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: none;
+  min-width: 0;
+}
+.cr-card--flat { box-shadow: none; }
+.cr-card__title { font-size: 1rem; font-weight: 700; letter-spacing: 0; color: var(--cr-ink); }
+.cr-card__sub { font-size: 0.8125rem; color: var(--cr-muted); }
+
+/* ── Grids ── */
+.cr-grid { display: grid; gap: 16px; }
+.cr-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cr-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cr-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .cr-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .cr-grid--4, .cr-grid--3, .cr-grid--2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── KPI tiles (StatCard) — same anatomy as the business dashboard tiles ── */
+.cr-stat {
+  --tone: var(--cr-coral-ink);
+  --tone-tint: var(--cr-coral-tint);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 16px;
+}
+.cr-grid > .cr-stat:nth-child(4n + 2) { --tone: var(--cr-amber); --tone-tint: var(--cr-amber-tint); }
+.cr-grid > .cr-stat:nth-child(4n + 3) { --tone: var(--cr-teal); --tone-tint: var(--cr-teal-tint); }
+.cr-grid > .cr-stat:nth-child(4n + 4) { --tone: var(--cr-violet); --tone-tint: var(--cr-violet-tint); }
+.cr-stat__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--tone-tint);
+  color: var(--tone);
+}
+.cr-stat__value {
+  font-size: 1.875rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cr-ink);
+}
+.cr-stat__label { font-size: 0.8125rem; font-weight: 600; color: var(--cr-muted); }
+
+/* ── Buttons ── */
+.cr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.cr-btn--primary {
+  background: var(--cr-coral);
+  border: 1px solid var(--cr-coral);
+  color: #fff;
+  box-shadow: 0 6px 16px -8px rgba(242, 132, 107, 0.8);
+}
+.cr-btn--primary:hover:not(:disabled) {
+  background: var(--in-coral-dark);
+  border-color: var(--in-coral-dark);
+  transform: none;
+  box-shadow: 0 6px 16px -8px rgba(242, 132, 107, 0.8);
+}
+.cr-btn--ghost { background: #fff; border: 1px solid var(--cr-line); color: var(--cr-ink); }
+.cr-btn--ghost:hover:not(:disabled) { border-color: #d9d0ca; background: var(--cr-soft); color: var(--cr-ink); }
+.cr-btn--danger { background: #fff; border: 1px solid #f3c7c7; color: var(--cr-red); }
+.cr-btn--danger:hover:not(:disabled) { background: var(--cr-red-tint); }
+.cr-btn--sm { height: 34px; padding: 0 12px; font-size: 0.8125rem; }
+.cr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cr-btn:focus-visible { outline: 2px solid var(--cr-coral); outline-offset: 2px; }
+
+/* ── Chips (selectable filters) ── */
+.cr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--cr-line);
+  background: #fff;
+  color: var(--cr-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  user-select: none;
+  overflow: visible;
+  transform: none;
+  box-shadow: none;
+  animation: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.cr-chip::after { content: none; }
+.cr-chip:hover { border-color: #d9d0ca; background: var(--cr-soft); color: var(--cr-ink); transform: none; box-shadow: none; }
+.cr-chip:active { transform: none; }
+.cr-chip--active,
+.cr-chip--active:hover {
+  background: var(--cr-coral-tint);
+  border-color: #f3c9b8;
+  color: var(--cr-coral-ink);
+  transform: none;
+  box-shadow: none;
+  animation: none;
+}
+.cr-chip--static { cursor: default; }
+.cr-chip--static:hover { border-color: var(--cr-line); background: #fff; color: var(--cr-text); }
+
+/* ── Progress ── */
+.cr-progress { height: 8px; border-radius: 999px; background: #f1ece8; overflow: hidden; }
+.cr-progress__fill { height: 100%; border-radius: 999px; background: var(--cr-coral); transition: width 0.4s ease; }
+
+/* ── Toggle ── */
+.cr-toggle {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  position: relative;
+  background: #d9d4d0;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.cr-toggle--on { background: var(--cr-coral); }
+.cr-toggle__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+.cr-toggle--on .cr-toggle__knob { transform: translateX(18px); }
+
+/* ── Tabs — segmented control like the business chart tabs ── */
+.cr-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: none;
+  border-radius: 10px;
+  background: #f4f1ef;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.cr-tab {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-bottom: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cr-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cr-tab:hover { color: var(--cr-ink); }
+.cr-tab--active { background: #fff; color: var(--cr-ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); border-bottom: none; }
+
+/* ── Status chips — dot + tint like the business campaign table ── */
+.cr-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.cr-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.cr-status--new,
+.cr-status--processing { background: var(--cr-blue-tint); color: var(--cr-blue); }
+.cr-status--neg,
+.cr-status--pending,
+.cr-status--upcoming { background: var(--cr-amber-tint); color: var(--cr-amber); }
+.cr-status--active,
+.cr-status--done,
+.cr-status--paid { background: var(--cr-up-tint); color: var(--cr-up); }
+.cr-status--declined { background: var(--cr-grey-tint); color: var(--cr-grey); }
+.cr-status--failed { background: var(--cr-red-tint); color: var(--cr-red); }
+
+/* ── Empty state ── */
+.cr-empty { text-align: center; padding: 40px 24px; color: var(--cr-muted); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.cr-empty__icon { width: 48px; height: 48px; border-radius: 14px; background: var(--cr-coral-tint); color: var(--cr-coral-ink); display: grid; place-items: center; }
+.cr-empty__title { font-size: 0.9375rem; font-weight: 700; color: var(--cr-ink); }
+.cr-empty__text { font-size: 0.875rem; max-width: 340px; line-height: 1.55; }
+
+/* ── Inputs — same control as the auth/business forms ── */
+.cr-input, .cr-textarea, .cr-select {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #e6dfda;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0 14px;
+  font-size: 0.9375rem;
+  color: var(--cr-ink);
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cr-input::placeholder, .cr-textarea::placeholder { color: #b3b8c2; }
+.cr-input:hover, .cr-textarea:hover, .cr-select:hover { border-color: #d6ccc5; }
+.cr-input:focus, .cr-textarea:focus, .cr-select:focus {
+  outline: none;
+  border-color: var(--cr-coral);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(242, 132, 107, 0.14);
+}
+.cr-textarea, .cr-input--area { height: auto; min-height: 96px; padding: 12px 14px; line-height: 1.55; resize: vertical; }
+.cr-field { display: flex; flex-direction: column; gap: 6px; }
+.cr-field__label, .cr-field-label { font-size: 0.8125rem; font-weight: 600; color: var(--cr-ink); }
+.cr-field__hint { font-size: 0.8125rem; color: var(--cr-muted); align-self: flex-end; }
+.cr-field__err { font-size: 0.8125rem; font-weight: 500; color: #c8432f; }
+
+/* ── Row list ── */
+.cr-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--cr-line); }
+.cr-row:last-child { border-bottom: none; }
+
+/* ── Toast / avatar / bubbles ── */
+.cr-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 999; background: var(--cr-ink); color: #fff;
+  padding: 12px 18px; border-radius: 12px; font-size: 0.875rem; font-weight: 600;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); display: flex; align-items: center; gap: 8px;
+}
+.cr-avatar {
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--in-coral), var(--in-coral-dark));
+  color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;
+}
+.cr-bubble { max-width: 80%; padding: 12px 14px; border-radius: 14px; font-size: 0.875rem; line-height: 1.5; }
+.cr-bubble--brand { background: #fff; border: 1px solid var(--cr-line); align-self: flex-start; border-bottom-left-radius: 4px; }
+.cr-bubble--ai { background: var(--cr-coral-tint); border: 1px solid #f8e0d8; align-self: flex-end; border-bottom-right-radius: 4px; }
+.cr-bubble--system { background: var(--cr-amber-tint); border: 1px solid #f5e3c6; align-self: center; font-size: 0.8125rem; text-align: center; }
+.cr-dropzone {
+  border: 2px dashed #e6dfda; border-radius: 16px; background: var(--cr-soft);
+  padding: 40px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.cr-dropzone:hover, .cr-dropzone--over { border-color: var(--cr-coral); background: var(--cr-coral-tint); }
+
+/* ── Sidebar badge (new invitations) ── */
+.bsb__badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--in-coral);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bsb.is-collapsed .bsb__badge { display: none; }
+
+/* main's mobile sheet pads every element whose class contains "card"; keep
+   the creator card labels and tiles untouched by it. */
+@media screen and (max-width: 768px) {
+  .cr-card__title, .cr-card__sub { padding: 0 !important; border-radius: 0 !important; }
+  .cr-card { padding: 16px !important; border-radius: 14px !important; }
+}

@@ -15,7 +15,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!state.isAuthenticated) {
     const redirect = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?redirect=${redirect}`} replace />;
+    // Creator pages send people to the creator sign-in tab.
+    const audience = location.pathname.startsWith('/creator') ? '&type=creator' : '';
+    return <Navigate to={`/login?redirect=${redirect}${audience}`} replace />;
   }
 
   return <>{children}</>;

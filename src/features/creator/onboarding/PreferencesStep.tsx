@@ -1,13 +1,24 @@
+/**
+ * Onboarding step 3 — Preferences.
+ * Availability, the content you make, and the platforms, languages and formats
+ * brands can match you on. Everything is editable later from Preferences.
+ */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, ArrowLeft, Check, Rocket } from 'lucide-react';
+import { ArrowLeft, Check, CalendarCheck, Handshake, Search, Languages, Clapperboard, Tags, Share2 } from 'lucide-react';
+import PlatformMark from '../../../components/mobile/PlatformMark';
 import { useCreator } from '../CreatorContext';
-import { Card, Chip, Toggle, Button } from '../ui';
+import { Toggle } from '../ui';
 import type { CreatorPreferences, Platform } from '../types';
+import { Actions, Btn, ProgressRail, Section, SelectChip, StepHead } from './parts';
 
 const ALL_CATEGORIES = ['Food', 'Lifestyle', 'Travel', 'Fashion', 'Fitness', 'Technology', 'Beauty', 'Education'];
 const ALL_LANGUAGES = ['Tamil', 'English', 'Hindi', 'Telugu', 'Malayalam', 'Kannada'];
-const ALL_PLATFORMS: Platform[] = ['instagram', 'youtube', 'tiktok'];
+const ALL_PLATFORMS: Array<{ id: Platform; label: string }> = [
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'tiktok', label: 'TikTok' },
+];
 const ALL_FORMATS = ['Instagram Reel', 'Instagram Story', 'Instagram Post', 'YouTube Short', 'YouTube Video', 'UGC'];
 
 function toggle<T>(list: T[], value: T): T[] {
@@ -22,98 +33,134 @@ export default function PreferencesStep() {
   const set = <K extends keyof CreatorPreferences>(key: K, value: CreatorPreferences[K]) =>
     setDraft(d => ({ ...d, [key]: value }));
 
-  const finish = () => {
-    updatePreferences(draft);
-    completeOnboardingStep('preferences');
-    navigate('/creator/dashboard', { replace: true });
-  };
-
-  const skip = () => {
+  const finish = (save: boolean) => {
+    if (save) updatePreferences(draft);
     completeOnboardingStep('preferences');
     navigate('/creator/dashboard', { replace: true });
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <h1 className="cr-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <SlidersHorizontal size={22} style={{ color: 'var(--in-coral-text)' }} /> Quick preferences
-        </h1>
-        <p className="cr-page-sub">Just a few things to personalise your experience — update everything in Settings later.</p>
+    <>
+      <div className="cro-main">
+        <StepHead
+          eyebrow="Step 3 · Preferences"
+          title={<>Tell us what you <em>love making.</em></>}
+          sub="Influnz uses this to match you with the right campaigns and to let AI negotiate within your comfort zone. Change any of it later from Preferences."
+        />
+
+        <Section title="Availability" sub="Control whether brands can reach you right now." list>
+          <SwitchRow icon={CalendarCheck} title="Available for campaigns" sub="Brands can send you invitations"
+            on={draft.availableForCampaigns} onChange={v => set('availableForCampaigns', v)} />
+          <SwitchRow icon={Handshake} title="Open to long-term collaborations" sub="Prefer ongoing brand partnerships over one-offs"
+            on={draft.openToLongTerm} onChange={v => set('openToLongTerm', v)} />
+          <SwitchRow icon={Search} title="Discoverable in search" sub="Appear when brands browse creators"
+            on={draft.allowDiscovery} onChange={v => set('allowDiscovery', v)} />
+        </Section>
+
+        <Section
+          title="What you create"
+          sub="Pick every topic that fits. Brands filter by these."
+          kicker={<><Tags size={12} /> {draft.categories.length} selected</>}
+        >
+          <div className="cro-chips">
+            {ALL_CATEGORIES.map(c => (
+              <SelectChip key={c} on={draft.categories.includes(c)} onClick={() => set('categories', toggle(draft.categories, c))}>{c}</SelectChip>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="Where and how you post" sub="Platforms, languages and the formats you are happy to deliver.">
+          <div>
+            <p className="aw-label" style={{ marginBottom: 10 }}><Share2 size={14} /> Platforms</p>
+            <div className="cro-tiles">
+              {ALL_PLATFORMS.map(p => {
+                const on = draft.platforms.includes(p.id);
+                return (
+                  <button key={p.id} type="button" className={`cro-tile${on ? ' is-on' : ''}`} aria-pressed={on}
+                    onClick={() => set('platforms', toggle(draft.platforms, p.id))}>
+                    <span className="cro-tile__icon"><PlatformMark id={p.id} size={18} /></span>
+                    {p.label}
+                    {on && <span className="cro-tile__mark"><Check size={11} strokeWidth={3} /></span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="aw-label" style={{ marginBottom: 10 }}><Languages size={14} /> Languages you create in</p>
+            <div className="cro-chips">
+              {ALL_LANGUAGES.map(l => (
+                <SelectChip key={l} on={draft.languages.includes(l)} onClick={() => set('languages', toggle(draft.languages, l))}>{l}</SelectChip>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="aw-label" style={{ marginBottom: 10 }}><Clapperboard size={14} /> Content formats</p>
+            <div className="cro-chips">
+              {ALL_FORMATS.map(f => (
+                <SelectChip key={f} on={draft.contentFormats.includes(f)} onClick={() => set('contentFormats', toggle(draft.contentFormats, f))}>{f}</SelectChip>
+              ))}
+            </div>
+          </div>
+        </Section>
       </div>
 
-      {/* Availability */}
-      <Card>
-        <div className="cr-card__title" style={{ marginBottom: 14 }}>Availability</div>
-        <ToggleRow label="Available for campaigns" desc="Brands can send you invitations" on={draft.availableForCampaigns} onChange={v => set('availableForCampaigns', v)} />
-        <ToggleRow label="Open to long-term collaborations" desc="Prefer ongoing brand partnerships" on={draft.openToLongTerm} onChange={v => set('openToLongTerm', v)} />
-        <ToggleRow label="Discoverable in search" desc="Appear in brand discovery and search" on={draft.allowDiscovery} onChange={v => set('allowDiscovery', v)} />
-      </Card>
+      <div className="cro-aside">
+        <section className="cro-panel cro-rail" aria-label="Your matching profile">
+          <h3 className="cro-rail__title">Your matching profile</h3>
+          <div className="cro-summary">
+            <div className="cro-summary__item"><strong>{draft.categories.length}</strong><span>Topics</span></div>
+            <div className="cro-summary__item"><strong>{draft.platforms.length}</strong><span>Platforms</span></div>
+            <div className="cro-summary__item"><strong>{draft.languages.length}</strong><span>Languages</span></div>
+            <div className="cro-summary__item"><strong>{draft.contentFormats.length}</strong><span>Formats</span></div>
+          </div>
+        </section>
 
-      {/* Interests */}
-      <Card>
-        <div className="cr-card__title" style={{ marginBottom: 8 }}>Content categories</div>
-        <div className="cr-card__sub" style={{ marginBottom: 12 }}>What topics do you create content about?</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {ALL_CATEGORIES.map(c => (
-            <Chip key={c} active={draft.categories.includes(c)} onClick={() => set('categories', toggle(draft.categories, c))}>{c}</Chip>
-          ))}
-        </div>
-      </Card>
-
-      {/* Platforms & Languages & Formats */}
-      <Card>
-        <div className="cr-card__title" style={{ marginBottom: 8 }}>Platforms you're active on</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-          {ALL_PLATFORMS.map(p => (
-            <Chip key={p} active={draft.platforms.includes(p)} onClick={() => set('platforms', toggle(draft.platforms, p))}>
-              <span style={{ textTransform: 'capitalize' }}>{p}</span>
-            </Chip>
-          ))}
-        </div>
-        <div className="cr-card__title" style={{ marginBottom: 8 }}>Languages you create in</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
-          {ALL_LANGUAGES.map(l => (
-            <Chip key={l} active={draft.languages.includes(l)} onClick={() => set('languages', toggle(draft.languages, l))}>{l}</Chip>
-          ))}
-        </div>
-        <div className="cr-card__title" style={{ marginBottom: 8 }}>Content formats</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {ALL_FORMATS.map(f => (
-            <Chip key={f} active={draft.contentFormats.includes(f)} onClick={() => set('contentFormats', toggle(draft.contentFormats, f))}>{f}</Chip>
-          ))}
-        </div>
-      </Card>
-
-      <div className="cr-onboarding__actions">
-        <Button variant="ghost" onClick={() => navigate('/creator/onboarding/passport')}>
-          <ArrowLeft size={16} /> Back
-        </Button>
-        <Button variant="ghost" onClick={skip}>Skip</Button>
-        <Button onClick={finish}><Check size={16} /> Save & go to Dashboard</Button>
+        <ProgressRail
+          title="Almost there"
+          items={[
+            { label: 'Availability set', done: true },
+            { label: 'At least one topic', done: draft.categories.length > 0 },
+            { label: 'At least one platform', done: draft.platforms.length > 0 },
+            { label: 'A language and a format', done: draft.languages.length > 0 && draft.contentFormats.length > 0 },
+          ]}
+          note={<>Rates, AI negotiation limits and blocked categories live in <strong>Preferences</strong> once you are in.</>}
+        />
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 12,
-        background: 'rgba(242,132,107,0.07)', border: '1px solid rgba(242,132,107,0.2)',
-      }}>
-        <Rocket size={16} style={{ color: 'var(--in-coral-text)', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.8125rem', color: 'var(--in-gray)' }}>
-          Campaign rates, AI negotiation limits and more are in <strong>Settings → Preferences</strong> anytime.
-        </span>
-      </div>
-    </div>
+      <Actions
+        left={
+          <>
+            <Btn variant="ghost" onClick={() => navigate('/creator/onboarding/passport')}><ArrowLeft size={16} /> Back</Btn>
+            <Btn variant="link" onClick={() => finish(false)}>Skip for now</Btn>
+          </>
+        }
+      >
+        <Btn onClick={() => finish(true)}><Check size={16} /> Save &amp; go to dashboard</Btn>
+      </Actions>
+    </>
   );
 }
 
-function ToggleRow({ label, desc, on, onChange }: { label: string; desc: string; on: boolean; onChange: (v: boolean) => void }) {
+function SwitchRow({
+  icon: Icon, title, sub, on, onChange,
+}: {
+  icon: typeof CalendarCheck;
+  title: string;
+  sub: string;
+  on: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
-    <div className="cr-row" style={{ paddingTop: 12, paddingBottom: 12 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--in-charcoal)' }}>{label}</div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>{desc}</div>
+    <div className="cro-switch">
+      <span className="cro-switch__icon"><Icon size={17} /></span>
+      <div className="cro-switch__main">
+        <p className="cro-switch__title">{title}</p>
+        <p className="cro-switch__sub">{sub}</p>
       </div>
-      <Toggle on={on} onChange={onChange} label={label} />
+      <Toggle on={on} onChange={onChange} label={title} />
     </div>
   );
 }
