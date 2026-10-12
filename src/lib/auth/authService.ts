@@ -29,8 +29,9 @@ let mockSession: User | null = null;
 export const mockAuthService: IAuthService = {
   async signup({ businessName, email, phone, password, accountType }) {
     await delay(1200);
-    const emailKey = email.toLowerCase();
-    if (MOCK_USERS.has(emailKey)) {
+    // Creators may not provide an email at signup time — key by phone instead
+    const emailKey = email ? email.toLowerCase() : null;
+    if (emailKey && MOCK_USERS.has(emailKey)) {
       throw { code: 'ACCOUNT_EXISTS', message: 'An account with this email already exists.' };
     }
     const user: User = {
@@ -42,7 +43,13 @@ export const mockAuthService: IAuthService = {
       accountType,
       avatarInitials: businessName.slice(0, 2).toUpperCase(),
     };
-    MOCK_USERS.set(emailKey, { user, password });
+    const storeKey = emailKey ?? phone;
+    MOCK_USERS.set(storeKey, { user, password });
+    // For creators, authenticate immediately (no standalone OTP page)
+    if (accountType === 'creator') {
+      mockSession = user;
+      return { user, requiresOtp: false, accountType };
+    }
     return { user, requiresOtp: true, otpTarget: email, otpType: 'email', accountType };
   },
 

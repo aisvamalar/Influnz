@@ -10,6 +10,7 @@ import AuthPanel from './AuthPanel';
 import { EyeIcon, PasswordStrengthBar, GoogleIcon, Spinner, Field } from './AuthFormParts';
 import Logo from '../../components/Logo';
 import type { AccountType } from '../../lib/auth/types';
+import { useAuth } from '../../app/AuthContext';
 
 /* ── Inline icons ── */
 function BuildingIcon() {
@@ -207,6 +208,7 @@ export default function SignupPage() {
   const [apiErr, setApiErr]           = useState('');
   const [googleLoad, setGoogleLoad]   = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const { setUser } = useAuth();
 
   const {
     register, handleSubmit, watch,
@@ -234,7 +236,8 @@ export default function SignupPage() {
       // Creators skip the standalone OTP page — phone was already verified inline,
       // email is verified inside the onboarding verify step.
       if (isCreator) {
-        navigate(postAuthPath);
+        setUser(res.user);          // authenticate immediately
+        navigate(postAuthPath, { replace: true });
       } else if (res.requiresOtp) {
         navigate('/verify', { state: { identifier: res.otpTarget, type: res.otpType, context: 'signup', accountType } });
       } else {
