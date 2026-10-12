@@ -1,10 +1,16 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
-import Logo from '../../components/Logo';
+import Logo from '../../components/Logo';
+import UiIcon from '../../components/UiIcon';
 
 export default function DashboardPlaceholder() {
   const { state, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect to the new business dashboard
+  return <Navigate to="/business" replace />;
+
+  // eslint-disable-next-line no-unreachable
 
   const handleLogout = async () => {
     await logout();
@@ -31,7 +37,7 @@ export default function DashboardPlaceholder() {
         textAlign: 'center',
         display: 'flex', flexDirection: 'column', gap: 16,
       }}>
-        <div style={{ fontSize: '2.5rem' }}>🎉</div>
+        <div style={{ fontSize: '2.5rem' }}><UiIcon name="party" /></div>
 
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--in-charcoal)', letterSpacing: '-0.02em', margin: 0 }}>
           You're in, {state.user?.businessName ?? 'Business'}!

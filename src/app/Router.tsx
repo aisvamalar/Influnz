@@ -3,15 +3,34 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 import { CreatorProvider } from '../features/creator/CreatorContext';
 
-// Lazy-loaded pages
+// Lazy-loaded pages — Auth & Landing
 const Landing      = lazy(() => import('../features/landing/LandingPage'));
 const SignupPage   = lazy(() => import('../features/auth/SignupPage'));
 const LoginPage    = lazy(() => import('../features/auth/LoginPage'));
 const OtpPage      = lazy(() => import('../features/auth/OtpPage'));
 const ForgotPage   = lazy(() => import('../features/auth/ForgotPasswordPage'));
 const ResetPage    = lazy(() => import('../features/auth/ResetPasswordPage'));
-const RoleSelect   = lazy(() => import('../features/auth/RoleSelectPage'));
 const Dashboard    = lazy(() => import('../features/dashboard/DashboardPlaceholder'));
+
+// Lazy-loaded pages — Business side
+const BizDashboard        = lazy(() => import('../features/business/BusinessDashboard'));
+const CampaignList        = lazy(() => import('../features/business/CampaignListPage'));
+const CreateCampaign      = lazy(() => import('../features/business/CreateCampaignPage'));
+const CreatorSelection    = lazy(() => import('../features/business/web/CreatorSelectionWeb'));
+const Strategy           = lazy(() => import('../features/business/CampaignStrategyPage'));
+const CampaignCreators    = lazy(() => import('../features/business/CampaignCreatorsPage'));
+const NegotiationParams   = lazy(() => import('../features/business/NegotiationParametersPage'));
+const NegotiationPreview  = lazy(() => import('../features/business/NegotiationPreviewPage'));
+const Invitations         = lazy(() => import('../features/business/InvitationsPage'));
+const CampaignOps         = lazy(() => import('../features/business/CampaignOperationsPage'));
+const Approvals           = lazy(() => import('../features/business/ApprovalsPage'));
+const Analytics           = lazy(() => import('../features/business/AnalyticsPage'));
+const Payments            = lazy(() => import('../features/business/PaymentsPage'));
+const Notifications       = lazy(() => import('../features/business/NotificationsPage'));
+const Settings            = lazy(() => import('../features/business/SettingsPage'));
+const CampaignContent     = lazy(() => import('../features/business/CampaignContentPage'));
+const AIStrategyWizard    = lazy(() => import('../features/business/AIStrategyWizard/AIStrategyWizardPage'));
+const CampaignParametersWizard = lazy(() => import('../features/business/CampaignParametersWizard/CampaignParametersWizardPage'));
 
 // Creator area
 const CreatorLayout        = lazy(() => import('../features/creator/CreatorLayout'));
@@ -59,16 +78,35 @@ export default function AppRouter() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<Landing />} />
-        <Route path="/get-started" element={<PublicOnlyRoute><RoleSelect /></PublicOnlyRoute>} />
         <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
         <Route path="/login"  element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
         <Route path="/verify" element={<OtpPage />} />
         <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPage /></PublicOnlyRoute>} />
         <Route path="/reset-password"  element={<PublicOnlyRoute><ResetPage /></PublicOnlyRoute>} />
 
-        {/* Protected */}
+        {/* Legacy dashboard placeholder */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/onboarding" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute><BizDashboard /></ProtectedRoute>} />
+
+        {/* ── Business side ── */}
+        <Route path="/business" element={<ProtectedRoute><BizDashboard /></ProtectedRoute>} />
+        <Route path="/business/campaigns" element={<ProtectedRoute><CampaignList /></ProtectedRoute>} />
+        <Route path="/business/campaigns/new" element={<ProtectedRoute><CreateCampaign /></ProtectedRoute>} />
+        <Route path="/business/campaigns/ai-strategy" element={<ProtectedRoute><AIStrategyWizard /></ProtectedRoute>} />
+        <Route path="/business/campaigns/parameters" element={<ProtectedRoute><CampaignParametersWizard /></ProtectedRoute>} />
+        <Route path="/business/campaigns/strategy" element={<ProtectedRoute><Strategy /></ProtectedRoute>} />
+        <Route path="/business/campaigns/creators" element={<ProtectedRoute><CampaignCreators /></ProtectedRoute>} />
+        <Route path="/business/campaigns/guardrails" element={<ProtectedRoute><NegotiationParams /></ProtectedRoute>} />
+        <Route path="/business/campaigns/negotiate" element={<ProtectedRoute><NegotiationPreview /></ProtectedRoute>} />
+        <Route path="/business/campaigns/invitations" element={<ProtectedRoute><Invitations /></ProtectedRoute>} />
+        <Route path="/business/campaigns/:id" element={<ProtectedRoute><CampaignOps /></ProtectedRoute>} />
+        <Route path="/business/campaigns/:id/content" element={<ProtectedRoute><CampaignContent /></ProtectedRoute>} />
+        <Route path="/business/creators" element={<ProtectedRoute><CreatorSelection /></ProtectedRoute>} />
+        <Route path="/business/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/business/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+        <Route path="/business/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
+        <Route path="/business/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/business/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
         {/* Creator area — provider wraps both onboarding and the gated main app */}
         <Route

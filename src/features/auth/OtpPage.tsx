@@ -1,10 +1,9 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { authService } from '../../lib/auth/authService';
 import { useAuth } from '../../app/AuthContext';
-import { extractAuthError } from './authErrors';
 import Logo from '../../components/Logo';
-import { Spinner } from './AuthFormParts';
+import { Spinner } from './AuthFormParts';
+import UiIcon from '../../components/UiIcon';
 
 const OTP_LENGTH     = 6;
 const RESEND_SECONDS = 30;
@@ -13,7 +12,6 @@ interface LocationState {
   identifier: string;
   type: 'email' | 'phone';
   context: 'signup' | 'login';
-  accountType?: 'creator' | 'business';
 }
 
 export default function OtpPage() {
@@ -23,7 +21,6 @@ export default function OtpPage() {
   const state      = (location.state ?? {}) as LocationState;
   const identifier = state.identifier ?? '';
   const otpType    = state.type ?? 'email';
-  const postAuthPath = state.accountType === 'creator' ? '/creator/onboarding' : '/onboarding';
 
   const [digits, setDigits]     = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [error, setError]       = useState('');
@@ -65,16 +62,13 @@ export default function OtpPage() {
   const verify = useCallback(async () => {
     if (otp.length < OTP_LENGTH) { setError('Enter the complete 6-digit code'); return; }
     setError(''); setLoading(true);
-    try {
-      const res = await authService.verifyOtp({ identifier, otp, type: otpType });
-      setUser(res.user);
-      navigate(postAuthPath, { replace: true });
-    } catch (err) {
-      setError(extractAuthError(err));
-      setDigits(Array(OTP_LENGTH).fill(''));
-      refs.current[0]?.focus();
-    } finally { setLoading(false); }
-  }, [otp, identifier, otpType, navigate, setUser, postAuthPath]);
+    // DEMO MODE: skip backend
+    setTimeout(() => {
+      setUser({ id: 'demo-001', businessName: 'Demo Business', email: 'demo@influnz.in', role: 'business' } as any);
+      navigate('/business', { replace: true });
+      setLoading(false);
+    }, 800);
+  }, [otp, navigate, setUser]);
 
   // Auto-submit
   useEffect(() => {
@@ -85,13 +79,13 @@ export default function OtpPage() {
   const handleResend = async () => {
     if (!canResend || resending) return;
     setResending(true); setError('');
-    try {
-      await authService.resendOtp(identifier);
+    // DEMO MODE: simulate resend
+    setTimeout(() => {
       setTimer(RESEND_SECONDS); setResend(false);
       setDigits(Array(OTP_LENGTH).fill(''));
       refs.current[0]?.focus();
-    } catch (err) { setError(extractAuthError(err)); }
-    finally { setResending(false); }
+      setResending(false);
+    }, 500);
   };
 
   const masked = otpType === 'email'
@@ -122,7 +116,7 @@ export default function OtpPage() {
           boxShadow: '0 8px 24px rgba(242,132,107,0.35)',
           fontSize: '1.75rem',
         }}>
-          {otpType === 'email' ? '✉️' : '📱'}
+          <UiIcon name={otpType === 'email' ? 'mail' : 'phone'} />
         </div>
 
         {/* Copy */}

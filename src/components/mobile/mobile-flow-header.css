@@ -1,0 +1,157 @@
+/* Class-based on purpose: mobile-responsive.css rewrites generic buttons/headers on small screens. */
+.mfh {
+  display: block !important;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 4px !important;
+}
+
+.mfh button {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: inherit !important;
+  font-family: inherit;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mfh__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mfh .mfh__circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px !important;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid #ece4df;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #12153a;
+}
+
+.mfh .mfh__circle:active {
+  background: #f7f3f1;
+}
+
+.mfh__spacer {
+  width: 44px;
+  flex-shrink: 0;
+}
+
+.mfh__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* logo.png ships with a white background; multiply drops it onto the tinted page. */
+.mfh__logo {
+  display: block;
+  width: auto;
+  height: 28px;
+  mix-blend-mode: multiply;
+}
+
+.mfh__badge {
+  padding: 4px 8px;
+  border: 1px solid #f8c9c2;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #e5483a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.mfh__steps {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mfh__step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Connector to the previous step, drawn between dot centres. */
+.mfh__step + .mfh__step::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  right: calc(50% + 17px);
+  left: calc(-50% + 17px);
+  border-top: 1.5px dashed #e4d9d3;
+}
+
+.mfh__step--done + .mfh__step::before,
+.mfh__step--active::before {
+  border-top-style: solid !important;
+  border-top-color: #f1a08f !important;
+}
+
+.mfh__dot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid #e4d9d3;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #8a8f99;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mfh__step--active .mfh__dot {
+  border-color: #ef4f3c;
+  background: linear-gradient(145deg, #f8735f 0%, #ef4f3c 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(239, 79, 60, 0.3);
+}
+
+.mfh__step--done .mfh__dot {
+  border-color: #f1a08f;
+  background: #fff1ec;
+  color: #ef4f3c;
+}
+
+.mfh__label {
+  max-width: 100%;
+  overflow: hidden;
+  color: #8a8f99;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mfh__step--active .mfh__label {
+  color: #12153a;
+  font-weight: 700;
+}
+
+@media (max-width: 340px) {
+  .mfh__label {
+    font-size: 9px;
+  }
+}

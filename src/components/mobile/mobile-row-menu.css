@@ -1,0 +1,68 @@
+/* Class-based on purpose: mobile-responsive.css rewrites inline-styled buttons on small screens. */
+.mrm {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mrm button {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mrm .mrm__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 36px;
+  padding: 0 !important;
+  border-radius: 8px;
+  color: #3f4555;
+}
+
+.mrm .mrm__btn:active {
+  background: #f7f3f1;
+}
+
+.mrm__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+  min-width: 172px;
+  padding: 6px;
+  border: 1px solid #f1e9e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(18, 21, 58, 0.14);
+  animation: mrmIn 0.14s ease-out;
+}
+
+.mrm .mrm__item {
+  display: block;
+  width: 100%;
+  padding: 11px 12px !important;
+  border-radius: 8px;
+  color: #12153a;
+  font-size: 14px !important;
+  text-align: left;
+}
+
+.mrm .mrm__item:active {
+  background: #f7f3f1;
+}
+
+.mrm .mrm__item--danger {
+  color: #dc2626;
+}
+
+@keyframes mrmIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

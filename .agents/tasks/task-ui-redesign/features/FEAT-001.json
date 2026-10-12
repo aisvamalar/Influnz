@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Mock auth + Auth UI polish. Wire LoginPage and SignupPage to bypass backend and navigate directly to /business. Polish ForgotPasswordPage, ResetPasswordPage, OtpPage to show success state and auto-navigate to /business after 1.5s. Add 'Demo Mode' badge to all auth forms. Improve auth card aesthetics: larger card max-width (440px), upgraded shadow, better spacing, glass-style header gradient strip on the card, demo badge chip.",
+  "status": "pending",
+  "steps": [
+    "1. In src/features/auth/LoginPage.tsx: Replace the onSubmit body with: setUser({id:'demo-001',businessName:'Demo Business',email:'demo@influnz.in',role:'business'} as any); navigate('/business',{replace:true}); — keep all form validation and the try/catch structure, just replace the authService.login call. Replace the handleGoogle body similarly. Add a 'Demo Mode' badge directly above the <h1> in the form header area using the new .in-demo-badge class. Remove the 'redirectTo' logic (hardcode '/business').",
+    "2. In src/features/auth/SignupPage.tsx: Replace onSubmit body with: setUser({id:'demo-001',businessName:'Demo Business',email:'demo@influnz.in',role:'business'} as any); navigate('/business',{replace:true}); — keep the authService import (just don't call it). Replace handleGoogle similarly. Add useAuth import and destructure setUser. Add the .in-demo-badge chip above the form title.",
+    "3. In src/features/auth/ForgotPasswordPage.tsx: Replace onSubmit body with: setSent(true); setTimeout(()=>navigate('/business',{replace:true}),1500); — remove authService call but keep import. Add the .in-demo-badge chip near the page title.",
+    "4. In src/features/auth/ResetPasswordPage.tsx: Replace onSubmit body with: setDone(true); setTimeout(()=>navigate('/business',{replace:true}),1500); — remove authService call but keep import. Add .in-demo-badge chip near title.",
+    "5. In src/features/auth/OtpPage.tsx: Replace the verify() callback body with: setLoading(true); setTimeout(()=>{ setUser({id:'demo-001',businessName:'Demo Business',email:'demo@influnz.in',role:'business'} as any); navigate('/business',{replace:true}); setLoading(false); }, 800); — keep all OTP digit input logic and UI intact. Remove authService.verifyOtp and authService.resendOtp calls (keep imports).",
+    "6. In src/index.css (append at bottom): Add .in-demo-badge class — a small pill with coral gradient background, white text, lock icon prefix, 'Demo Mode' label. Sits above the form title. Also add .in-auth-form-card--enhanced upgrade: larger max-width 440px, stronger box shadow with --in-shadow-lg, 24px border-radius, white background with a 3px coral gradient top border accent. Add .in-auth-card-accent — a 3px top border gradient bar on the form card. These are purely additive; existing .in-auth-form-card continues to work."
+  ],
+  "acceptance_criteria": [
+    "Clicking 'Log in' on LoginPage (with any valid-format credentials) navigates to /business without any network request",
+    "Clicking 'Continue with Google' on LoginPage/SignupPage navigates to /business without any network request",
+    "Clicking 'Sign Up' on SignupPage navigates to /business",
+    "ForgotPasswordPage shows sent=true success state immediately, then navigates to /business after ~1.5s",
+    "ResetPasswordPage shows done=true success state immediately, then navigates to /business after ~1.5s",
+    "OtpPage auto-navigates to /business ~0.8s after any 6-digit entry",
+    "A 'Demo Mode' badge is visible on LoginPage and SignupPage forms",
+    "All form validation still fires on blur (zod resolver unchanged)",
+    "npm run build completes with exit code 0 and no TypeScript errors"
+  ],
+  "verification": [
+    "Run: cd c:\\Users\\DELL\\Downloads\\Influnz && npm run build",
+    "Confirm exit code 0 and no TypeScript errors in output"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

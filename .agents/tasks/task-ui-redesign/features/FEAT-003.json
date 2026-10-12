@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Landing page polish and final responsive CSS pass. Improve LandingPage.tsx: hero section spacing, nav height, trust strip layout, CTA button sizes, section padding at all breakpoints, footer layout on mobile. Add missing responsive rules to index.css for auth and business screens to ensure all three breakpoints (mobile <=480px, tablet 481-899px, desktop >=900px) are fully covered. This FEAT is independent of FEAT-001 and FEAT-002 but should be applied last since it adds CSS that may affect classes introduced in FEAT-001 and FEAT-002.",
+  "status": "pending",
+  "steps": [
+    "1. src/features/landing/LandingPage.tsx — Nav component: increase logo area gap from 10px to 12px. Add a secondary tagline line under the brand name on desktop (visible >=768px): 'India-first AI creator platform'. CTA buttons in hero: increase height from 52px to 56px on desktop. Add a second trust indicator line below the trust strip showing 'Join businesses across India' with an animated counter (mock: 2,400+ campaigns). Add subtle entry animations to hero inner content using the existing .slide-up and .fade-in CSS classes on hero__badge, h1, sub, ctas (add animationDelay inline styles: 0.1s, 0.2s, 0.3s, 0.4s).",
+    "2. src/features/landing/LandingPage.tsx — Section layout: In the 'How it works' section, change the steps list to a two-column layout on desktop (>=860px) using a CSS grid. Each step card gets a subtle white card background and border-radius. The step number circle should be bigger (44px) on desktop. Features grid: already responsive (1/2/4 col). Scenario section: increase inner card max-width to 860px for tablet/desktop. FAQ: increase max-width to 760px and add 8px more bottom padding per item.",
+    "3. src/index.css (append section '== RESPONSIVE POLISH =='): Auth responsive additions: at <=480px, .in-auth-form-side should have padding 32px 16px (reduce horizontal padding). .in-otp-input width/height: 44px/52px at <=480px (from 52px/60px). .in-auth-form-card gap: 16px at <=480px. At 481-859px (tablet): .in-auth-form-side padding 40px 20px. Landing responsive additions: at <=480px, .in-hero padding 48px 16px 40px; .in-hero__h1 line-height 1.1; .in-hero__ctas flex-direction column align-items stretch (buttons full width). .in-trust-strip padding 16px; gap 16px 24px. .in-section padding 48px 16px. .in-section--alt padding 48px 16px. .in-cta-band padding 48px 16px. .in-footer__top flex-direction column; gap 24px. At 481-899px: .in-hero padding 60px 20px 52px. .in-section padding 60px 20px. At >=900px: .in-hero padding 88px 32px 80px. .in-section padding 88px 32px.",
+    "4. src/index.css (append): Business responsive additions: at <=480px, .biz-page-head flex-direction column; .biz-page-head__actions justify-content flex-start; .biz-2col grid-template-columns 1fr. .biz-kpi border-radius 12px. .biz-card padding 14px; border-radius 14px. .biz-main padding 12px 14px. .biz-table td white-space normal (allow wrapping on tiny screens). At 481-899px (tablet with sidebar hidden): .biz-main padding 16px 20px. At >=900px: .biz-kpi-grid gap 16px. .biz-card padding 24px; border-radius 20px. Add a print media query: @media print: hide .biz-bottom-nav, .biz-sidebar, .biz-header__menu; .biz-body width 100%.",
+    "5. src/features/landing/LandingPage.tsx — Footer: On mobile (via inline style check not needed — CSS handles it via .in-footer__top flex-direction column). Add social media icon row to footer (SVG icons for Twitter/X, LinkedIn, Instagram — inline SVGs, no external deps): a row of 3 icon buttons styled as .in-footer__social-btn (32px circle, rgba white 10% bg, white icon, hover: rgba white 20%).",
+    "6. src/index.css (append): Add .in-footer__social-row (flex, gap 10px, margin-top 12px) and .in-footer__social-btn (32px circle button, rgba(255,255,255,0.1) background, white color, border none, cursor pointer, border-radius 50%, display flex, align/justify center, transition background 0.15s) and :hover state rgba(255,255,255,0.2). Add .in-steps-2col media query: @media (min-width:860px) { .in-steps { display:grid; grid-template-columns: repeat(2,1fr); gap:0 32px; } .in-step { border-bottom: 1px solid var(--in-border); } }. Add .in-step-card variant: @media (min-width:860px) { .in-step { background:white; border:1px solid var(--in-border); border-radius:14px; padding:20px; border-bottom:1px solid var(--in-border); } }."
+  ],
+  "acceptance_criteria": [
+    "Hero section CTAs are full-width stacked buttons on mobile (<=480px)",
+    "Nav is readable and non-overlapping at all three breakpoints",
+    "How-it-works steps display as 2 columns on desktop (>=860px)",
+    "Auth form OTP inputs are appropriately sized on mobile (<=480px)",
+    "Business pages have appropriate padding on all three breakpoints",
+    "Footer shows social icon row",
+    "npm run build completes with exit code 0 and no TypeScript errors"
+  ],
+  "verification": [
+    "Run: cd c:\\Users\\DELL\\Downloads\\Influnz && npm run build",
+    "Confirm exit code 0 and no TypeScript errors in output"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

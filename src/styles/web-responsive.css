@@ -1,0 +1,136 @@
+/*
+ * Web + tablet layer for the business shell and pages (viewports from 769px up).
+ *
+ * - The sidebar slot is 272px, or 108px as an icon rail (default below 1200px).
+ * - Page grids reflow against the width of the content area (container queries on
+ *   .biz-canvas), not the viewport, so they adapt whether the rail or sidebar is open.
+ * - Wider than the design width, BusinessLayout scales the shell with `zoom`; fixed
+ *   viewport heights inside it divide by --biz-zoom so they still fit the screen.
+ *
+ * Selectors are prefixed with .business-layout so their !important rules outrank the
+ * older blanket rules in mobile-responsive.css regardless of load order.
+ */
+
+/* `overflow-x: hidden` on html/body (mobile-responsive.css) turns body into a scroll
+   container, which stops the sticky sidebar from sticking; `clip` hides overflow without that. */
+:root,
+:root body {
+  overflow-x: clip !important;
+}
+
+/* ── Sidebar slot: floating panel, full or icon rail ───────── */
+@media (min-width: 769px) {
+  .business-layout .biz-sidebar-slot {
+    display: block !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 120 !important;
+    flex-shrink: 0;
+    width: 272px !important;
+    height: calc(100dvh / var(--biz-zoom, 1)) !important;
+    transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  .business-layout .biz-sidebar-slot.is-collapsed {
+    width: 108px !important;
+  }
+
+  .business-layout .campaign-content-layout {
+    height: calc(100dvh / var(--biz-zoom, 1) - 140px) !important;
+  }
+
+  .business-layout .biz-header-search {
+    display: flex !important;
+  }
+}
+
+/* ── Tablet: sidebar replaces the hamburger, page title and bottom tab bar ── */
+@media (min-width: 769px) and (max-width: 1199px) {
+  .business-layout .biz-header__menu,
+  .business-layout .biz-header__page-title,
+  .business-layout .mobile-menu-toggle,
+  .business-layout .biz-bottom-nav {
+    display: none !important;
+  }
+
+  .business-layout .biz-crumb {
+    display: flex !important;
+  }
+
+  .business-layout .biz-main-content {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* ── Content-width driven reflow ───────────────────────────── */
+.business-layout .biz-canvas {
+  container: bizcanvas / inline-size;
+  min-width: 0;
+}
+
+@container bizcanvas (max-width: 1180px) {
+  .biz-canvas [style*="grid-template-columns: repeat(6, 1fr)"],
+  .biz-canvas [style*="grid-template-columns: repeat(5, 1fr)"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@container bizcanvas (max-width: 1000px) {
+  .biz-canvas [style*="grid-template-columns: 1fr 380px"],
+  .biz-canvas [style*="grid-template-columns: 1fr 360px"],
+  .biz-canvas [style*="grid-template-columns: 1fr 340px"],
+  .biz-canvas [style*="grid-template-columns: 1fr 320px"],
+  .biz-canvas [style*="grid-template-columns: 320px 1fr"],
+  .biz-canvas [style*="grid-template-columns: 2fr 1fr"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@container bizcanvas (max-width: 860px) {
+  .biz-canvas [style*="grid-template-columns: repeat(4, 1fr)"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@container bizcanvas (max-width: 620px) {
+  .biz-canvas [style*="grid-template-columns: repeat(6, 1fr)"],
+  .biz-canvas [style*="grid-template-columns: repeat(5, 1fr)"],
+  .biz-canvas [style*="grid-template-columns: repeat(3, 1fr)"],
+  .biz-canvas [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@container bizcanvas (max-width: 460px) {
+  .biz-canvas [style*="grid-template-columns: repeat(4, 1fr)"],
+  .biz-canvas [style*="grid-template-columns: repeat(2, 1fr)"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Campaign content: creator list + workspace. */
+.biz-canvas .creator-workspace-panel [style*="justify-content: space-between"],
+.biz-canvas .creator-workspace-panel [style*="justify-content: space-between"] > [style*="display: flex"],
+.biz-canvas .creator-workspace-panel [style*="max-width: 800px"][style*="display: flex"] {
+  flex-wrap: wrap;
+  row-gap: 12px;
+}
+
+.biz-canvas .creator-list-panel {
+  flex-shrink: 0;
+}
+
+/* Invitations: list + detail side by side only when both fit. */
+@container bizcanvas (max-width: 1180px) {
+  .biz-canvas .inv-split {
+    flex-direction: column;
+    height: auto !important;
+  }
+
+  .biz-canvas .inv-split__list,
+  .biz-canvas .inv-split__detail {
+    flex: none !important;
+    overflow: visible !important;
+  }
+}

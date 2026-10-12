@@ -1,175 +1,146 @@
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginFormValues } from './schemas';
-import { authService } from '../../lib/auth/authService';
+import { ArrowLeft, ArrowRight, Lock, PhoneCall, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
-import { extractAuthError } from './authErrors';
-import AuthPanel from './AuthPanel';
-import { EyeIcon, GoogleIcon, Spinner, Field } from './AuthFormParts';
-import Logo from '../../components/Logo';
+import AuthShell, { IndiaFlag } from './AuthShell';
+import FormField from './FormField';
+import OtpInput from './OtpInput';
+import { DEMO_OTP, useOtpVerification } from './useOtpVerification';
+import { PATTERNS, getBusinessProfile, updateBusinessAccount } from '../business/businessProfile';
 
-function MailIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-      <path d="M2 6l6 4 6-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  );
-}
-function LockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-      <path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-  );
+const TRUST = [
+  { icon: PhoneCall, text: 'Secure OTP verification' },
+  { icon: Lock, text: 'No password to remember' },
+  { icon: ShieldCheck, text: 'Your data is encrypted' },
+];
+
+function safeRedirect(value: string | null) {
+  return value && value.startsWith('/') && !value.startsWith('//') ? value : '/business';
 }
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [params] = useSearchParams();
   const { setUser } = useAuth();
-  const redirectTo = searchParams.get('redirect') ?? '/dashboard';
+  const otp = useOtpVerification();
 
-  const [showPwd, setShowPwd]     = useState(false);
-  const [apiErr, setApiErr]       = useState('');
-  const [googleLoad, setGoogleLoad] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(loginSchema),
-    mode: 'onBlur',
-    defaultValues: { identifier: '', password: '', remember: false },
-  });
+  const onCodeStep = otp.status === 'code' || otp.status === 'checking' || otp.status === 'verified';
+  const formatted = `+91 ${phone.slice(0, 5)} ${phone.slice(5)}`;
 
-  const onSubmit = async (data: LoginFormValues) => {
-    setApiErr('');
-    try {
-      const res = await authService.login({ identifier: data.identifier, password: data.password, remember: data.remember ?? false });
-      setUser(res.user);
-      navigate(decodeURIComponent(redirectTo), { replace: true });
-    } catch (err) { setApiErr(extractAuthError(err)); }
+  const sendCode = (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!PATTERNS.phone.test(phone)) {
+      setPhoneError('Enter the 10-digit mobile number linked to your account');
+      return;
+    }
+    setPhoneError('');
+    otp.send();
   };
 
-  const handleGoogle = async () => {
-    setApiErr(''); setGoogleLoad(true);
-    try {
-      const res = await authService.googleSignIn();
-      setUser(res.user);
-      navigate(decodeURIComponent(redirectTo), { replace: true });
-    } catch (err) { setApiErr(extractAuthError(err)); }
-    finally { setGoogleLoad(false); }
+  const changeNumber = () => {
+    otp.reset();
+    requestAnimationFrame(() => document.getElementById('login-phone')?.focus());
   };
 
-  const busy = isSubmitting || googleLoad;
+  useEffect(() => {
+    if (otp.status !== 'verified') return;
+    // Demo mode: any number signs into the stored business account.
+    if (getBusinessProfile().account.phone !== phone) updateBusinessAccount({ phone });
+    const { account } = getBusinessProfile();
+    const businessName = account.businessName;
+    setUser({
+      id: `usr_${phone}`,
+      businessName,
+      email: account.email,
+      phone,
+      role: 'owner',
+      accountType: 'business',
+      avatarInitials: businessName.slice(0, 2).toUpperCase(),
+    });
+    navigate(safeRedirect(params.get('redirect')), { replace: true });
+  }, [otp.status, phone, params, navigate, setUser]);
 
   return (
-    <main id="main-content" className="in-auth-page" aria-label="Log in">
-      {/* Subtle bg blobs (mobile) */}
-      <div className="in-auth-blob in-auth-blob--tl" aria-hidden="true"/>
-      <div className="in-auth-blob in-auth-blob--br" aria-hidden="true"/>
-
-      <div className="in-auth-container">
-        {/* Brand panel — desktop */}
-        <AuthPanel mode="login" onSwitch={() => navigate('/signup')}/>
-
-        {/* Form side */}
-        <div className="in-auth-form-side">
-
-          {/* Mobile logo */}
-          <div className="in-auth-mobile-logo">
-            <Logo size="lg"/>
-          </div>
-
-          {/* Mobile tab switcher */}
-          <div style={{ width: '100%', maxWidth: 400, marginBottom: 24 }}>
-            <div className="in-auth-tabs" role="tablist" aria-label="Auth mode">
-              <button role="tab" aria-selected={true}  className="in-auth-tabs__btn in-auth-tabs__btn--active">Log In</button>
-              <button role="tab" aria-selected={false} className="in-auth-tabs__btn" onClick={() => navigate('/get-started')}>Sign Up</button>
-            </div>
-          </div>
-
-          {/* Form card */}
-          <div className="in-auth-form-card">
-
-            {/* Header */}
-            <div className="in-auth-form-header">
-              <h1 className="in-auth-form-title">Welcome back! 👋</h1>
-              <p className="in-auth-form-sub">Sign in to manage your campaigns and creators.</p>
+    <AuthShell mode="login">
+      <div className="aw-panel">
+        {!onCodeStep ? (
+          <form className="aw-form" onSubmit={sendCode} noValidate aria-label="Sign in with phone">
+            <div className="aw-head">
+              <h1 className="aw-title aw-title--lg">Welcome back</h1>
+              <p className="aw-sub">Sign in to your business account</p>
             </div>
 
-            {/* Google */}
-            <button type="button" className="in-google-btn" onClick={handleGoogle} disabled={busy} aria-label="Continue with Google">
-              <GoogleIcon/> Continue with Google
+            <FormField id="login-phone" label="Phone number" error={phoneError}>
+              <div className={`aw-control aw-control--lg${phoneError ? ' is-invalid' : ''}`}>
+                <span className="aw-prefix aw-prefix--flag"><IndiaFlag /> +91</span>
+                <input
+                  id="login-phone" type="tel" inputMode="numeric" placeholder="98765 43210"
+                  autoComplete="tel-national" maxLength={10} autoFocus value={phone}
+                  aria-invalid={Boolean(phoneError)}
+                  disabled={otp.status === 'sending'}
+                  onChange={e => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setPhoneError(''); }}
+                />
+              </div>
+            </FormField>
+
+            <button type="submit" className="aw-submit" disabled={otp.status === 'sending'}>
+              {otp.status === 'sending'
+                ? <><span className="aw-spin aw-spin--light" /> Sending code…</>
+                : <>Send OTP <ArrowRight size={18} /></>}
+            </button>
+          </form>
+        ) : (
+          <div className="aw-form" aria-live="polite">
+            <button type="button" className="aw-back" onClick={changeNumber}>
+              <ArrowLeft size={16} /> Change number
             </button>
 
-            <div className="in-divider"><span>or continue with email</span></div>
+            <div className="aw-head">
+              <h1 className="aw-title aw-title--lg">Enter the code</h1>
+              <p className="aw-sub">We sent a 6-digit code to <strong>{formatted}</strong></p>
+            </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="in-form" aria-label="Login form">
+            <OtpInput
+              value={otp.code} onChange={otp.enter} autoFocus
+              invalid={Boolean(otp.error)} disabled={otp.status !== 'code'}
+              label="Sign-in code"
+            />
+            {otp.error && <p className="aw-error" role="alert">{otp.error}</p>}
 
-              <Field label="Email or phone" error={errors.identifier?.message} htmlFor="login-id">
-                <div className={`in-input-wrap${errors.identifier ? ' in-input-wrap--err' : ''}`}>
-                  <span className="in-icon"><MailIcon/></span>
-                  <input id="login-id" type="text" placeholder="Email or +91 phone"
-                    autoComplete="username email" inputMode="email" disabled={busy}
-                    className="in-input" {...register('identifier')}/>
-                </div>
-              </Field>
+            <button
+              type="button" className="aw-submit"
+              onClick={() => otp.confirm(otp.code)}
+              disabled={otp.status !== 'code' || otp.code.length < 6}
+            >
+              {otp.status === 'code'
+                ? <>Verify and sign in <ArrowRight size={18} /></>
+                : <><span className="aw-spin aw-spin--light" /> Signing you in…</>}
+            </button>
 
-              <Field label="Password" error={errors.password?.message} htmlFor="login-pwd">
-                <div className={`in-input-wrap${errors.password ? ' in-input-wrap--err' : ''}`}>
-                  <span className="in-icon"><LockIcon/></span>
-                  <input id="login-pwd" type={showPwd ? 'text' : 'password'} placeholder="Enter your password"
-                    autoComplete="current-password" disabled={busy}
-                    className="in-input in-input--suf" {...register('password')}/>
-                  <button type="button" className="in-eye" onClick={() => setShowPwd(v => !v)} tabIndex={-1} aria-label={showPwd ? 'Hide' : 'Show'}>
-                    <EyeIcon closed={showPwd}/>
-                  </button>
-                </div>
-              </Field>
-
-              {/* Remember + forgot */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <label className="in-remember" htmlFor="login-rem">
-                  <input id="login-rem" type="checkbox" disabled={busy} {...register('remember')}/>
-                  Remember me
-                </label>
-                <Link to="/forgot-password" className="in-forgot">Forgot password?</Link>
-              </div>
-
-              {/* API error */}
-              {apiErr && (
-                <div className="in-api-err" role="alert">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                    <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.3"/>
-                    <path d="M7 4v3.5M7 9.5v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                  </svg>
-                  {apiErr}
-                </div>
-              )}
-
-              <button type="submit" className="in-submit" disabled={busy}>
-                {isSubmitting ? <><Spinner/> Signing in…</> : <>Log in <span aria-hidden="true">→</span></>}
-              </button>
-            </form>
-
-            {/* Switch */}
-            <p className="in-switch">
-              Don't have an account? <Link to="/get-started" className="in-link">Create one free →</Link>
-            </p>
-
-            {/* Security */}
-            <p className="in-auth-footer">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path d="M6 1L2 3v3c0 2.5 1.8 4.8 4 5.5C8.2 10.8 10 8.5 10 6V3L6 1z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-              </svg>
-              Your data is encrypted and secure
+            <p className="aw-switch">
+              Didn't get it?{' '}
+              {otp.timer > 0
+                ? <span className="aw-muted">Resend in {otp.timer}s</span>
+                : <button type="button" className="aw-link" onClick={() => sendCode()}>Resend code</button>}
             </p>
           </div>
-        </div>
+        )}
+
+        <ul className="aw-trust">
+          {TRUST.map(({ icon: Icon, text }) => (
+            <li key={text}><Icon size={20} />{text}</li>
+          ))}
+        </ul>
+
+        <p className="aw-legal">
+          By signing in, you agree to our <Link to="/terms">Terms of Service</Link> and{' '}
+          <Link to="/privacy">Privacy Policy</Link>.
+        </p>
+        <p className="aw-legal aw-legal--demo">Demo mode: any number works, and the code is {DEMO_OTP}.</p>
       </div>
-    </main>
+    </AuthShell>
   );
 }

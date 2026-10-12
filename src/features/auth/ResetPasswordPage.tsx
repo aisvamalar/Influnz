@@ -3,10 +3,9 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetSchema, type ResetFormValues } from './schemas';
-import { authService } from '../../lib/auth/authService';
-import { extractAuthError } from './authErrors';
 import Logo from '../../components/Logo';
-import { EyeIcon, PasswordStrengthBar, Spinner, Field } from './AuthFormParts';
+import { EyeIcon, PasswordStrengthBar, Spinner, Field } from './AuthFormParts';
+import UiIcon from '../../components/UiIcon';
 
 function LockIcon() {
   return (
@@ -30,7 +29,7 @@ const cardStyle: React.CSSProperties = {
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const token    = params.get('token') ?? '';
+  const _token   = params.get('token') ?? ''; void _token;
   const [showPwd, setShowPwd] = useState(false);
   const [showCon, setShowCon] = useState(false);
   const [done, setDone]       = useState(false);
@@ -41,10 +40,11 @@ export default function ResetPasswordPage() {
 
   const pwdVal = watch('password', '');
 
-  const onSubmit = async (data: ResetFormValues) => {
+  const onSubmit = async (_data: ResetFormValues) => {
     setApiErr('');
-    try { await authService.resetPassword(token, data.password); setDone(true); }
-    catch (err) { setApiErr(extractAuthError(err)); }
+    // DEMO MODE: skip backend
+    setDone(true);
+    setTimeout(() => navigate('/business', { replace: true }), 1500);
   };
 
   return (
@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
 
         {done ? (
           <div className="in-success-wrap">
-            <div className="in-success-icon" aria-hidden="true">🔒</div>
+            <div className="in-success-icon" aria-hidden="true"><UiIcon name="lock" /></div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--in-charcoal)', letterSpacing: '-0.02em' }}>
               Password updated!
             </h1>
