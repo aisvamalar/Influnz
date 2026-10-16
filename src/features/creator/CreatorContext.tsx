@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../../app/AuthContext';
 import { getCreatorAccount, updateCreatorAccount, usernameFrom } from './creatorAccount';
+import { usePublishedCampaigns } from './campaignFeed';
+import { invitationFromCampaign } from './campaignMatch';
 import type {
   CreatorProfile, CreatorPreferences, Invitation,
   NegotiationMessage, Deliverable, Payment, VerificationStep, VerificationStatus,
@@ -17,6 +19,7 @@ const seedProfile: CreatorProfile = {
   bio: 'Chennai-based food storyteller. Discovering the best local eats, hidden gems and authentic Tamil flavours — one reel at a time.',
   categories: ['Food', 'Lifestyle', 'Travel'],
   location: 'Chennai, Tamil Nadu',
+  pinCode: '600001',
   languages: ['Tamil', 'English'],
   contentTypes: ['Instagram Reel', 'Instagram Story', 'YouTube Short'],
   followers: 28000,
@@ -45,7 +48,6 @@ const seedPreferences: CreatorPreferences = {
   languages: ['Tamil', 'English'],
   minRate: 5000,
   platforms: ['instagram', 'youtube'],
-  contentFormats: ['Instagram Reel', 'Instagram Story', 'YouTube Short', 'UGC'],
   availableForCampaigns: true,
   openToLongTerm: true,
   allowDiscovery: true,
@@ -55,78 +57,7 @@ const seedPreferences: CreatorPreferences = {
   aiMaxExclusivityDays: 30,
 };
 
-const seedInvitations: Invitation[] = [
-  {
-    id: 'inv_1',
-    brand: 'Brew & Bites Café',
-    brandVerified: true,
-    category: 'Food & Beverage',
-    location: 'Chennai',
-    proposedRate: 8000,
-    deliverables: ['1 Instagram Reel', '2 Instagram Stories'],
-    matchPct: 94,
-    matchBreakdown: { audience: 92, location: 98, category: 96, performance: 89, rate: 91 },
-    deadline: '12–18 Sep 2026',
-    timeline: '12–18 Sep 2026',
-    status: 'new',
-    objective: 'Increase café visits in Chennai and create awareness among local food lovers.',
-    whySelected: [
-      '72% Chennai audience',
-      'Strong Tamil-speaking audience',
-      'Food category match',
-      'Strong local engagement',
-    ],
-    usageRights: 'Organic social · 30 days',
-    exclusivityDays: 15,
-    revisions: 1,
-    paymentProtected: true,
-    selectedForYou: true,
-  },
-  {
-    id: 'inv_2',
-    brand: 'FreshLeaf Salads',
-    brandVerified: true,
-    category: 'Food & Beverage',
-    location: 'Chennai',
-    proposedRate: 12000,
-    deliverables: ['2 Instagram Reels'],
-    matchPct: 88,
-    matchBreakdown: { audience: 90, location: 94, category: 92, performance: 84, rate: 80 },
-    deadline: '20–28 Sep 2026',
-    timeline: '20–28 Sep 2026',
-    status: 'new',
-    objective: 'Promote a new healthy salad range to young urban food lovers.',
-    whySelected: ['High food-category affinity', '68% audience aged 18–24', 'Consistent reel performance'],
-    usageRights: 'Organic social · 45 days',
-    exclusivityDays: 20,
-    revisions: 2,
-    paymentProtected: true,
-    selectedForYou: true,
-  },
-  {
-    id: 'inv_3',
-    brand: 'WanderStay Homestays',
-    brandVerified: false,
-    category: 'Travel',
-    location: 'Puducherry',
-    proposedRate: 15000,
-    deliverables: ['1 Instagram Reel', '1 YouTube Short', '3 Stories'],
-    matchPct: 82,
-    matchBreakdown: { audience: 85, location: 88, category: 90, performance: 78, rate: 72 },
-    deadline: '01–10 Oct 2026',
-    timeline: '01–10 Oct 2026',
-    status: 'new',
-    objective: 'Showcase a coastal homestay experience to travel enthusiasts in Tamil Nadu.',
-    whySelected: ['Travel category match', 'Regional audience overlap', 'Multi-platform reach'],
-    usageRights: 'Organic social + paid amplification · 60 days',
-    exclusivityDays: 30,
-    revisions: 1,
-    paymentProtected: true,
-  },
-];
-
 const seedPayments: Payment[] = [
-  { id: 'pay_1', campaignId: 'inv_1', brand: 'Brew & Bites Café', amount: 9000, date: '—', status: 'upcoming', milestone: 'On approval', invoiceNo: 'INV-2026-014' },
   { id: 'pay_2', campaignId: 'c_fit', brand: 'FitLife Gym', amount: 12000, date: '18 Aug 2026', status: 'paid', milestone: 'Completed', txnRef: 'TXN-8842219', invoiceNo: 'INV-2026-009' },
   { id: 'pay_3', campaignId: 'c_style', brand: 'StyleHub', amount: 6000, date: '02 Aug 2026', status: 'paid', milestone: 'Completed', txnRef: 'TXN-8710055', invoiceNo: 'INV-2026-006' },
 ];
@@ -196,24 +127,21 @@ interface CreatorContextValue {
 const CreatorContext = createContext<CreatorContextValue | null>(null);
 
 function deliverablesFor(inv: Invitation): Deliverable[] {
-  // Break "1 Instagram Reel", "2 Instagram Stories" into individual items
+  // One item per piece of content the brief asks for ("2 Instagram Stories" → two items).
   const items: Deliverable[] = [];
-  const dueDates = ['14 Sep', '16 Sep', '18 Sep', '20 Sep', '22 Sep'];
-  let idx = 0;
-  inv.deliverables.forEach((d) => {
-    const match = d.match(/^(\d+)\s+(.*)$/);
-    const count = match ? parseInt(match[1], 10) : 1;
-    const label = match ? match[2] : d;
-    const platform = /youtube/i.test(label) ? 'youtube' : /tiktok/i.test(label) ? 'tiktok' : 'instagram';
-    for (let i = 0; i < count; i++) {
+  inv.brief.deliverableSpecs.forEach(spec => {
+    const platform = /youtube/i.test(spec.format) ? 'youtube' : /tiktok/i.test(spec.format) ? 'tiktok' : 'instagram';
+    for (let i = 0; i < spec.count; i++) {
       items.push({
-        id: `${inv.id}_d${idx}`,
-        label: count > 1 ? `${label} ${i + 1}` : label,
+        id: `${inv.id}_${spec.id}_${i}`,
+        label: spec.count > 1 ? `${spec.title} ${i + 1}` : spec.title,
         platform,
         status: 'not_started',
-        dueDate: dueDates[Math.min(idx, dueDates.length - 1)],
+        dueDate: spec.due,
+        format: spec.format,
+        spec: spec.spec,
+        notes: spec.notes,
       });
-      idx++;
     }
   });
   return items;
@@ -233,6 +161,7 @@ function initialProfile(displayName: string | undefined, fresh: boolean): Creato
     verified: false,
     bio: '',
     location: '',
+    pinCode: '',
     avatarUrl: undefined,
     platforms: seedProfile.platforms.map(p => ({ ...p, state: 'disconnected' as const, handle: '', followers: 0 })),
   };
@@ -246,10 +175,12 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
     initialProfile(isCreatorUser ? (account?.displayName || auth.user?.businessName) : undefined, Boolean(account) && !account?.onboardingComplete),
   );
   const [preferences, setPreferences] = useState<CreatorPreferences>(seedPreferences);
-  const [invitations, setInvitations] = useState<Invitation[]>(seedInvitations);
+  const published = usePublishedCampaigns();
+  // What this creator did with each campaign (status, agreed rate). The campaigns themselves come from the feed.
+  const [patches, setPatches] = useState<Record<string, Partial<Invitation>>>({});
   const [negotiations, setNegotiations] = useState<Record<string, NegotiationMessage[]>>({});
   const [deliverables, setDeliverables] = useState<Record<string, Deliverable[]>>({});
-  const [payments, setPayments] = useState<Payment[]>(seedPayments);
+  const [paymentRecords, setPayments] = useState<Payment[]>(seedPayments);
   const [verification, setVerificationState] = useState<Record<VerificationStep, VerificationStatus>>({
     email: 'pending', phone: 'pending', identity: 'pending', social: 'in_progress',
   });
@@ -268,9 +199,34 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
     setPreferences(p => ({ ...p, ...patch }));
   }, []);
 
+  // Every published campaign becomes an invitation, scored and priced for this creator.
+  const invitations = useMemo<Invitation[]>(
+    () => published
+      .map(c => ({ ...invitationFromCampaign(c, profile, preferences), ...patches[c.campaignId] }))
+      .sort((a, b) => Number(b.status === 'new') - Number(a.status === 'new') || b.matchPct - a.matchPct),
+    [published, profile, preferences, patches],
+  );
+
   const updateInvitation = useCallback((id: string, patch: Partial<Invitation>) => {
-    setInvitations(list => list.map(i => (i.id === id ? { ...i, ...patch } : i)));
+    setPatches(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   }, []);
+
+  // Money this creator is owed follows the campaigns they have taken on.
+  const payments = useMemo<Payment[]>(() => {
+    const owed: Payment[] = invitations
+      .filter(i => ['accepted', 'contract_pending', 'active', 'completed'].includes(i.status))
+      .map(i => ({
+        id: `pay_${i.id}`,
+        campaignId: i.id,
+        brand: i.brand,
+        amount: i.agreedRate ?? i.proposedRate,
+        date: '—',
+        status: i.status === 'completed' ? 'processing' as const : 'upcoming' as const,
+        milestone: i.status === 'completed' ? 'Completed' : 'On approval',
+        invoiceNo: `INV-${i.id.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase()}`,
+      }));
+    return [...owed, ...paymentRecords];
+  }, [invitations, paymentRecords]);
 
   const getInvitation = useCallback((id: string) => invitations.find(i => i.id === id), [invitations]);
 

@@ -4,10 +4,11 @@
  */
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, BadgeCheck, Camera, ChevronDown, FileText, MapPin, Trash2, Upload, UserRound } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, Camera, ChevronDown, FileText, Hash, MapPin, Trash2, Upload, UserRound } from 'lucide-react';
 import PlatformMark from '../../../components/mobile/PlatformMark';
 import { useCreator } from '../CreatorContext';
 import FormField from '../../auth/FormField';
+import { PATTERNS } from '../../business/businessProfile';
 import { Actions, Btn, ProgressRail, Section, StepHead } from './parts';
 
 const BIO_MAX = 240;
@@ -63,7 +64,16 @@ function parseLocation(loc: string): { state: string; city: string } {
   return { state: '', city: '' };
 }
 
-function LocationFields({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function LocationFields({
+  value, onChange, pinCode, onPinCodeChange, pinError, onPinBlur,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  pinCode: string;
+  onPinCodeChange: (v: string) => void;
+  pinError?: string;
+  onPinBlur: () => void;
+}) {
   const parsed = parseLocation(value);
   const [state, setState] = useState(parsed.state);
   const [city, setCity] = useState(parsed.city);
@@ -92,6 +102,18 @@ function LocationFields({ value, onChange }: { value: string; onChange: (v: stri
             {cities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <ChevronDown className="aw-control__chevron" size={16} />
+        </div>
+      </FormField>
+      <FormField id="pp-pin" label="Pin code" optional error={pinError} help="6-digit PIN code of your area.">
+        <div className={`aw-control${pinError ? ' is-invalid' : ''}`}>
+          <Hash className="aw-control__icon" size={17} />
+          <input
+            id="pp-pin" type="text" inputMode="numeric" placeholder="e.g. 600001"
+            autoComplete="postal-code" maxLength={6} value={pinCode}
+            aria-invalid={Boolean(pinError)}
+            onChange={e => onPinCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onBlur={onPinBlur}
+          />
         </div>
       </FormField>
     </div>
@@ -144,15 +166,19 @@ export default function PassportStep() {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio);
   const [location, setLocation] = useState(profile.location);
+  const [pinCode, setPinCode] = useState(profile.pinCode ?? '');
   const [touched, setTouched] = useState(false);
+  const [pinTouched, setPinTouched] = useState(false);
 
   const nameOk = displayName.trim().length > 0;
-  const canContinue = useMemo(() => nameOk, [nameOk]);
+  const pinOk = pinCode === '' || PATTERNS.pincode.test(pinCode);
+  const pinError = pinTouched && !pinOk ? 'Enter a valid 6-digit PIN code' : undefined;
+  const canContinue = useMemo(() => nameOk && pinOk, [nameOk, pinOk]);
   const connected = profile.platforms.filter(p => p.state === 'connected');
 
   const finish = (save: boolean) => {
     if (save) {
-      updateProfile({ avatarUrl: avatarUrl || undefined, displayName: displayName.trim(), bio: bio.trim(), location: location.trim() });
+      updateProfile({ avatarUrl: avatarUrl || undefined, displayName: displayName.trim(), bio: bio.trim(), location: location.trim(), pinCode });
     }
     completeOnboardingStep('passport');
     navigate('/creator/onboarding/preferences');
@@ -201,7 +227,11 @@ export default function PassportStep() {
             <span className="cro-counter">{bio.length}/{BIO_MAX}</span>
           </FormField>
 
-          <LocationFields value={location} onChange={setLocation} />
+          <LocationFields
+            value={location} onChange={setLocation}
+            pinCode={pinCode} onPinCodeChange={setPinCode}
+            pinError={pinError} onPinBlur={() => setPinTouched(true)}
+          />
         </Section>
       </div>
 
@@ -224,7 +254,9 @@ export default function PassportStep() {
             {bio.trim() || 'Your bio will appear here.'}
           </p>
           <div className="cro-preview__meta">
-            {location && <span className="cro-preview__tag"><MapPin size={12} /> {location}</span>}
+            {(location || pinCode) && (
+              <span className="cro-preview__tag"><MapPin size={12} /> {[location, pinCode].filter(Boolean).join(' · ')}</span>
+            )}
             {connected.map(p => (
               <span key={p.platform} className="cro-preview__tag"><PlatformMark id={p.platform} size={12} /> {p.handle || p.platform}</span>
             ))}
@@ -238,6 +270,7 @@ export default function PassportStep() {
             { label: 'Profile photo', done: Boolean(avatarUrl), meta: 'optional' },
             { label: 'Bio', done: bio.trim().length > 0, meta: 'optional' },
             { label: 'Location', done: location.trim().length > 0, meta: 'optional' },
+            { label: 'Pin code', done: PATTERNS.pincode.test(pinCode), meta: 'optional' },
           ]}
           note={<>Passports with a photo and bio get <strong>2x more invitations</strong> than name-only profiles.</>}
         />

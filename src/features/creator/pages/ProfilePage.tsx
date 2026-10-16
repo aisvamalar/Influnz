@@ -14,7 +14,7 @@ const ALL_CONTENT = ['Instagram Reel', 'Instagram Story', 'Instagram Post', 'You
 
 type EditableFields = Pick<
   CreatorProfile,
-  'displayName' | 'bio' | 'location' | 'categories' | 'languages' | 'contentTypes'
+  'displayName' | 'bio' | 'location' | 'pinCode' | 'categories' | 'languages' | 'contentTypes'
 >;
 
 function toDraft(p: CreatorProfile): EditableFields {
@@ -22,6 +22,7 @@ function toDraft(p: CreatorProfile): EditableFields {
     displayName: p.displayName,
     bio: p.bio,
     location: p.location,
+    pinCode: p.pinCode ?? '',
     categories: [...p.categories],
     languages: [...p.languages],
     contentTypes: [...p.contentTypes],
@@ -51,8 +52,8 @@ export default function ProfilePage() {
   };
 
   const canSave = useMemo(
-    () => draft.displayName.trim().length > 0 && draft.categories.length > 0,
-    [draft.displayName, draft.categories.length],
+    () => draft.displayName.trim().length > 0 && draft.categories.length > 0 && (draft.pinCode === '' || /^[1-9]\d{5}$/.test(draft.pinCode)),
+    [draft.displayName, draft.categories.length, draft.pinCode],
   );
 
   const save = () => {
@@ -61,6 +62,7 @@ export default function ProfilePage() {
       displayName: draft.displayName.trim(),
       bio: draft.bio.trim(),
       location: draft.location.trim(),
+      pinCode: draft.pinCode,
       categories: draft.categories,
       languages: draft.languages,
       contentTypes: draft.contentTypes,
@@ -109,7 +111,7 @@ export default function ProfilePage() {
                 <div style={{ fontSize: '0.875rem', color: 'var(--in-gray)' }}>@{profile.username}</div>
                 <p style={{ marginTop: 10, fontSize: '0.9rem', color: 'var(--in-charcoal)', lineHeight: 1.55 }}>{profile.bio}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 12, fontSize: '0.8125rem', color: 'var(--in-gray)' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><MapPin size={15} /> {profile.location}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><MapPin size={15} /> {[profile.location, profile.pinCode].filter(Boolean).join(' · ')}</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><LangIcon size={15} /> {profile.languages.join(', ')}</span>
                 </div>
               </>
@@ -147,6 +149,21 @@ export default function ProfilePage() {
                     onChange={e => set('location', e.target.value)}
                     placeholder="City, State"
                   />
+                </label>
+                <label className="cr-field">
+                  <span className="cr-field__label">Pin code</span>
+                  <input
+                    className="cr-input"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={draft.pinCode}
+                    onChange={e => set('pinCode', e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="e.g. 600001"
+                    aria-invalid={draft.pinCode !== '' && !/^[1-9]\d{5}$/.test(draft.pinCode)}
+                  />
+                  {draft.pinCode !== '' && !/^[1-9]\d{5}$/.test(draft.pinCode) && (
+                    <span className="cr-field__hint" role="alert">Enter a valid 6-digit PIN code</span>
+                  )}
                 </label>
               </div>
             )}

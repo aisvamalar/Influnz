@@ -21,6 +21,7 @@ export interface CreatorProfile {
   bio: string;
   categories: string[];
   location: string;
+  pinCode: string;       // 6-digit Indian PIN code, '' when not given
   languages: string[];
   contentTypes: string[];
   followers: number;
@@ -45,7 +46,6 @@ export interface CreatorPreferences {
   languages: string[];
   minRate: number;
   platforms: Platform[];
-  contentFormats: string[];
   availableForCampaigns: boolean;
   openToLongTerm: boolean;
   allowDiscovery: boolean;
@@ -53,6 +53,62 @@ export interface CreatorPreferences {
   aiMinAcceptableRate: number;
   aiFlexibilityPct: number;
   aiMaxExclusivityDays: number;
+}
+
+// ── Published campaigns (what a business publishes, seen from the creator side) ──
+
+/** One thing the creator has to make: a reel, a story, a video … */
+export interface DeliverableSpec {
+  id: string;
+  title: string;          // "Café Experience Reel"
+  format: string;         // "Instagram Reel"
+  platform: string;       // display label, e.g. "Instagram"
+  count: number;
+  spec: string;           // "30–60s · vertical 9:16"
+  due: string;            // ISO date (yyyy-mm-dd)
+  notes?: string;
+}
+
+export interface CampaignMilestone {
+  name: string;
+  date: string;           // ISO date or ''
+  pct: number;
+}
+
+/** The creator-facing brief of a campaign. Never carries total budget, fees or other creators. */
+export interface CampaignBrief {
+  campaignId: string;
+  source: 'published' | 'catalog';
+  title: string;
+  summary: string;
+  objective: string;
+  category: string;
+  image?: string;
+  platforms: string[];
+  location: string;
+  languages: string[];
+  startDate: string;      // ISO date
+  endDate: string;        // ISO date
+  publishedAt: string;    // ISO datetime
+  deliverableSpecs: DeliverableSpec[];
+  guidelines: string;
+  hashtags: string[];
+  mentions: string[];
+  dos: string[];
+  donts: string[];
+  paymentTerms: string;
+  milestones: CampaignMilestone[];
+  eligibility: {
+    tiers: string[];
+    minFollowers: number;
+    maxFollowers: number;
+    minEngagement: number;
+    languages: string[];
+    niches: string[];
+  };
+  checklist: string[];    // what the AI compliance check looks for
+  slots: number;          // creators the brand is booking
+  brandCity: string;
 }
 
 export type InvitationStatus =
@@ -89,6 +145,8 @@ export interface Invitation {
   paymentProtected: boolean;
   image?: string;
   selectedForYou?: boolean;
+  /** The published campaign this invitation comes from. */
+  brief: CampaignBrief;
 }
 
 export type NegotiationSender = 'brand' | 'creator_ai' | 'creator' | 'system';
@@ -113,6 +171,9 @@ export interface Deliverable {
   status: DeliverableStatus;
   dueDate: string;
   revisionNote?: string;
+  format?: string;
+  spec?: string;
+  notes?: string;
 }
 
 export interface ComplianceCheck {

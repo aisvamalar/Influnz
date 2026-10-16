@@ -44,7 +44,7 @@ export const mockAuthService: IAuthService = {
       avatarInitials: businessName.slice(0, 2).toUpperCase(),
     };
     const storeKey = emailKey ?? phone;
-    MOCK_USERS.set(storeKey, { user, password });
+    MOCK_USERS.set(storeKey, { user, password: password ?? '' });
     // For creators, authenticate immediately (no standalone OTP page)
     if (accountType === 'creator') {
       mockSession = user;
@@ -58,7 +58,7 @@ export const mockAuthService: IAuthService = {
     const key = identifier.toLowerCase();
     const record = MOCK_USERS.get(key)
       ?? [...MOCK_USERS.values()].find(r => r.user.phone === identifier);
-    if (!record || record.password !== password) {
+    if (!record || !record.password || record.password !== password) {
       throw { code: 'INVALID_CREDENTIALS', message: 'Incorrect email or password.' };
     }
     if (remember) mockSession = record.user;

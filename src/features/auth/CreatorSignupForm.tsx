@@ -1,15 +1,16 @@
 /**
  * Creator sign-up (Step 1 of the creator journey).
- * Collects a name, a verified phone and a password — the same shell, controls
- * and inline OTP pattern as the business form. Email, social accounts and the
+ * Collects a name and a verified phone — the same shell, controls and inline OTP
+ * pattern as the business form. There is no password: creators sign in with a
+ * one-time code sent to their phone, and the account can only be created once
+ * that phone is verified. Email, social accounts and the
  * creator passport are collected in /creator/onboarding.
  */
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, Lock, UserRound } from 'lucide-react';
+import { ArrowRight, UserRound } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
 import { authService } from '../../lib/auth/authService';
-import { passwordStrength } from './schemas';
 import { extractAuthError } from './authErrors';
 import { IndiaFlag } from './AuthShell';
 import FormField from './FormField';
@@ -21,13 +22,12 @@ import { createCreatorAccount } from '../creator/creatorAccount';
 interface CreatorForm {
   name: string;
   phone: string;
-  password: string;
   consent: boolean;
 }
 
 type Errors = Partial<Record<keyof CreatorForm, string>>;
 
-const INITIAL: CreatorForm = { name: '', phone: '', password: '', consent: false };
+const INITIAL: CreatorForm = { name: '', phone: '', consent: false };
 
 export default function CreatorSignupForm() {
   const navigate = useNavigate();
@@ -35,12 +35,11 @@ export default function CreatorSignupForm() {
 
   const [form, setForm] = useState<CreatorForm>(INITIAL);
   const [errors, setErrors] = useState<Errors>({});
-  const [showPwd, setShowPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
 
   const phoneOtp = useOtpVerification();
-  const strength = passwordStrength(form.password);
+  const phoneVerified = phoneOtp.status === 'verified';
 
   const set = <K extends keyof CreatorForm>(key: K, value: CreatorForm[K]) => {
     setForm(f => ({ ...f, [key]: value }));
@@ -55,12 +54,6 @@ export default function CreatorSignupForm() {
       case 'phone':
         if (!PATTERNS.phone.test(form.phone)) return 'Enter a valid 10-digit mobile number';
         return phoneOtp.status === 'verified' ? '' : 'Verify your phone number to continue';
-      case 'password':
-        if (form.password.length < 8) return 'Use at least 8 characters';
-        if (!/[A-Z]/.test(form.password) || !/[a-z]/.test(form.password) || !/\d/.test(form.password)) {
-          return 'Mix upper and lower case letters with at least one number';
-        }
-        return '';
       case 'consent':
         return form.consent ? '' : 'Please accept the Terms and Privacy Policy';
     }
@@ -109,7 +102,7 @@ export default function CreatorSignupForm() {
         businessName: name,
         email: '',
         phone: form.phone,
-        password: form.password,
+        password: '',
         accountType: 'creator',
       });
       createCreatorAccount({ displayName: name, phone: form.phone });
@@ -183,37 +176,7 @@ export default function CreatorSignupForm() {
         </fieldset>
 
         <fieldset className="aw-section" disabled={submitting}>
-          <legend className="aw-section__title">Secure your account</legend>
-          <FormField
-            id="cs-password" label="Password" full error={errors.password}
-            help={!form.password ? 'At least 8 characters with upper and lower case letters and a number.' : undefined}
-          >
-            <div className={`aw-control${invalid('password')}`}>
-              <Lock className="aw-control__icon" size={17} />
-              <input
-                id="cs-password" type={showPwd ? 'text' : 'password'} placeholder="Create a password"
-                autoComplete="new-password" value={form.password}
-                aria-invalid={Boolean(errors.password)}
-                onChange={e => set('password', e.target.value)}
-                onBlur={() => form.password && blurCheck('password')}
-              />
-              <button
-                type="button" className="aw-icon-btn" onClick={() => setShowPwd(v => !v)}
-                aria-label={showPwd ? 'Hide password' : 'Show password'}
-              >
-                {showPwd ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
-            </div>
-            {form.password && (
-              <div className="aw-strength" aria-live="polite">
-                {[1, 2, 3, 4].map(i => (
-                  <span key={i} style={{ background: i <= strength.score ? strength.color : undefined }} />
-                ))}
-                <small style={{ color: strength.color }}>{strength.label}</small>
-              </div>
-            )}
-          </FormField>
-
+          <legend className="aw-section__title">Terms</legend>
           <div className="aw-consent-wrap">
             <label className={`aw-consent${errors.consent ? ' is-invalid' : ''}`} htmlFor="cs-consent">
               <input
@@ -231,9 +194,13 @@ export default function CreatorSignupForm() {
 
         {apiError && <p className="aw-error" role="alert">{apiError}</p>}
 
-        <button type="submit" className="aw-submit" disabled={submitting}>
+        <button type="submit" className="aw-submit" disabled={submitting || !phoneVerified}>
           {submitting ? <><span className="aw-spin aw-spin--light" /> Creating account…</> : <>Create creator account <ArrowRight size={18} /></>}
         </button>
+
+        {!phoneVerified && (
+          <p className="aw-help" style={{ textAlign: 'center' }}>Verify your phone number to create your account.</p>
+        )}
 
         <p className="aw-demo">Demo mode: the phone code is {DEMO_OTP}.</p>
       </form>

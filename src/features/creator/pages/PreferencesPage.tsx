@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, Check, ShieldCheck, Bot } from 'lucide-react';
+import { OTHER_MAX_LENGTH, OTHER_MAX_TOPICS, useOtherTopics } from '../useOtherTopics';
 import { useCreator } from '../CreatorContext';
 import { Card, Button, Chip, Toggle, Toast } from '../ui';
 import { inr } from '../format';
@@ -9,7 +10,6 @@ const ALL_CATEGORIES = ['Food', 'Lifestyle', 'Travel', 'Fashion', 'Fitness', 'Te
 const BLOCKABLE = ['Alcohol', 'Gambling', 'Tobacco', 'Politics', 'Adult'];
 const ALL_LANGUAGES = ['Tamil', 'English', 'Hindi', 'Telugu', 'Malayalam', 'Kannada'];
 const ALL_PLATFORMS: Platform[] = ['instagram', 'youtube', 'tiktok'];
-const ALL_FORMATS = ['Instagram Reel', 'Instagram Story', 'YouTube Short', 'YouTube Video', 'UGC'];
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter(v => v !== value) : [...list, value];
@@ -25,6 +25,8 @@ export default function PreferencesPage() {
     setDraft(d => ({ ...d, [key]: value }));
     setDirty(true);
   };
+
+  const topics = useOtherTopics(ALL_CATEGORIES, draft.categories, next => set('categories', next));
 
   const save = () => {
     updatePreferences(draft);
@@ -59,9 +61,24 @@ export default function PreferencesPage() {
           <div className="cr-card__title" style={{ marginBottom: 12 }}>Preferred categories</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {ALL_CATEGORIES.map(c => (
-              <Chip key={c} active={draft.categories.includes(c)} onClick={() => set('categories', toggle(draft.categories, c))}>{c}</Chip>
+              <Chip key={c} active={topics.selectedPresets.includes(c)} onClick={() => topics.togglePreset(c)}>{c}</Chip>
             ))}
+            <Chip active={topics.otherOn} onClick={topics.toggleOther}>Other</Chip>
           </div>
+          {topics.otherOn && (
+            <label className="cr-field" style={{ marginTop: 12 }}>
+              <span className="cr-field__label">Your topic</span>
+              <input
+                className="cr-input"
+                placeholder="e.g. Pets, Gardening"
+                autoComplete="off"
+                value={topics.otherText}
+                maxLength={OTHER_MAX_LENGTH * OTHER_MAX_TOPICS + OTHER_MAX_TOPICS * 2}
+                onChange={e => topics.changeOtherText(e.target.value)}
+              />
+              <span className="cr-field__hint">Separate several topics with commas, up to {OTHER_MAX_TOPICS}.</span>
+            </label>
+          )}
           <div className="cr-card__title" style={{ margin: '18px 0 12px' }}>Blocked categories</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {BLOCKABLE.map(c => (
@@ -70,7 +87,7 @@ export default function PreferencesPage() {
           </div>
         </Card>
 
-        {/* Languages + platforms + formats */}
+        {/* Languages + platforms */}
         <Card>
           <div className="cr-card__title" style={{ marginBottom: 12 }}>Languages</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -84,12 +101,6 @@ export default function PreferencesPage() {
               <Chip key={p} active={draft.platforms.includes(p)} onClick={() => set('platforms', toggle(draft.platforms, p))}>
                 <span style={{ textTransform: 'capitalize' }}>{p}</span>
               </Chip>
-            ))}
-          </div>
-          <div className="cr-card__title" style={{ margin: '18px 0 12px' }}>Content formats</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {ALL_FORMATS.map(f => (
-              <Chip key={f} active={draft.contentFormats.includes(f)} onClick={() => set('contentFormats', toggle(draft.contentFormats, f))}>{f}</Chip>
             ))}
           </div>
         </Card>

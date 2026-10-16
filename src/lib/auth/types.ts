@@ -23,7 +23,7 @@ export interface SignupPayload {
   businessName: string;   // for creators this holds their display name
   email: string;
   phone: string;
-  password: string;
+  password?: string;      // creators sign in with a phone OTP and have no password
   accountType: AccountType;
 }
 

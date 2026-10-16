@@ -1,98 +1,132 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, MapPin, BadgeCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { Mail, Search } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
-import { Card, Button, StatusPill, EmptyState, Tabs } from '../ui';
-import { inr } from '../format';
+import { Button, EmptyState } from '../ui';
+import { CampaignItem } from '../campaignParts';
+import { compact, daysUntil, inr } from '../format';
 import type { Invitation } from '../types';
+import '../campaign-ui.css';
 
-type Filter = 'all' | 'new' | 'in_negotiation' | 'accepted';
+type Filter = 'all' | 'new' | 'in_negotiation' | 'accepted' | 'declined';
+type Sort = 'match' | 'payout' | 'deadline';
 
-const TABS: { key: Filter; label: string }[] = [
+const TABS: Array<{ key: Filter; label: string; dot?: string }> = [
   { key: 'all', label: 'All' },
-  { key: 'new', label: 'New' },
-  { key: 'in_negotiation', label: 'In Negotiation' },
-  { key: 'accepted', label: 'Accepted' },
+  { key: 'new', label: 'New', dot: '#f0735a' },
+  { key: 'in_negotiation', label: 'Negotiating', dot: '#f5a623' },
+  { key: 'accepted', label: 'Accepted', dot: '#2fb463' },
+  { key: 'declined', label: 'Declined', dot: '#a1a1aa' },
+];
+
+const TAKEN = ['accepted', 'contract_pending', 'active', 'completed'];
+
+function matchesFilter(i: Invitation, f: Filter): boolean {
+  if (f === 'all') return true;
+  if (f === 'accepted') return TAKEN.includes(i.status);
+  if (f === 'declined') return i.status === 'declined' || i.status === 'expired';
+  return i.status === f;
+}
+
+const SORTS: Array<{ key: Sort; label: string }> = [
+  { key: 'match', label: 'Best match' },
+  { key: 'payout', label: 'Highest payout' },
+  { key: 'deadline', label: 'Closest deadline' },
 ];
 
 export default function InvitationsPage() {
   const navigate = useNavigate();
   const { invitations } = useCreator();
   const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<Sort>('match');
 
-  const counts = useMemo(() => ({
-    all: invitations.length,
-    new: invitations.filter(i => i.status === 'new').length,
-    in_negotiation: invitations.filter(i => i.status === 'in_negotiation').length,
-    accepted: invitations.filter(i => i.status === 'accepted' || i.status === 'contract_pending').length,
-  }), [invitations]);
+  const fresh = invitations.filter(i => i.status === 'new');
+  const counts = useMemo(
+    () => Object.fromEntries(TABS.map(t => [t.key, invitations.filter(i => matchesFilter(i, t.key)).length])) as Record<Filter, number>,
+    [invitations],
+  );
 
-  const filtered = useMemo(() => {
-    if (filter === 'all') return invitations;
-    if (filter === 'accepted') return invitations.filter(i => i.status === 'accepted' || i.status === 'contract_pending');
-    return invitations.filter(i => i.status === filter);
-  }, [invitations, filter]);
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = invitations.filter(i => matchesFilter(i, filter)
+      && (!q || `${i.brief.title} ${i.brand} ${i.category} ${i.location}`.toLowerCase().includes(q)));
+    const byDeadline = (i: Invitation) => i.brief.deliverableSpecs.map(d => d.due).sort()[0] ?? '9999';
+    return [...list].sort((a, b) => {
+      if (sort === 'payout') return (b.agreedRate ?? b.proposedRate) - (a.agreedRate ?? a.proposedRate);
+      if (sort === 'deadline') return byDeadline(a).localeCompare(byDeadline(b));
+      return b.matchPct - a.matchPct;
+    });
+  }, [invitations, filter, query, sort]);
+
+  const best = fresh.reduce((m, i) => Math.max(m, i.matchPct), 0);
+  const potential = fresh.reduce((s, i) => s + i.proposedRate, 0);
+  const soonest = fresh.map(i => i.brief.deliverableSpecs.map(d => d.due).sort()[0]).filter(Boolean).sort()[0];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <h1 className="cr-page-title">Campaign Invitations</h1>
-        <p className="cr-page-sub">Opportunities matched to your audience and content style.</p>
+    <div className="cx">
+      <section className="cx-intro">
+        <div>
+          <h1 className="cx-intro__title">Campaign invitations</h1>
+          <p className="cx-intro__sub">
+            Campaigns brands have published, matched to your topics, audience and rates. Review the brief and accept, negotiate or pass.
+          </p>
+        </div>
+        <div className="cx-intro__stats">
+          <div className="cx-kpi"><strong>{fresh.length}</strong><span>New for you</span></div>
+          <div className="cx-kpi"><strong>{best ? `${best}%` : '—'}</strong><span>Best match</span></div>
+          <div className="cx-kpi"><strong>{potential ? `₹${compact(potential)}` : '—'}</strong><span>Open payouts</span></div>
+        </div>
+      </section>
+
+      <div className="cx-toolbar" role="tablist" aria-label="Filter invitations">
+        {TABS.map(t => (
+          <button
+            key={t.key} role="tab" aria-selected={filter === t.key}
+            className={`cx-tab${filter === t.key ? ' is-on' : ''}`} onClick={() => setFilter(t.key)}
+          >
+            {t.dot && <span className="cx-tab__dot" style={{ background: t.dot }} />}
+            {t.label} ({counts[t.key]})
+          </button>
+        ))}
+        <div className="cx-toolbar__end">
+        <label className="cx-search">
+          <Search size={15} />
+          <input
+            value={query} onChange={e => setQuery(e.target.value)} placeholder="Search campaigns, brands…"
+            aria-label="Search invitations"
+          />
+        </label>
+        <select className="cx-select" value={sort} onChange={e => setSort(e.target.value as Sort)} aria-label="Sort invitations">
+          {SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+        </select>
+        </div>
       </div>
 
-      <Tabs
-        tabs={TABS.map(t => ({ ...t, count: counts[t.key] }))}
-        active={filter}
-        onChange={setFilter}
-      />
+      {soonest && filter !== 'declined' && fresh.length > 0 && daysUntil(soonest) <= 10 && (
+        <p className="cx-muted" style={{ margin: '-6px 0 0', fontSize: '0.8125rem' }}>
+          The earliest content deadline in your new invites is in {Math.max(0, daysUntil(soonest))} days, so reply soon. Open payouts total {inr(potential)}.
+        </p>
+      )}
 
-      {filtered.length === 0 ? (
-        <Card>
-          <EmptyState icon={Mail} title="Nothing here yet" text="We're continuously matching you with brands that fit your profile." />
-        </Card>
+      {shown.length === 0 ? (
+        <div className="cx-panel">
+          <EmptyState
+            icon={Mail}
+            title={invitations.length === 0 ? 'No campaigns published yet' : 'Nothing matches'}
+            text={invitations.length === 0
+              ? 'When a business publishes a campaign, it appears here with your payout and deliverables.'
+              : 'Try another filter or clear the search.'}
+            action={query || filter !== 'all' ? <Button variant="ghost" onClick={() => { setQuery(''); setFilter('all'); }}>Clear filters</Button> : undefined}
+          />
+        </div>
       ) : (
-        <div className="cr-grid cr-grid--2">
-          {filtered.map(inv => <InvitationCard key={inv.id} inv={inv} onOpen={() => navigate(`/creator/invitations/${inv.id}`)} />)}
+        <div className="cx-list">
+          {shown.map(inv => (
+            <CampaignItem key={inv.id} inv={inv} mode="invite" onOpen={() => navigate(`/creator/invitations/${inv.id}`)} />
+          ))}
         </div>
       )}
     </div>
-  );
-}
-
-function InvitationCard({ inv, onOpen }: { inv: Invitation; onOpen: () => void }) {
-  return (
-    <Card>
-      {inv.selectedForYou && (
-        <span className="cr-chip cr-chip--static" style={{ background: 'rgba(242,132,107,0.1)', borderColor: 'var(--in-coral)', color: 'var(--in-coral-text)', marginBottom: 12 }}>
-          <Sparkles size={13} /> Selected for you
-        </span>
-      )}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--in-charcoal)' }}>{inv.brand}</span>
-            {inv.brandVerified && <BadgeCheck size={16} style={{ color: 'var(--in-coral-text)' }} />}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: '0.8125rem', color: 'var(--in-gray)', marginTop: 4 }}>
-            <span>{inv.category}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin size={13} /> {inv.location}</span>
-          </div>
-        </div>
-        <StatusPill status={inv.status} />
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '14px 0' }}>
-        <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--in-charcoal)' }}>{inr(inv.agreedRate ?? inv.proposedRate)}</span>
-        <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-success)' }}>{inv.matchPct}% match</span>
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-        {inv.deliverables.map((d, i) => (
-          <span key={i} className="cr-chip cr-chip--static" style={{ fontSize: '0.75rem' }}>{d}</span>
-        ))}
-      </div>
-
-      <Button style={{ width: '100%' }} onClick={onOpen}>View Details <ArrowRight size={16} /></Button>
-    </Card>
   );
 }

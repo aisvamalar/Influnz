@@ -1,21 +1,38 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Upload, Check, RefreshCw, ShieldCheck, ScanLine, X, CircleCheck, AlertCircle, Send,
+  ArrowLeft, ArrowRight, Check, CircleAlert, CircleCheck, Clapperboard, FileText, LayoutGrid, Megaphone,
+  RefreshCw, ScanLine, Send, ShieldCheck, Target, Upload, Wallet, X,
 } from 'lucide-react';
+import { useResponsive } from '../../../hooks/useResponsive';
 import { useCreator } from '../CreatorContext';
-import { Card, Button, StatusPill, ProgressBar, Toast, EmptyState } from '../ui';
-import { inr } from '../format';
+import { Button, EmptyState, Toast } from '../ui';
+import {
+  BriefPanel, CampaignHero, ChecklistPanel, DelivPill, DeliverableRow, Panel, PayoutSchedule, StageTiles, TermsGrid,
+} from '../campaignParts';
+import { dueLabel } from '../format';
 import type { ComplianceCheck, Deliverable } from '../types';
+import '../campaign-ui.css';
 
-// Deterministic mock compliance: first submission of a deliverable fails one check,
-// after re-upload it passes (so the revision cycle is demonstrable).
-function runCompliance(usageRights: string, attemptFailed: boolean): ComplianceCheck[] {
-  const disclosureOk = !attemptFailed;
+type Tab = 'deliver' | 'terms' | 'brief';
+
+const TABS: Array<{ key: Tab; label: string; icon: typeof LayoutGrid }> = [
+  { key: 'deliver', label: 'Deliver', icon: Clapperboard },
+  { key: 'terms', label: 'Pay & terms', icon: Wallet },
+  { key: 'brief', label: 'Brief', icon: Megaphone },
+];
+
+// Compliance runs against the brief's own checklist. The first submission of a
+// deliverable fails the disclosure check and the re-upload passes, so the revision
+// cycle can be seen end to end.
+function runCompliance(checklist: string[], usageRights: string, attemptFailed: boolean): ComplianceCheck[] {
+  const items = checklist.length ? checklist : ['Paid disclosure (#ad)', 'Product shown clearly'];
   return [
-    { label: 'Paid partnership disclosure (#ad)', passed: disclosureOk, detail: disclosureOk ? undefined : 'Add a clear #ad / Paid partnership label.' },
-    { label: 'Brand handle tagged', passed: true },
-    { label: 'No prohibited claims', passed: true },
+    ...items.map(label => {
+      const isDisclosure = /disclosure|#ad/i.test(label);
+      const failed = isDisclosure && attemptFailed;
+      return { label, passed: !failed, detail: failed ? 'Add a clear #ad or Paid partnership label.' : undefined };
+    }),
     { label: 'Usage rights acknowledged', passed: true, detail: usageRights },
   ];
 }
@@ -23,10 +40,11 @@ function runCompliance(usageRights: string, attemptFailed: boolean): ComplianceC
 export default function CampaignDetailPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const { getInvitation, deliverables, ensureDeliverables, updateDeliverable, updateInvitation } = useCreator();
   const inv = getInvitation(id);
+  const [tab, setTab] = useState<Tab>('deliver');
   const [toast, setToast] = useState<string | null>(null);
-  // Track which deliverables have failed compliance at least once (drives the mock revision cycle)
   const [failedOnce, setFailedOnce] = useState<Record<string, boolean>>({});
   const [checks, setChecks] = useState<Record<string, ComplianceCheck[]>>({});
 
@@ -42,163 +60,174 @@ export default function CampaignDetailPage() {
 
   if (!inv) {
     return (
-      <Card>
-        <EmptyState icon={X} title="Campaign not found" text="This campaign is no longer available."
-          action={<Button variant="ghost" onClick={() => navigate('/creator/campaigns')}>Back to Campaigns</Button>} />
-      </Card>
+      <div className="cx-panel">
+        <EmptyState
+          icon={X} title="Campaign not found" text="This campaign is no longer available."
+          action={<Button variant="ghost" onClick={() => navigate('/creator/campaigns')}>Back to campaigns</Button>}
+        />
+      </div>
     );
   }
 
+  const { brief } = inv;
   const flash = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 2600); };
   const markActive = () => {
     if (inv.status === 'accepted' || inv.status === 'contract_pending') updateInvitation(inv.id, { status: 'active' });
   };
+  const waitingForContract = inv.status === 'accepted' || inv.status === 'contract_pending';
 
-  const done = items.filter(d => d.status === 'approved').length;
-  const progress = items.length ? Math.round((done / items.length) * 100) : 0;
-
-  // not_started → uploaded
   const upload = (d: Deliverable) => {
     updateDeliverable(inv.id, d.id, { status: 'uploaded', revisionNote: undefined });
     markActive();
     flash(`${d.label}: uploaded`);
   };
 
-  // uploaded → run AI compliance → pending_approval (pass) or stay uploaded (fail)
   const submitForReview = (d: Deliverable) => {
-    const willFail = !failedOnce[d.id]; // first attempt fails, subsequent pass
-    const result = runCompliance(inv.usageRights, willFail);
+    const willFail = !failedOnce[d.id];
+    const result = runCompliance(brief.checklist, inv.usageRights, willFail);
     setChecks(prev => ({ ...prev, [d.id]: result }));
-    const passed = result.every(c => c.passed);
-    if (!passed) {
+    if (!result.every(c => c.passed)) {
       setFailedOnce(prev => ({ ...prev, [d.id]: true }));
-      flash(`${d.label}: compliance failed — fix and re-submit`);
-      return; // blocked from business review
+      flash(`${d.label}: compliance failed, fix and re-submit`);
+      return;
     }
     updateDeliverable(inv.id, d.id, { status: 'pending_approval' });
-    flash(`${d.label}: sent to business review`);
+    flash(`${d.label}: sent to ${inv.brand} for review`);
   };
 
-  // Business review outcomes (mock the brand's decision)
+  // The brand's review, simulated until the business side feeds decisions back.
   const approve = (d: Deliverable) => {
     updateDeliverable(inv.id, d.id, { status: 'approved', revisionNote: undefined });
     flash(`${d.label}: approved`);
   };
   const requestChanges = (d: Deliverable) => {
-    updateDeliverable(inv.id, d.id, { status: 'changes_requested', revisionNote: 'Brand requested a small edit to the caption.' });
+    updateDeliverable(inv.id, d.id, { status: 'changes_requested', revisionNote: 'The brand asked for a small edit to the caption.' });
     flash(`${d.label}: changes requested`);
   };
-  // changes_requested → uploaded (re-upload)
   const reupload = (d: Deliverable) => {
     updateDeliverable(inv.id, d.id, { status: 'uploaded', revisionNote: undefined });
     flash(`${d.label}: re-uploaded`);
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <button className="cr-nav-link" style={{ width: 'auto', padding: '6px 10px', color: 'var(--in-gray)' }} onClick={() => navigate('/creator/campaigns')}>
-        <ArrowLeft size={16} /> Back to Campaigns
-      </button>
+  const nextItem = items.filter(d => d.status !== 'approved').sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 
-      <Card>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--in-charcoal)' }}>{inv.brand}</div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--in-gray)', marginTop: 4 }}>{inr(inv.agreedRate ?? inv.proposedRate)} · {inv.timeline}</div>
-          </div>
-          <StatusPill status={inv.status} />
-        </div>
-        <div style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.8125rem' }}>
-            <span style={{ color: 'var(--in-gray)' }}>Deliverable progress</span>
-            <span style={{ fontWeight: 700, color: 'var(--in-charcoal)' }}>{done}/{items.length} approved</span>
-          </div>
-          <ProgressBar value={progress} />
-        </div>
-      </Card>
+  const nextStep = (
+    <Panel icon={<Target size={18} />} title="Your next step">
+      {waitingForContract ? (
+        <>
+          <p className="cx-text" style={{ marginBottom: 12 }}>Sign the contract to lock in your payout and start delivering.</p>
+          <Button style={{ width: '100%' }} onClick={() => navigate(`/creator/deal/${inv.id}`)}>Open deal room <ArrowRight size={16} /></Button>
+        </>
+      ) : inv.status === 'completed' ? (
+        <p className="cx-text"><CircleCheck size={16} style={{ verticalAlign: -3, color: 'var(--cx-green)' }} /> Every piece is approved. Your payout is being released.</p>
+      ) : nextItem ? (
+        <>
+          <p className="cx-text"><b>{nextItem.label}</b> is next. {dueLabel(nextItem.dueDate)}.</p>
+          {nextItem.notes && <p className="cx-text cx-muted" style={{ marginTop: 8 }}>{nextItem.notes}</p>}
+        </>
+      ) : (
+        <p className="cx-text cx-muted">Nothing left to deliver.</p>
+      )}
+    </Panel>
+  );
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+  const deliverPanel = (
+    <Panel
+      icon={<Clapperboard size={18} />} title="Your deliverables"
+      sub={waitingForContract ? 'Unlocks once your contract is signed' : `${items.filter(d => d.status === 'approved').length} of ${items.length} approved`}
+    >
+      <div className="cx-delivs">
         {items.map(d => {
+          const spec = brief.deliverableSpecs.find(s => d.id.includes(`_${s.id}_`));
           const result = checks[d.id];
           const failed = result && !result.every(c => c.passed);
           return (
-            <Card key={d.id}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--in-charcoal)' }}>{d.label}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--in-gray)' }}>Due {d.dueDate}</div>
-                  {d.revisionNote && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--in-warn)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                      <AlertCircle size={12} /> {d.revisionNote}
-                    </div>
-                  )}
-                </div>
-                <StatusPill status={d.status} />
-              </div>
-
-              {/* Compliance result (after a submit attempt) */}
-              {result && (
-                <div style={{ marginTop: 12, padding: 12, borderRadius: 12, background: failed ? 'rgba(224,82,82,0.06)' : 'rgba(124,196,164,0.1)', border: `1px solid ${failed ? 'rgba(224,82,82,0.25)' : 'rgba(124,196,164,0.4)'}` }}>
-                  <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-charcoal)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <ScanLine size={15} style={{ color: failed ? 'var(--in-danger)' : 'var(--in-success)' }} />
-                    AI Compliance {failed ? '— action needed' : 'passed'}
+            <DeliverableRow
+              key={d.id} title={d.label} format={d.format ?? ''} platform={spec?.platform ?? 'Instagram'}
+              spec={d.spec ?? ''} due={d.dueDate} note={d.notes} open={d === nextItem && !waitingForContract}
+              status={<DelivPill status={d.status} />}
+              flag={d.revisionNote}
+              extra={result && (
+                <div className={`cx-scan ${failed ? 'is-fail' : 'is-pass'}`}>
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <ScanLine size={15} style={{ color: failed ? 'var(--cx-red)' : 'var(--cx-green)' }} />
+                    AI compliance {failed ? 'needs action' : 'passed'}
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {result.map((c, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: '0.8125rem' }}>
-                        {c.passed
-                          ? <CircleCheck size={15} style={{ color: 'var(--in-success)', flexShrink: 0, marginTop: 1 }} />
-                          : <AlertCircle size={15} style={{ color: 'var(--in-danger)', flexShrink: 0, marginTop: 1 }} />}
-                        <span style={{ color: 'var(--in-charcoal)' }}>
-                          {c.label}{c.detail ? ` — ${c.detail}` : ''}
-                        </span>
-                      </div>
+                  <ul className="cx-checks">
+                    {result.map(c => (
+                      <li key={c.label} className={c.passed ? 'is-ok' : 'is-no'}>
+                        {c.passed ? <CircleCheck size={15} /> : <CircleAlert size={15} />}
+                        <span>{c.label}{c.detail ? `: ${c.detail}` : ''}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               )}
-
-              {/* Actions per status */}
-              <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {d.status === 'not_started' && (
-                  <Button variant="ghost" small onClick={() => upload(d)}><Upload size={14} /> Upload content</Button>
-                )}
-                {d.status === 'uploaded' && (
-                  <Button small onClick={() => submitForReview(d)}><ScanLine size={14} /> Run compliance & submit</Button>
-                )}
-                {d.status === 'pending_approval' && (
-                  <>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', color: 'var(--in-info)', fontWeight: 600 }}>
-                      <Send size={14} /> Awaiting business review
-                    </span>
-                    {/* Simulated brand decisions */}
-                    <Button variant="ghost" small onClick={() => approve(d)}><Check size={14} /> Simulate approve</Button>
-                    <Button variant="ghost" small onClick={() => requestChanges(d)}><RefreshCw size={14} /> Simulate changes</Button>
-                  </>
-                )}
-                {d.status === 'changes_requested' && (
-                  <Button variant="ghost" small onClick={() => reupload(d)}><Upload size={14} /> Re-upload</Button>
-                )}
-                {d.status === 'approved' && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 700, color: 'var(--in-success)' }}>
-                    <CircleCheck size={15} /> Approved
-                  </span>
-                )}
-              </div>
-            </Card>
+            >
+              {d.status === 'not_started' && (
+                <Button variant="ghost" small disabled={waitingForContract} onClick={() => upload(d)}><Upload size={14} /> Upload</Button>
+              )}
+              {d.status === 'uploaded' && (
+                <Button small onClick={() => submitForReview(d)}><ScanLine size={14} /> Check &amp; submit</Button>
+              )}
+              {d.status === 'pending_approval' && (
+                <>
+                  <span className="cx-flag" style={{ color: 'var(--cx-blue)' }}><Send size={14} /> With {inv.brand}</span>
+                  <Button variant="ghost" small onClick={() => approve(d)}><Check size={14} /> Simulate approve</Button>
+                  <Button variant="ghost" small onClick={() => requestChanges(d)}><RefreshCw size={14} /> Simulate changes</Button>
+                </>
+              )}
+              {d.status === 'changes_requested' && (
+                <Button variant="ghost" small onClick={() => reupload(d)}><Upload size={14} /> Re-upload</Button>
+              )}
+            </DeliverableRow>
           );
         })}
       </div>
+    </Panel>
+  );
 
-      {/* Overall compliance summary */}
-      <Card>
-        <div className="cr-card__title" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ShieldCheck size={18} style={{ color: 'var(--in-success)' }} /> Compliance & payout
+  const checkPanel = <Panel icon={<ShieldCheck size={18} />} title="Compliance checklist" sub="Every piece is checked against this before the brand sees it"><ChecklistPanel brief={brief} /></Panel>;
+  const payPanel = <Panel icon={<Wallet size={18} />} title="How you get paid" sub={brief.paymentTerms}><PayoutSchedule inv={inv} /></Panel>;
+  const termsPanel = <Panel icon={<FileText size={18} />} title="Deal terms"><TermsGrid inv={inv} /></Panel>;
+  const briefPanel = <Panel icon={<Megaphone size={18} />} title="Campaign brief" sub={`From ${inv.brand}`}><BriefPanel brief={brief} /></Panel>;
+
+  return (
+    <div className={`cx${isMobile ? ' is-tabbed' : ''}`}>
+      <button className="cx-back" onClick={() => navigate('/creator/campaigns')}>
+        <ArrowLeft size={16} /> Campaigns
+      </button>
+
+      <CampaignHero inv={inv} items={items} />
+      <StageTiles inv={inv} items={items} />
+
+      {isMobile ? (
+        <>
+          <div className="cx-tabrow" role="tablist" aria-label="Campaign sections">
+            {TABS.map(t => (
+              <button key={t.key} role="tab" aria-selected={tab === t.key} className={tab === t.key ? 'is-on' : ''} onClick={() => setTab(t.key)}>
+                <span><t.icon size={20} /></span>{t.label}
+              </button>
+            ))}
+          </div>
+          {tab === 'deliver' && (<>{nextStep}{deliverPanel}{checkPanel}</>)}
+          {tab === 'terms' && (<>{payPanel}{termsPanel}</>)}
+          {tab === 'brief' && briefPanel}
+        </>
+      ) : (
+        <div className="cx-cols">
+          <div className="cx-stack">
+            {deliverPanel}
+            {briefPanel}
+          </div>
+          <div className="cx-stack">
+            {nextStep}
+            {payPanel}
+            {termsPanel}
+            {checkPanel}
+          </div>
         </div>
-        <div className="cr-card__sub">
-          Every deliverable must pass automated compliance before business review. Payment is protected and releases on approval.
-        </div>
-      </Card>
+      )}
 
       {toast && <Toast message={toast} icon={Check} />}
     </div>
