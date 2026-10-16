@@ -19,9 +19,8 @@ export default function ReputationPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1 className="cr-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Star size={22} style={{ color: 'var(--in-coral-text)' }} /> Campaign Reputation
-        </h1>
+        <p className="cr-kicker">Standing</p>
+        <h1 className="cr-page-title">Campaign Reputation</h1>
         <p className="cr-page-sub">Your standing with brands, built from completed campaigns.</p>
       </div>
 

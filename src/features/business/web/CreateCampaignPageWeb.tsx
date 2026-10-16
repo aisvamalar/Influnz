@@ -1,347 +1,668 @@
 /**
- * CreateCampaignPage - AI Campaign Assistant
- * Exact pixel-perfect recreation from reference images
+ * Desktop Create Campaign.
+ * Campaign ideas travel a right-hand semicircle around the hub (top to bottom, then around again).
+ * The assistant sits on the right. The intent card fills in only after the guided chat is complete.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowRight,
+  Bot,
+  Brain,
+  CalendarDays,
+  ChartColumn,
+  ChevronLeft,
+  ChevronRight,
+  Coffee,
+  Gift,
+  MapPin,
+  Megaphone,
+  Paperclip,
+  Play,
+  Settings,
+  Share2,
+  ShoppingBag,
+  Sparkles,
+  Target,
+  Users,
+  Wallet,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import BusinessLayout from '../BusinessLayout';
-import UiIcon from '../../../components/UiIcon';
+import PlatformMark, { type PlatformId } from '../../../components/mobile/PlatformMark';
+import './create-campaign-web.css';
 
-type ConversationStage = 'initial' | 'results';
+type QuestionKey = 'audience' | 'budget' | 'platforms' | 'duration';
 
-const EXTRACTED: [string, string][] = [
-  ['Campaign name', 'Chennai Caf? Launch'],
-  ['Goal', 'Drive local store visits'],
-  ['Target audience', 'Local food lovers (18?34)'],
-  ['Budget', '?1,50,000'],
-  ['Platform', 'Instagram'],
-  ['Location', 'Chennai (15 km)'],
-  ['Timeline', '15 days'],
+interface ChatMessage {
+  id: number;
+  from: 'bot' | 'user';
+  text: string;
+  time: string;
+  question?: QuestionKey;
+}
+
+interface Brief {
+  goal: string;
+  location: string;
+  audience: string;
+  budget: string;
+  platforms: PlatformId[];
+  otherPlatforms: string;
+  timeline: string;
+}
+
+interface Idea {
+  title: string;
+  chips: [string, string];
+  prompt: string;
+  icon: LucideIcon;
+}
+
+const EMPTY_BRIEF: Brief = { goal: '', location: '', audience: '', budget: '', platforms: [], otherPlatforms: '', timeline: '' };
+
+const QUESTIONS: Record<QuestionKey, { prompt: string; options: string[]; customHint: string }> = {
+  audience: {
+    prompt: 'Who is your target audience?',
+    options: ['Local customers', 'Young adults (18–30)', 'Students', 'Families'],
+    customHint: 'Describe the audience, e.g. office workers in Chennai',
+  },
+  budget: {
+    prompt: 'What is your budget range?',
+    options: ['₹25,000', '₹50,000', '₹1,00,000', 'Custom'],
+    customHint: 'Type your budget, e.g. ₹75,000',
+  },
+  platforms: {
+    prompt: 'Which platforms do you prefer?',
+    options: [],
+    customHint: 'Type other platforms, e.g. LinkedIn',
+  },
+  duration: {
+    prompt: 'Do you have a launch date in mind?',
+    options: ['15 days', '1 month', '2 months', 'Custom'],
+    customHint: 'Type a duration, e.g. 6 weeks',
+  },
+};
+
+const CHECKLIST: { key: QuestionKey | 'goal'; label: string; icon: LucideIcon }[] = [
+  { key: 'goal', label: 'What is your main goal?', icon: Target },
+  { key: 'audience', label: 'Who is your target audience?', icon: Users },
+  { key: 'budget', label: 'What is your budget range?', icon: Wallet },
+  { key: 'platforms', label: 'Which platforms do you prefer?', icon: Share2 },
+  { key: 'duration', label: 'Do you have a launch date in mind?', icon: CalendarDays },
 ];
 
-const SUGGESTION_CHIPS = [
-  'Launch a cafe in Chennai',
-  'Promote a new product',
-  'Event coverage',
-  'Increase brand awareness',
+const PLATFORMS: { id: PlatformId; label: string; match: RegExp }[] = [
+  { id: 'instagram', label: 'Instagram', match: /insta(gram)?|reels?/i },
+  { id: 'youtube', label: 'YouTube', match: /you\s?tube|shorts/i },
+  { id: 'tiktok', label: 'TikTok', match: /tik\s?tok/i },
+  { id: 'facebook', label: 'Facebook', match: /facebook|\bfb\b/i },
+  { id: 'x', label: 'X (Twitter)', match: /twitter|\bx\b/i },
 ];
+
+const CITIES = ['Chennai', 'Mumbai', 'Bangalore', 'Bengaluru', 'Delhi', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Kochi', 'Coimbatore', 'Madurai'];
+
+const IDEAS: Idea[] = [
+  { title: 'Launch a cafe in Chennai', chips: ['Local creators', 'Food bloggers'], prompt: 'I want to launch a cafe in Chennai and reach local food lovers.', icon: Coffee },
+  { title: 'Promote a new product', chips: ['Influencers', 'Social media'], prompt: 'I want to promote a new product launch to young adults on Instagram.', icon: ShoppingBag },
+  { title: 'Increase brand awareness', chips: ['Multi-platform', 'Mass reach'], prompt: 'I want to increase brand awareness across Instagram and YouTube.', icon: Megaphone },
+  { title: 'Event coverage', chips: ['On-ground', 'Digital'], prompt: 'I want creators to cover our upcoming event in Bangalore for 15 days.', icon: CalendarDays },
+  { title: 'Boost sales', chips: ['Performance driven', 'ROI'], prompt: 'I want to boost sales with a ₹1,00,000 campaign for local customers.', icon: ChartColumn },
+  { title: 'College event', chips: ['Campus creators', 'Student audience'], prompt: 'I want a college event campaign for students in Chennai.', icon: MapPin },
+  { title: 'App launch campaign', chips: ['Tech creators', 'Product demo'], prompt: 'I want an app launch campaign with tech creators on Instagram and YouTube.', icon: Play },
+  { title: 'Seasonal campaign', chips: ['Festive offers', 'UGC content'], prompt: 'I want a seasonal festive campaign for families with a ₹50,000 budget.', icon: Gift },
+];
+
+const GREETING =
+  "Hi! I'm your campaign assistant\nWhat would you like to create today?\nYou can describe your idea or choose a suggestion from the left.";
+
+const BOT_DELAY = 900;
+const nowTime = () => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const inr = (n: number) => '₹' + Math.round(n).toLocaleString('en-IN');
+
+function parseBudget(text: string): string {
+  const m = text.match(/(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*(k|l|lakhs?|lacs?)?\b|([\d,]+(?:\.\d+)?)\s*(k|lakhs?|lacs?)\b/i);
+  if (!m) return '';
+  const value = parseFloat((m[1] ?? m[3]).replace(/,/g, ''));
+  const unit = (m[2] ?? m[4] ?? '').toLowerCase();
+  if (Number.isNaN(value)) return '';
+  if (unit === 'k') return inr(value * 1_000);
+  if (unit.startsWith('l')) return inr(value * 1_00_000);
+  return inr(value);
+}
+
+function parseLocation(text: string): string {
+  const city = CITIES.find((c) => new RegExp(`\\b${c}\\b`, 'i').test(text));
+  return city === 'Bengaluru' ? 'Bangalore' : city ?? '';
+}
+
+function parseDuration(text: string): string {
+  const m = text.match(/(\d+)\s*(day|week|month)s?/i);
+  if (!m) return '';
+  const n = Number(m[1]);
+  return `${n} ${m[2].toLowerCase()}${n === 1 ? '' : 's'}`;
+}
+
+function parsePlatforms(text: string): PlatformId[] {
+  return PLATFORMS.filter((p) => p.match.test(text)).map((p) => p.id);
+}
+
+function parseAudience(text: string): string {
+  if (/students?|college|campus/i.test(text)) return 'Students';
+  if (/famil(y|ies)|parents?/i.test(text)) return 'Families';
+  if (/young|youth|gen\s?z/i.test(text)) return 'Young adults (18–30)';
+  if (/local|food lover/i.test(text)) return 'Local customers';
+  return '';
+}
+
+function toGoal(text: string): string {
+  const goal = text
+    .trim()
+    .replace(/^(hi|hello|hey)[,!.\s]+/i, '')
+    .replace(/^(i|we)\s*(?:'d like|would like|want|need|plan|am planning|are planning)\s+to\s+/i, '')
+    .replace(/\b(my|our)\s+/gi, '')
+    .replace(/\s+/g, ' ');
+  if (!goal) return '';
+  const sentence = goal.charAt(0).toUpperCase() + goal.slice(1);
+  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+}
+
+function platformLabel(id: PlatformId): string {
+  return PLATFORMS.find((p) => p.id === id)?.label ?? id;
+}
 
 export default function CreateCampaignPageWeb() {
   const navigate = useNavigate();
-  const [activeMode, setActiveMode] = useState<'ai' | 'manual'>('ai');
-  const [stage, setStage] = useState<ConversationStage>('initial');
-  const [inputValue, setInputValue] = useState('');
-  const [userMessage, setUserMessage] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: 1, from: 'bot', text: GREETING, time: nowTime() },
+  ]);
+  const [brief, setBrief] = useState<Brief>(EMPTY_BRIEF);
+  const [queue, setQueue] = useState<QuestionKey[]>([]);
+  const [current, setCurrent] = useState<QuestionKey | null>(null);
+  const [typing, setTyping] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [platformPick, setPlatformPick] = useState<PlatformId[]>([]);
+  const [customFor, setCustomFor] = useState<QuestionKey | null>(null);
+  const [draft, setDraft] = useState('');
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [recognised, setRecognised] = useState(false);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
-    setUserMessage(inputValue);
-    setInputValue('');
-    setStage('results');
+  const nextId = useRef(2);
+  const timers = useRef<number[]>([]);
+  const logRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const orbitRef = useRef<HTMLDivElement>(null);
+  const hubRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+  const ringsRef = useRef<HTMLDivElement>(null);
+  const prevRef = useRef<HTMLButtonElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+  const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const wireRefs = useRef<(SVGPathElement | null)[]>([]);
+  const pausedRef = useRef(false);
+  const nudgeRef = useRef(0);
+
+  const last = messages[messages.length - 1];
+
+  useEffect(() => {
+    const pending = timers.current;
+    return () => pending.forEach((t) => window.clearTimeout(t));
+  }, []);
+
+  useEffect(() => {
+    const el = logRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [messages, typing, current]);
+
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
+  }, [draft]);
+
+  useEffect(() => {
+    const count = IDEAS.length;
+    let shift = 0;
+    let lastFrame = performance.now();
+    let frame = 0;
+
+    const place = (now: number) => {
+      const dt = Math.min(now - lastFrame, 40);
+      lastFrame = now;
+      if (!pausedRef.current) shift += dt * 0.00042;
+      const nudge = nudgeRef.current;
+      if (nudge !== 0) {
+        const take = nudge * (1 - Math.exp(-dt / 240));
+        nudgeRef.current -= take;
+        shift += take;
+      }
+
+      const root = orbitRef.current;
+      if (root) {
+        const width = root.clientWidth;
+        const height = root.clientHeight;
+        const cardW = 292;
+        const cardH = 54;
+        const cx = Math.max(108, Math.min(width * 0.155, 138));
+        const cy = height * 0.5;
+        const edge = 4;
+        const cardRight = width - 8;
+        const radius = Math.max(220, cardRight - cardW - cx);
+        const travel = Math.max(height - cardH - edge * 2, 1);
+        if (hubRef.current) {
+          hubRef.current.style.left = `${cx}px`;
+          hubRef.current.style.top = `${cy}px`;
+        }
+        if (glowRef.current) {
+          glowRef.current.style.left = `${cx}px`;
+          glowRef.current.style.top = `${cy}px`;
+        }
+        if (ringsRef.current) {
+          const diameter = radius * 2.05;
+          ringsRef.current.style.left = `${cx}px`;
+          ringsRef.current.style.top = `${cy}px`;
+          ringsRef.current.style.width = `${diameter}px`;
+          ringsRef.current.style.height = `${diameter}px`;
+        }
+        if (prevRef.current) prevRef.current.style.left = `${Math.max(8, cx - 118)}px`;
+        if (nextRef.current) {
+          nextRef.current.style.left = `${width - 20}px`;
+          nextRef.current.style.right = 'auto';
+        }
+        const fade = 0.2;
+        IDEAS.forEach((_, i) => {
+          const pos = (((i + shift) % count) + count) % count;
+          const y = edge + cardH / 2 + (pos / count) * travel;
+          const ny = Math.max(-0.98, Math.min(0.98, ((y - cy) / (travel * 0.5)) * 0.9));
+          const bow = Math.sqrt(1 - ny * ny);
+          const x = cx + bow * radius;
+          const seam = Math.min(pos, count - pos);
+          const opacity = seam < fade ? seam / fade : 1;
+          const card = cardRefs.current[i];
+          if (card) {
+            card.style.left = '0px';
+            card.style.top = '0px';
+            card.style.opacity = String(opacity);
+            card.style.zIndex = String(2 + Math.round(bow * 6));
+            card.style.transform = `translate3d(${x}px, ${y}px, 0) translateY(-50%)`;
+          }
+          const wire = wireRefs.current[i];
+          if (wire) {
+            const hx = cx + 84;
+            const hy = cy + (y - cy) * 0.18;
+            const cpx = hx + (x - hx) * 0.58;
+            const cpy = hy + (y - hy) * 0.15;
+            wire.setAttribute('opacity', String(opacity));
+            wire.setAttribute('d', `M ${hx} ${hy} Q ${cpx} ${cpy} ${x} ${y}`);
+          }
+        });
+      }
+      frame = requestAnimationFrame(place);
+    };
+
+    frame = requestAnimationFrame(place);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const push = (msg: Omit<ChatMessage, 'id' | 'time'>) =>
+    setMessages((prev) => [...prev, { ...msg, id: nextId.current++, time: nowTime() }]);
+
+  const botSay = (msg: Omit<ChatMessage, 'id' | 'time' | 'from'>, after?: () => void) => {
+    setTyping(true);
+    const t = window.setTimeout(() => {
+      setTyping(false);
+      push({ from: 'bot', ...msg });
+      after?.();
+    }, BOT_DELAY);
+    timers.current.push(t);
   };
 
-  const handleChipClick = (text: string) => {
-    setInputValue(text);
+  const askNext = (remaining: QuestionKey[], preface = '') => {
+    const [next, ...rest] = remaining;
+    setQueue(rest);
+    if (!next) {
+      setCurrent(null);
+      botSay(
+        { text: "Perfect, I have everything I need. Here's what I understood — you can edit anything before we generate the plan." },
+        () => setRecognised(true),
+      );
+      return;
+    }
+    botSay({ text: `${preface}${QUESTIONS[next].prompt}`, question: next }, () => setCurrent(next));
+  };
+
+  const start = (text: string) => {
+    const parsed: Brief = {
+      goal: toGoal(text),
+      location: parseLocation(text),
+      audience: parseAudience(text),
+      budget: parseBudget(text),
+      platforms: parsePlatforms(text),
+      otherPlatforms: '',
+      timeline: parseDuration(text),
+    };
+    const pending: QuestionKey[] = [];
+    if (!parsed.audience) pending.push('audience');
+    if (!parsed.budget) pending.push('budget');
+    if (parsed.platforms.length === 0) pending.push('platforms');
+    if (!parsed.timeline) pending.push('duration');
+
+    setBrief(parsed);
+    setStarted(true);
+    setRecognised(false);
+    setCurrent(null);
+    setCustomFor(null);
+    push({ from: 'user', text });
+    askNext(pending, "Great! That's an exciting goal.\nTo get a better plan, could you tell me:\n");
+  };
+
+  const answer = (question: QuestionKey, text: string, picks: PlatformId[] = []) => {
+    setCurrent(null);
+    setCustomFor(null);
+    push({ from: 'user', text });
+    setBrief((prev) => {
+      switch (question) {
+        case 'duration':
+          return { ...prev, timeline: parseDuration(text) || text };
+        case 'budget':
+          return { ...prev, budget: parseBudget(text) || parseBudget(`₹${text}`) || text };
+        case 'audience':
+          return { ...prev, audience: text.trim() };
+        case 'platforms': {
+          const typed = parsePlatforms(text);
+          const ids = Array.from(new Set([...picks, ...typed]));
+          const other = picks.length === 0 && typed.length === 0 ? text : prev.otherPlatforms;
+          return { ...prev, platforms: ids, otherPlatforms: other };
+        }
+      }
+    });
+    setPlatformPick([]);
+    askNext(queue);
+  };
+
+  const pickOption = (question: QuestionKey, option: string) => {
+    if (option === 'Custom') {
+      setCustomFor(question);
+      inputRef.current?.focus();
+      return;
+    }
+    answer(question, option);
+  };
+
+  const send = () => {
+    const text = [draft.trim(), attachment ? `Attached: ${attachment.name}` : ''].filter(Boolean).join('\n');
+    if (!text || typing) return;
+    setDraft('');
+    setAttachment(null);
+    if (!started) {
+      start(text);
+      return;
+    }
+    if (current) {
+      answer(current, text, current === 'platforms' ? platformPick : []);
+      return;
+    }
+    push({ from: 'user', text });
+    botSay({ text: "Got it — I'll keep that in mind for your campaign." }, () => setRecognised(true));
+  };
+
+  const chooseIdea = (prompt: string) => {
+    if (typing) return;
+    if (!started) {
+      start(prompt);
+      return;
+    }
+    setDraft(prompt);
+    inputRef.current?.focus();
+  };
+
+  const stepArc = (dir: number) => {
+    nudgeRef.current += dir;
+  };
+
+  const generate = () => {
+    localStorage.setItem('campaign_brief', JSON.stringify({ ...brief, platforms: brief.platforms.map(platformLabel) }));
+    navigate('/business/campaigns/strategy');
+  };
+
+  const update = <K extends keyof Brief>(key: K, value: Brief[K]) => setBrief((prev) => ({ ...prev, [key]: value }));
+
+  const placeholder = !started
+    ? 'Describe your campaign goal, budget, audience...'
+    : customFor
+      ? QUESTIONS[customFor].customHint
+      : 'Type your message...';
+
+  const done = (key: (typeof CHECKLIST)[number]['key']) => {
+    if (key === 'goal') return Boolean(brief.goal);
+    if (key === 'audience') return Boolean(brief.audience);
+    if (key === 'budget') return Boolean(brief.budget);
+    if (key === 'platforms') return brief.platforms.length > 0 || Boolean(brief.otherPlatforms);
+    return Boolean(brief.timeline);
   };
 
   return (
     <BusinessLayout breadcrumb="New Campaign">
-      <div style={{ padding: '0 0 24px 0' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#1a1a1a', margin: 0, marginBottom: 8 }}>
-          Create Campaign
-        </h1>
-        <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>
-          Let the AI help you create a complete campaign or set it up manually.
-        </p>
+      <div className="ccw">
+        <header className="ccw-head">
+          <h1><Sparkles size={22} /> Create Campaign</h1>
+          <p>Let the AI help you create a complete campaign or set it up manually.</p>
+          <div className="ccw-modes">
+            <button type="button" className="ccw-mode is-on"><Sparkles size={15} /> AI Assistant</button>
+            <button type="button" className="ccw-mode" onClick={() => navigate('/business/campaigns/parameters')}>
+              <Settings size={15} /> Manual Setup
+            </button>
       </div>
+        </header>
 
-      {/* Mode Toggle */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-        {(['ai', 'manual'] as const).map(mode => (
-          <button
-            key={mode}
-            onClick={() => setActiveMode(mode)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              background: activeMode === mode ? '#FFF5F0' : 'white',
-              border: activeMode === mode ? '2px solid #FF6B35' : '1px solid #e5e7eb',
-              borderRadius: 8,
-              color: activeMode === mode ? '#FF6B35' : '#6b7280',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
+        <div className="ccw-workspace">
+          <section
+            className="ccw-orbit"
+            ref={orbitRef}
+            aria-label="Campaign ideas"
+            onMouseEnter={() => { pausedRef.current = true; }}
+            onMouseLeave={() => { pausedRef.current = false; }}
           >
-            <UiIcon name={mode === 'ai' ? 'sparkles' : 'settings'} />
-            {mode === 'ai' ? 'AI Assistant' : 'Manual Setup'}
+            <div className="ccw-glow" ref={glowRef} />
+            <div className="ccw-rings" ref={ringsRef} aria-hidden="true" />
+            <svg className="ccw-wires" aria-hidden="true">
+              {IDEAS.map((idea, i) => (
+                <path key={idea.title} ref={(el) => { wireRefs.current[i] = el; }} />
+              ))}
+            </svg>
+            <button type="button" className="ccw-nudge ccw-nudge--prev" ref={prevRef} aria-label="Move ideas up" onClick={() => stepArc(-1)}>
+              <ChevronLeft size={18} />
+            </button>
+            <button type="button" className="ccw-nudge ccw-nudge--next" ref={nextRef} aria-label="Move ideas down" onClick={() => stepArc(1)}>
+              <ChevronRight size={18} />
           </button>
-        ))}
+            <div className="ccw-hub" ref={hubRef}>
+              <span className="ccw-hub__mark" aria-hidden="true"><i /><i /><i /></span>
+              <strong>Campaign Idea</strong>
+              <span>Explore possibilities powered by AI</span>
       </div>
+            {IDEAS.map((idea, i) => {
+              const Icon = idea.icon;
+              return (
+                <button
+                  key={idea.title}
+                  type="button"
+                  className="ccw-idea"
+                  ref={(el) => { cardRefs.current[i] = el; }}
+                  onClick={() => chooseIdea(idea.prompt)}
+                >
+                  <span className="ccw-idea__icon"><Icon size={16} /></span>
+                  <span className="ccw-idea__body">
+                    <strong>{idea.title}</strong>
+                    <span>{idea.chips[0]} <i /> {idea.chips[1]}</span>
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
+              );
+            })}
+          </section>
 
-      {/* Two-Panel Layout */}
-      <div style={{ display: 'flex', gap: 24, minHeight: 600, height: 'calc(100dvh / var(--biz-zoom, 1) - 280px)' }}>
-        {/* LEFT PANEL - Chat */}
-        <div style={{ flex: '0 0 58%', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          {/* Messages Area */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 32, display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {stage === 'initial' ? (
-              <>
-                {/* Bot Greeting */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FFB5A7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><UiIcon name="bot" /></div>
-                  <div style={{ background: '#F5F5F5', borderRadius: '12px 12px 12px 4px', padding: '16px 20px', maxWidth: '85%' }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 6 }}>
-                      Hi! I'm your campaign assistant
-                    </div>
-                    <div style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.5 }}>
-                      Tell me what you want to achieve, and I'll help you create the best campaign.
-                    </div>
-                  </div>
+          <aside className="ccw-side">
+            <section className="ccw-chat" aria-label="Campaign assistant">
+              <div className="ccw-chat__bar">
+                <span className="ccw-avatar"><Bot size={18} /></span>
+                <div>
+                  <strong>Your Campaign Assistant</strong>
+                  <span>Tell me what you want to achieve, and I'll help you create the best campaign.</span>
                 </div>
-
-                {/* Suggestion Chips */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, paddingLeft: 60 }}>
-                  {SUGGESTION_CHIPS.map(chip => (
+              </div>
+              <div className="ccw-log" ref={logRef}>
+                {messages.map((m) => {
+                  const isUser = m.from === 'user';
+                  const showOptions = m.question && m.question === current && m.id === last?.id;
+                  return (
+                    <div key={m.id} className={`ccw-msg${isUser ? ' ccw-msg--user' : ''}`}>
+                      {!isUser && <span className="ccw-avatar ccw-avatar--sm"><Bot size={14} /></span>}
+                      <div className="ccw-msg__col">
+                        <p className="ccw-bubble">{m.text}</p>
+                        <span className="ccw-time">{m.time}</span>
+                        {showOptions && m.question === 'platforms' && (
+                          <div className="ccw-opts">
+                            {PLATFORMS.map((p) => (
                     <button
-                      key={chip}
-                      onClick={() => handleChipClick(chip)}
-                      style={{
-                        background: 'white',
-                        border: '1.5px solid #e5e7eb',
-                        borderRadius: 24,
-                        padding: '10px 18px',
-                        fontSize: 13,
-                        color: '#374151',
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#F9FAFB';
-                        e.currentTarget.style.borderColor = '#9ca3af';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'white';
-                        e.currentTarget.style.borderColor = '#e5e7eb';
-                      }}
-                    >
-                      {chip}
+                                key={p.id}
+                                type="button"
+                                className={`ccw-opt${platformPick.includes(p.id) ? ' is-on' : ''}`}
+                                aria-pressed={platformPick.includes(p.id)}
+                                onClick={() => setPlatformPick((prev) => (prev.includes(p.id) ? prev.filter((id) => id !== p.id) : [...prev, p.id]))}
+                              >
+                                <PlatformMark id={p.id} size={14} /> {p.label}
                     </button>
                   ))}
-                </div>
-              </>
-            ) : (
-              <>
-                {/* User Message */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ background: '#F5F0E8', borderRadius: '12px 12px 4px 12px', padding: '14px 18px', maxWidth: '75%' }}>
-                    <div style={{ fontSize: 14, color: '#1a1a1a', lineHeight: 1.6, marginBottom: 6 }}>
-                      {userMessage}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'right' }}>
-                      10:42 AM
-                    </div>
-                  </div>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FF6B35', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
-                    D
-                  </div>
-                </div>
-
-                {/* Bot Response */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#FFB5A7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}><UiIcon name="bot" /></div>
-                  <div style={{ background: '#F9FAFB', borderRadius: '12px 12px 12px 4px', padding: '20px 24px', flex: 1, maxWidth: '95%' }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>
-                      Here's what I understood from your brief
-                    </div>
-                    <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 20, lineHeight: 1.5 }}>
-                      I've extracted the key details. Please review and edit if needed before I generate the campaign strategy.
-                    </div>
-
-                    {/* Campaign Goal Card */}
-                    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.5px' }}>
-                          <UiIcon name="target" /> CAMPAIGN GOAL
-                        </span>
-                        <button style={{ background: 'none', border: 'none', color: '#FF6B35', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                          <UiIcon name="edit" /> Edit all
+                            {platformPick.length > 0 && (
+                              <button type="button" className="ccw-opt ccw-opt--go" onClick={() => answer('platforms', platformPick.map(platformLabel).join(', '), platformPick)}>
+                                Continue <ArrowRight size={14} />
                         </button>
-                      </div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a' }}>
-                        Drive local store visits
-                      </div>
-                    </div>
-
-                    {/* Fields Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      {[
-                        { label: 'BUDGET', value: '₹1,50,000', icon: 'money' },
-                        { label: 'LOCATION', value: 'Chennai (15 km)', icon: 'pin' },
-                        { label: 'DURATION', value: '15 days', icon: 'calendar' },
-                        { label: 'CATEGORY', value: 'Food & Beverage', icon: 'utensils' },
-                        { label: 'TARGET AUDIENCE', value: 'Local food lovers (18–34)', icon: 'users' },
-                        { label: 'LANGUAGE', value: 'Tamil / Tanglish', icon: 'languages' },
-                        { label: 'PLATFORM', value: 'Instagram', icon: 'phone', span: true },
-                      ].map((field, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            background: 'white',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: 8,
-                            padding: '12px 14px',
-                            gridColumn: field.span ? '1 / -1' : 'auto',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.5px' }}>
-                              <UiIcon name={field.icon} /> {field.label}
-                            </span>
-                            <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 14, padding: 0 }}><UiIcon name="edit" /></button>
+                            )}
                           </div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>
-                            {field.value}
+                        )}
+                        {showOptions && m.question && m.question !== 'platforms' && (
+                          <div className="ccw-opts">
+                            {QUESTIONS[m.question].options.map((opt) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                className={`ccw-opt${opt === 'Custom' && customFor === m.question ? ' is-on' : ''}`}
+                                onClick={() => pickOption(m.question as QuestionKey, opt)}
+                              >
+                                {opt}
+                              </button>
+                            ))}
                           </div>
+                        )}
                         </div>
-                      ))}
+                      {isUser && <span className="ccw-avatar ccw-avatar--user">D</span>}
                     </div>
+                  );
+                })}
+                {typing && (
+                  <div className="ccw-msg">
+                    <span className="ccw-avatar ccw-avatar--sm"><Bot size={14} /></span>
+                    <div className="ccw-typing" aria-label="Assistant is typing"><i /><i /><i /></div>
                   </div>
+                )}
+                {started && (
+                  <ul className="ccw-check">
+                    {CHECKLIST.map((item) => {
+                      const Icon = item.icon;
+                      const active = item.key === current;
+                      return (
+                        <li key={item.key} className={done(item.key) ? 'is-done' : active ? 'is-now' : ''}>
+                          <Icon size={15} />
+                          <span>{item.label}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+              {attachment && (
+                <div className="ccw-file">
+                  <Paperclip size={13} />
+                  <span>{attachment.name}</span>
+                  <button type="button" aria-label="Remove attachment" onClick={() => setAttachment(null)}><X size={14} /></button>
                 </div>
-              </>
-            )}
-          </div>
-
-          {/* Input Bar */}
-          <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', background: 'white' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 22, padding: 4, display: 'flex', alignItems: 'center' }}><UiIcon name="paperclip" /></button>
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={
-                  stage === 'initial'
-                    ? 'Describe your campaign goal, budget, audience...'
-                    : 'Modify anything...'
-                }
-                style={{
-                  flex: 1,
-                  border: '1px solid #e5e7eb',
-                  borderRadius: 24,
-                  padding: '12px 20px',
-                  fontSize: 14,
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  background: '#F9FAFB',
-                }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!inputValue.trim()}
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background: inputValue.trim() ? '#1a1a1a' : '#e5e7eb',
-                  border: 'none',
-                  color: 'white',
-                  cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: 18,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+              )}
+              <form
+                className="ccw-composer"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  send();
                 }}
               >
-                ➤
+                <button type="button" className="ccw-icon" aria-label="Attach a file" onClick={() => fileRef.current?.click()}>
+                  <Paperclip size={18} />
               </button>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT PANEL */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          {stage === 'initial' ? (
-            <>
-              <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #e5e7eb' }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', margin: '0 0 6px 0' }}>
-                  <UiIcon name="clipboard" /> Your Campaign
-                </h3>
-                <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-                  The details will be filled as we chat
-                </p>
-              </div>
-              <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {['Campaign name', 'Goal', 'Target audience', 'Budget', 'Platform', 'Location', 'Timeline'].map(item => (
-                  <div
-                    key={item}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingBottom: 12,
-                      borderBottom: '1px dashed #e5e7eb',
-                    }}
-                  >
-                    <span style={{ fontSize: 14, color: '#6b7280' }}>{item}</span>
-                    <span style={{ fontSize: 14, color: '#d1d5db', fontWeight: 500 }}>—</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ margin: '0 24px 24px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '14px 16px' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#92400E', marginBottom: 6 }}>
-                  <UiIcon name="idea" /> Tip
-                </div>
-                <div style={{ fontSize: 13, color: '#78350F', lineHeight: 1.5, marginBottom: 8 }}>
-                  Be as specific as possible to get better recommendations.
-                </div>
-                <div style={{ fontSize: 12, color: '#92400E', fontStyle: 'italic', background: '#FEF3C7', padding: '8px 10px', borderRadius: 6 }}>
-                  <strong>Example:</strong> I have ₹1,50,000. I am launching a cafe in Chennai...
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ padding: '24px 24px 20px', borderBottom: '1px solid #e5e7eb' }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a1a', margin: '0 0 6px 0' }}>
-                  ?? Your Campaign
-                </h3>
-                <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-                  Recognised from your brief
-                </p>
-              </div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {EXTRACTED.map(([label, value]) => (
-                  <div
-                    key={label}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingBottom: 12, borderBottom: '1px dashed #e5e7eb' }}
-                  >
-                    <span style={{ fontSize: 14, color: '#6b7280' }}>{label}</span>
-                    <span style={{ fontSize: 14, color: '#1a1a1a', fontWeight: 600, textAlign: 'right' }}>{value}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ padding: '0 24px 24px' }}>
-                <button
-                  type="button"
-                  onClick={() => navigate('/business/campaigns/strategy')}
-                  style={{
-                    width: '100%', height: 48, border: 'none', borderRadius: 10,
-                    background: 'linear-gradient(180deg, #ee6247 0%, #dc5039 100%)',
-                    color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                    boxShadow: '0 8px 20px rgba(224,82,57,0.28)',
+                <input
+                  ref={fileRef}
+                  type="file"
+                  hidden
+                  accept=".pdf,.doc,.docx,.txt,image/*"
+                  onChange={(e) => {
+                    setAttachment(e.target.files?.[0] ?? null);
+                    e.target.value = '';
                   }}
-                >
-                  ? Generate strategy ?
+                />
+                <textarea
+                  ref={inputRef}
+                  rows={1}
+                  value={draft}
+                  placeholder={placeholder}
+                  aria-label="Message the campaign assistant"
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                />
+                <button type="submit" className="ccw-send" aria-label="Send" disabled={typing || (!draft.trim() && !attachment)}>
+                  <ArrowRight size={18} />
                 </button>
+              </form>
+            </section>
+
+            <section className={`ccw-intent${recognised ? ' is-ready' : ''}`} aria-label="Campaign intent recogniser">
+              <div className="ccw-intent__top">
+                <span className="ccw-intent__icon"><Brain size={18} /></span>
+                <div>
+                  <strong>Campaign Intent Recogniser</strong>
+                  <span>{recognised ? 'Ready to generate' : 'Waiting for details'}</span>
+                </div>
+              </div>
+              {recognised ? (
+                <>
+                  {editing ? (
+                    <textarea rows={2} value={brief.goal} aria-label="Campaign goal" onChange={(e) => update('goal', e.target.value)} />
+                  ) : (
+                    <p>{brief.goal}</p>
+                  )}
+                  <dl>
+                    <div><dt>Audience</dt><dd>{editing ? <input value={brief.audience} aria-label="Audience" onChange={(e) => update('audience', e.target.value)} /> : brief.audience || '—'}</dd></div>
+                    <div><dt>Budget</dt><dd>{editing ? <input value={brief.budget} aria-label="Budget" onChange={(e) => update('budget', e.target.value)} /> : brief.budget || '—'}</dd></div>
+                    <div><dt>Location</dt><dd>{editing ? <input value={brief.location} aria-label="Location" onChange={(e) => update('location', e.target.value)} /> : brief.location || '—'}</dd></div>
+                    <div><dt>Timeline</dt><dd>{editing ? <input value={brief.timeline} aria-label="Timeline" onChange={(e) => update('timeline', e.target.value)} /> : brief.timeline || '—'}</dd></div>
+                  </dl>
+                  <div className="ccw-intent__actions">
+                    <button type="button" className="ccw-go" onClick={generate}>Generate strategy</button>
+                    <button type="button" className="ccw-edit" onClick={() => setEditing((v) => !v)}>{editing ? 'Done' : 'Edit'}</button>
               </div>
             </>
+              ) : (
+                <p>After we understand your requirements, we'll analyse and generate a complete campaign plan for you.</p>
           )}
+            </section>
+          </aside>
         </div>
       </div>
     </BusinessLayout>

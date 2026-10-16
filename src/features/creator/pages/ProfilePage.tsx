@@ -80,6 +80,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
+          <p className="cr-kicker">You</p>
           <h1 className="cr-page-title">Creator Passport</h1>
           <p className="cr-page-sub">Your verified identity that brands see when they discover you.</p>
         </div>

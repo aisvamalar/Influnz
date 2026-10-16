@@ -26,12 +26,13 @@ export default function GrowthPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
+        <p className="cr-kicker">Standing</p>
         <h1 className="cr-page-title">Creator Growth</h1>
         <p className="cr-page-sub">Build your reputation and unlock better campaigns.</p>
       </div>
 
       {/* Score hero */}
-      <Card style={{ background: 'linear-gradient(135deg, rgba(242,132,107,0.08), rgba(248,208,196,0.14))', border: '1px solid var(--in-coral)' }}>
+      <Card style={{ background: '#fef9f5', borderTop: '3px solid #f2846b' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>

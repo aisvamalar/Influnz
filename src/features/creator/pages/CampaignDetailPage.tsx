@@ -165,7 +165,7 @@ export default function CampaignDetailPage() {
               )}
             >
               {d.status === 'not_started' && (
-                <Button variant="ghost" small disabled={waitingForContract} onClick={() => upload(d)}><Upload size={14} /> Upload</Button>
+                <Button small disabled={waitingForContract} onClick={() => upload(d)}><Upload size={14} /> Upload</Button>
               )}
               {d.status === 'uploaded' && (
                 <Button small onClick={() => submitForReview(d)}><ScanLine size={14} /> Check &amp; submit</Button>
@@ -178,7 +178,7 @@ export default function CampaignDetailPage() {
                 </>
               )}
               {d.status === 'changes_requested' && (
-                <Button variant="ghost" small onClick={() => reupload(d)}><Upload size={14} /> Re-upload</Button>
+                <Button small onClick={() => reupload(d)}><Upload size={14} /> Re-upload</Button>
               )}
             </DeliverableRow>
           );
@@ -187,10 +187,44 @@ export default function CampaignDetailPage() {
     </Panel>
   );
 
-  const checkPanel = <Panel icon={<ShieldCheck size={18} />} title="Compliance checklist" sub="Every piece is checked against this before the brand sees it"><ChecklistPanel brief={brief} /></Panel>;
-  const payPanel = <Panel icon={<Wallet size={18} />} title="How you get paid" sub={brief.paymentTerms}><PayoutSchedule inv={inv} /></Panel>;
+  const checkPanel = <Panel icon={<ShieldCheck size={18} />} title="AI assistant" sub="Checks product, brand, CTA, disclosure, format and deliverable count before you submit"><ChecklistPanel brief={brief} /></Panel>;
+  const payPanel = <Panel icon={<Wallet size={18} />} title="Payment status" sub={inv.status === 'completed' ? 'Processing' : 'Expected until the brand approves'}><PayoutSchedule inv={inv} /></Panel>;
   const termsPanel = <Panel icon={<FileText size={18} />} title="Deal terms"><TermsGrid inv={inv} /></Panel>;
   const briefPanel = <Panel icon={<Megaphone size={18} />} title="Campaign brief" sub={`From ${inv.brand}`}><BriefPanel brief={brief} /></Panel>;
+  const timelinePanel = (
+    <Panel icon={<LayoutGrid size={18} />} title="Timeline" sub={inv.timeline}>
+      <ul className="cx-checks">
+        {items.map(d => (
+          <li key={d.id} className="is-info"><CircleCheck size={16} />{d.label} · {dueLabel(d.dueDate)}</li>
+        ))}
+      </ul>
+    </Panel>
+  );
+  const contactPanel = (
+    <Panel icon={<Send size={18} />} title="Brand contact" sub="Approved channel">
+      <p className="cx-text">Stay with {inv.brand} inside this campaign. That is the approved channel. Do not move the deal to a private chat.</p>
+    </Panel>
+  );
+  const submitPanel = (
+    <Panel icon={<FileText size={18} />} title="Submission requirements">
+      <ul className="cx-checks">
+        {brief.deliverableSpecs.map(spec => (
+          <li key={spec.id} className="is-info"><CircleCheck size={16} />{spec.count} × {spec.format}{spec.spec ? ` · ${spec.spec}` : ''}</li>
+        ))}
+        {brief.checklist.map(item => <li key={item} className="is-dot"><CircleCheck size={16} />{item}</li>)}
+      </ul>
+    </Panel>
+  );
+  const revisions = items.filter(d => d.revisionNote);
+  const revisionPanel = (
+    <Panel icon={<RefreshCw size={18} />} title="Revision requests" sub={revisions.length ? `${revisions.length} open` : 'None open'}>
+      {revisions.length === 0 ? <p className="cx-text cx-muted">No revision requests.</p> : (
+        <ul className="cx-checks">
+          {revisions.map(d => <li key={d.id} className="is-no"><CircleAlert size={16} />{d.label}: {d.revisionNote}</li>)}
+        </ul>
+      )}
+    </Panel>
+  );
 
   return (
     <div className={`cx${isMobile ? ' is-tabbed' : ''}`}>
@@ -210,21 +244,25 @@ export default function CampaignDetailPage() {
               </button>
             ))}
           </div>
-          {tab === 'deliver' && (<>{nextStep}{deliverPanel}{checkPanel}</>)}
+          {tab === 'deliver' && (<>{nextStep}{deliverPanel}{revisionPanel}{checkPanel}</>)}
           {tab === 'terms' && (<>{payPanel}{termsPanel}</>)}
-          {tab === 'brief' && briefPanel}
+          {tab === 'brief' && (<>{briefPanel}{timelinePanel}{submitPanel}{contactPanel}</>)}
         </>
       ) : (
         <div className="cx-cols">
           <div className="cx-stack">
             {deliverPanel}
+            {revisionPanel}
             {briefPanel}
+            {timelinePanel}
           </div>
           <div className="cx-stack">
             {nextStep}
             {payPanel}
             {termsPanel}
+            {submitPanel}
             {checkPanel}
+            {contactPanel}
           </div>
         </div>
       )}

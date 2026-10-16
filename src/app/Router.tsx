@@ -16,7 +16,6 @@ const Dashboard    = lazy(() => import('../features/dashboard/DashboardPlacehold
 const BizDashboard        = lazy(() => import('../features/business/BusinessDashboard'));
 const CampaignList        = lazy(() => import('../features/business/CampaignListPage'));
 const CreateCampaign      = lazy(() => import('../features/business/CreateCampaignPage'));
-const CreatorSelection    = lazy(() => import('../features/business/web/CreatorSelectionWeb'));
 const Strategy           = lazy(() => import('../features/business/CampaignStrategyPage'));
 const CampaignCreators    = lazy(() => import('../features/business/CampaignCreatorsPage'));
 const NegotiationParams   = lazy(() => import('../features/business/NegotiationParametersPage'));
@@ -101,7 +100,6 @@ export default function AppRouter() {
         <Route path="/business/campaigns/invitations" element={<ProtectedRoute><Invitations /></ProtectedRoute>} />
         <Route path="/business/campaigns/:id" element={<ProtectedRoute><CampaignOps /></ProtectedRoute>} />
         <Route path="/business/campaigns/:id/content" element={<ProtectedRoute><CampaignContent /></ProtectedRoute>} />
-        <Route path="/business/creators" element={<ProtectedRoute><CreatorSelection /></ProtectedRoute>} />
         <Route path="/business/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/business/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
         <Route path="/business/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />

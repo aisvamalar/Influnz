@@ -24,7 +24,6 @@ const Icon = {
   bars: <svg width="18" height="18" viewBox="0 0 18 18" {...stroke} aria-hidden="true"><path d="M4 15V9.500M9 15V4M14 15v-4.500" /></svg>,
   pin: <svg width="18" height="18" viewBox="0 0 18 18" {...stroke} aria-hidden="true"><path d="M9 16s5-4.200 5-8.500a5 5 0 00-10 0C4 11.800 9 16 9 16z" /><circle cx="9" cy="7.500" r="1.800" /></svg>,
   swap: <svg width="16" height="16" viewBox="0 0 16 16" {...stroke} aria-hidden="true"><path d="M2.500 6.500A5.500 5.500 0 0112 4.300L13.500 6M13.500 2.500V6H10M13.500 9.500A5.500 5.500 0 014 11.700L2.500 10M2.500 13.500V10H6" /></svg>,
-  external: <svg width="14" height="14" viewBox="0 0 14 14" {...stroke} aria-hidden="true"><path d="M8 2.500h3.500V6M11.500 2.500L6.500 7.500M10 8.500v2a1 1 0 01-1 1H3.500a1 1 0 01-1-1V5a1 1 0 011-1h2" /></svg>,
   check: <svg width="14" height="14" viewBox="0 0 14 14" {...stroke} strokeWidth={2} aria-hidden="true"><path d="M3 7.300l2.600 2.600L11 4.300" /></svg>,
   spark: <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1l1.500 3.800L12.500 6 8.500 7.400 7 11.500 5.500 7.400 1.500 6l4-1.200L7 1z" fill="#f59e0b" /></svg>,
   shield: <svg width="14" height="14" viewBox="0 0 14 14" {...stroke} strokeWidth={1.700} aria-hidden="true"><path d="M2.500 7.500l3 3 6-6.500" /></svg>,
@@ -81,9 +80,6 @@ function CreatorCard({ creator, selected, onToggle }: { creator: Creator; select
       </div>
 
       <footer className="cc-card__actions">
-        <Link className="cc-btn cc-btn--ghost" to={`/business/creators?creator=${encodeURIComponent(creator.id)}`}>
-          View Profile {Icon.external}
-        </Link>
         <button type="button" className={`cc-btn ${selected ? 'cc-btn--solid' : 'cc-btn--outline'}`} aria-pressed={selected} onClick={onToggle}>
           {selected ? <>{Icon.check} Selected</> : 'Select'}
         </button>

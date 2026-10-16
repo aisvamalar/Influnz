@@ -132,15 +132,17 @@ function deliverablesFor(inv: Invitation): Deliverable[] {
   inv.brief.deliverableSpecs.forEach(spec => {
     const platform = /youtube/i.test(spec.format) ? 'youtube' : /tiktok/i.test(spec.format) ? 'tiktok' : 'instagram';
     for (let i = 0; i < spec.count; i++) {
+      const needsDisclosure = inv.id === 'cat-1' && spec.id.endsWith('-d0') && i === 0;
       items.push({
         id: `${inv.id}_${spec.id}_${i}`,
         label: spec.count > 1 ? `${spec.title} ${i + 1}` : spec.title,
         platform,
-        status: 'not_started',
+        status: needsDisclosure ? 'changes_requested' : 'not_started',
         dueDate: spec.due,
         format: spec.format,
         spec: spec.spec,
         notes: spec.notes,
+        revisionNote: needsDisclosure ? 'Add a clear #ad or Paid partnership label.' : undefined,
       });
     }
   });
@@ -177,7 +179,12 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
   const [preferences, setPreferences] = useState<CreatorPreferences>(seedPreferences);
   const published = usePublishedCampaigns();
   // What this creator did with each campaign (status, agreed rate). The campaigns themselves come from the feed.
-  const [patches, setPatches] = useState<Record<string, Partial<Invitation>>>({});
+  // Chennai Café and Summer Drinks are already live on the business side, so this
+  // creator's campaigns screen starts with that active work. The rest stay invitations.
+  const [patches, setPatches] = useState<Record<string, Partial<Invitation>>>({
+    'cat-1': { status: 'active' },
+    'cat-6': { status: 'active' },
+  });
   const [negotiations, setNegotiations] = useState<Record<string, NegotiationMessage[]>>({});
   const [deliverables, setDeliverables] = useState<Record<string, Deliverable[]>>({});
   const [paymentRecords, setPayments] = useState<Payment[]>(seedPayments);

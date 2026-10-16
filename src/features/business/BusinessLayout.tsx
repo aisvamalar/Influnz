@@ -67,6 +67,11 @@ const Icons = {
       <path d="M5 11.5h2M8.5 11.5h1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
     </svg>
   ),
+  create: (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M9 3.5v11M3.5 9h11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+    </svg>
+  ),
   settings: (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <circle cx="9" cy="9" r="2.6" stroke="currentColor" strokeWidth="1.5"/>
@@ -102,11 +107,24 @@ const Icons = {
   ),
 };
 
+/** Create-flow routes. They stay under New Campaign, not the campaign list. */
+const CREATE_PATHS = [
+  '/business/campaigns/new',
+  '/business/campaigns/ai-strategy',
+  '/business/campaigns/parameters',
+  '/business/campaigns/strategy',
+  '/business/campaigns/creators',
+  '/business/campaigns/guardrails',
+  '/business/campaigns/negotiate',
+  '/business/campaigns/invitations',
+];
+
 const PRIMARY_NAV: NavItem[] = [
-  { key: 'dashboard', label: 'Dashboard', path: '/business',           icon: Icons.dashboard },
-  { key: 'campaigns', label: 'Campaigns', path: '/business/campaigns', icon: Icons.campaigns },
-  { key: 'payments',  label: 'Payments',  path: '/business/payments',  icon: Icons.payments },
-  { key: 'analytics', label: 'Analytics', path: '/business/analytics', icon: Icons.analytics },
+  { key: 'dashboard', label: 'Dashboard',     path: '/business',           icon: Icons.dashboard },
+  { key: 'create',    label: 'New Campaign',  path: '/business/campaigns/new', icon: Icons.create },
+  { key: 'campaigns', label: 'Campaigns',     path: '/business/campaigns', icon: Icons.campaigns },
+  { key: 'payments',  label: 'Payments',      path: '/business/payments',  icon: Icons.payments },
+  { key: 'analytics', label: 'Analytics',     path: '/business/analytics', icon: Icons.analytics },
 ];
 
 const SETTINGS_NAV: NavItem = { key: 'settings', label: 'Settings', path: '/business/settings', icon: Icons.settings };
@@ -118,6 +136,29 @@ const BOTTOM_NAV: NavItem[] = [
   { key: 'analytics', label: 'Analytics', path: '/business/analytics', icon: Icons.analytics },
   SETTINGS_NAV,
 ];
+
+function fallbackParent(pathname: string): string {
+  const flow: Record<string, string> = {
+    '/business/campaigns/new': '/business/campaigns',
+    '/business/campaigns/ai-strategy': '/business/campaigns/new',
+    '/business/campaigns/parameters': '/business/campaigns/new',
+    '/business/campaigns/strategy': '/business/campaigns/new',
+    '/business/campaigns/creators': '/business/campaigns/strategy',
+    '/business/campaigns/guardrails': '/business/campaigns/creators',
+    '/business/campaigns/negotiate': '/business/campaigns/guardrails',
+    '/business/campaigns/invitations': '/business/campaigns/negotiate',
+    '/business/campaigns': '/business',
+    '/business/payments': '/business',
+    '/business/analytics': '/business',
+    '/business/settings': '/business',
+    '/business/notifications': '/business',
+    '/business/approvals': '/business',
+  };
+  if (flow[pathname]) return flow[pathname];
+  if (/^\/business\/campaigns\/[^/]+\/content$/.test(pathname)) return pathname.replace(/\/content$/, '');
+  if (/^\/business\/campaigns\/[^/]+$/.test(pathname)) return '/business/campaigns';
+  return '/business';
+}
 
 export default function BusinessLayout({
   breadcrumb,
@@ -166,8 +207,22 @@ export default function BusinessLayout({
   useEffect(() => { setDrawerOpen(false); setMobileMenuOpen(false); }, [location.pathname]);
 
   const isActive = (item: NavItem) => {
-    if (item.path === '/business') return location.pathname === '/business';
-    return location.pathname.startsWith(item.path);
+    const path = location.pathname;
+    const onPath = (base: string) => path === base || path.startsWith(`${base}/`);
+    const creating = CREATE_PATHS.some((base) => onPath(base));
+    if (item.key === 'dashboard') return path === '/business';
+    if (item.key === 'create') return creating;
+    if (item.key === 'campaigns') return !creating && onPath('/business/campaigns');
+    return onPath(item.path);
+  };
+
+  const showBack = location.pathname !== '/business' || location.key !== 'default';
+  const goBack = () => {
+    if (location.key !== 'default') {
+      navigate(-1);
+      return;
+    }
+    navigate(fallbackParent(location.pathname));
   };
 
   const handleLogout = async () => {
@@ -360,6 +415,14 @@ export default function BusinessLayout({
           >
             {Icons.menu}
           </button>
+
+          {/* Back — every screen except the dashboard landing */}
+          {showBack && (
+            <button type="button" className="biz-back" onClick={goBack}>
+              {Icons.chevronLeft}
+              <span className="biz-back__label">Back</span>
+            </button>
+          )}
 
           {/* Breadcrumb — desktop */}
           <nav className="biz-crumb desktop-only" aria-label="Breadcrumb">

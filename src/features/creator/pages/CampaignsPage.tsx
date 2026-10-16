@@ -1,129 +1,141 @@
-import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Briefcase, Clapperboard, Search } from 'lucide-react';
-import { useCreator } from '../CreatorContext';
-import { Button, EmptyState } from '../ui';
-import { CampaignItem, DueText, Eyebrow, nextDue } from '../campaignParts';
-import { inr } from '../format';
+import { BadgeCheck, ChevronRight, Clock, Clapperboard, Search, X } from 'lucide-react';
+import { useResponsive } from '../../../hooks/useResponsive';
+import { nextDue } from '../campaignParts';
+import { dateRange, dueLabel, inr, shortDate } from '../format';
 import type { Deliverable, Invitation } from '../types';
-import '../campaign-ui.css';
-
-type Filter = 'all' | 'active' | 'sign' | 'completed';
-
-const TAKEN = ['accepted', 'contract_pending', 'active', 'completed'];
-
-const TABS: Array<{ key: Filter; label: string; dot?: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'active', label: 'In progress', dot: '#2fb463' },
-  { key: 'sign', label: 'Awaiting contract', dot: '#2c52d6' },
-  { key: 'completed', label: 'Completed', dot: '#8b2fd6' },
-];
-
-function inFilter(i: Invitation, f: Filter): boolean {
-  if (f === 'all') return true;
-  if (f === 'active') return i.status === 'active';
-  if (f === 'sign') return i.status === 'accepted' || i.status === 'contract_pending';
-  return i.status === 'completed';
-}
+import CampaignsPageMobile from './CampaignsPageMobile';
+import { CAMPAIGN_STATUS, CAMPAIGN_TABS, progressOf, useCampaignBoard } from './campaignListBits';
+import './creator-campaigns.css';
 
 export default function CampaignsPage() {
+  const { isMobile } = useResponsive();
+  return isMobile ? <CampaignsPageMobile /> : <CampaignsWeb />;
+}
+
+function CampaignsWeb() {
   const navigate = useNavigate();
-  const { invitations, deliverables, ensureDeliverables, payments } = useCreator();
-  const [filter, setFilter] = useState<Filter>('all');
-  const [query, setQuery] = useState('');
-
-  const campaigns = useMemo(() => invitations.filter(i => TAKEN.includes(i.status)), [invitations]);
-  useEffect(() => { campaigns.forEach(ensureDeliverables); }, [campaigns, ensureDeliverables]);
-
-  const counts = Object.fromEntries(TABS.map(t => [t.key, campaigns.filter(c => inFilter(c, t.key)).length])) as Record<Filter, number>;
-
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return campaigns
-      .filter(c => inFilter(c, filter) && (!q || `${c.brief.title} ${c.brand}`.toLowerCase().includes(q)))
-      .sort((a, b) => (nextDue(a, deliverables[a.id]) ?? '9999').localeCompare(nextDue(b, deliverables[b.id]) ?? '9999'));
-  }, [campaigns, filter, query, deliverables]);
-
-  // The single most urgent piece of content across every running campaign.
-  const upNext = useMemo(() => {
-    let best: { inv: Invitation; item: Deliverable } | null = null;
-    campaigns.filter(c => c.status === 'active').forEach(inv => {
-      (deliverables[inv.id] ?? []).filter(d => d.status !== 'approved').forEach(item => {
-        if (!best || item.dueDate < best.item.dueDate) best = { inv, item };
-      });
-    });
-    return best as { inv: Invitation; item: Deliverable } | null;
-  }, [campaigns, deliverables]);
-
-  const allItems = campaigns.flatMap(c => deliverables[c.id] ?? []);
-  const delivered = allItems.filter(d => d.status === 'approved').length;
-  const upcoming = payments.filter(p => p.status === 'upcoming' || p.status === 'processing' || p.status === 'pending').reduce((s, p) => s + p.amount, 0);
+  const board = useCampaignBoard();
+  const { campaigns, filter, setFilter, query, setQuery, counts, shown, upNext, deliverables, stats } = board;
 
   return (
-    <div className="cx">
-      <section className="cx-intro">
+    <div className="cgn">
+      <header className="cgn-head">
         <div>
-          <h1 className="cx-intro__title">My campaigns</h1>
-          <p className="cx-intro__sub">Every campaign you have taken on, with what you owe the brand and what they owe you.</p>
+          <p className="cgn-kicker">Your work</p>
+          <h1>Campaigns</h1>
+          <p>Work you have already taken on. Open one to deliver, revise, and track what is coming to you.</p>
         </div>
-        <div className="cx-intro__stats">
-          <div className="cx-kpi"><strong>{campaigns.filter(c => c.status === 'active').length}</strong><span>In progress</span></div>
-          <div className="cx-kpi"><strong>{delivered}/{allItems.length}</strong><span>Pieces approved</span></div>
-          <div className="cx-kpi"><strong>{inr(upcoming)}</strong><span>Coming to you</span></div>
-        </div>
-      </section>
+      </header>
+
+      <div className="cgn-stats">
+        <span><b>{stats.live}</b><small>In progress</small></span>
+        <span><b>{stats.pieces ? `${stats.delivered}/${stats.pieces}` : '0'}</b><small>Pieces approved</small></span>
+        <span><b>{inr(stats.upcoming)}</b><small>Coming to you</small></span>
+      </div>
 
       {upNext && (
-        <div className="cx-panel" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', background: 'var(--cr-coral-tint)', borderColor: '#f6d9cf' }}>
-          <span className="cx-panel__icon" style={{ background: '#fff' }}><Clapperboard size={18} /></span>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <Eyebrow>Up next</Eyebrow>
-            <div style={{ fontWeight: 700, color: '#18181b' }}>{upNext.item.label}</div>
-            <div className="cx-muted" style={{ fontSize: '0.8125rem' }}>{upNext.inv.brief.title} · {upNext.item.format}</div>
-          </div>
-          <DueText iso={upNext.item.dueDate} />
-          <Button small onClick={() => navigate(`/creator/campaigns/${upNext.inv.id}`)}>Open <ArrowRight size={14} /></Button>
-        </div>
+        <button type="button" className="cgn-next" onClick={() => navigate(`/creator/campaigns/${upNext.inv.id}`)}>
+          <span className="cgn-next__mark" aria-hidden><Clapperboard size={18} /></span>
+          <span className="cgn-next__copy">
+            <small>Up next</small>
+            <strong>{upNext.item.label}</strong>
+            <em>{upNext.inv.brief.title} · {upNext.item.format}</em>
+          </span>
+          <span className="cgn-next__due"><Clock size={14} /> {dueLabel(upNext.item.dueDate)}</span>
+          <span className="cgn-next__go">Open <ChevronRight size={16} /></span>
+        </button>
       )}
 
-      <div className="cx-toolbar" role="tablist" aria-label="Filter campaigns">
-        {TABS.map(t => (
-          <button
-            key={t.key} role="tab" aria-selected={filter === t.key}
-            className={`cx-tab${filter === t.key ? ' is-on' : ''}`} onClick={() => setFilter(t.key)}
-          >
-            {t.dot && <span className="cx-tab__dot" style={{ background: t.dot }} />}
-            {t.label} ({counts[t.key]})
-          </button>
-        ))}
-        <div className="cx-toolbar__end">
-        <label className="cx-search">
-          <Search size={15} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search your campaigns…" aria-label="Search campaigns" />
-        </label>
+      <div className="cgn-tools">
+        <div className="cgn-filters" role="tablist" aria-label="Filter campaigns">
+          {CAMPAIGN_TABS.map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={filter === tab.key}
+              className={`cgn-chip${filter === tab.key ? ' is-on' : ''}`}
+              onClick={() => setFilter(tab.key)}
+            >
+              {tab.label}
+              <b>{counts[tab.key]}</b>
+            </button>
+          ))}
         </div>
+        <label className="cgn-search">
+          <Search size={15} />
+          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search your campaigns" aria-label="Search campaigns" />
+          {query && <button type="button" aria-label="Clear search" onClick={() => setQuery('')}><X size={14} /></button>}
+        </label>
       </div>
 
       {shown.length === 0 ? (
-        <div className="cx-panel">
-          <EmptyState
-            icon={Briefcase}
-            title={campaigns.length === 0 ? 'No campaigns yet' : 'Nothing matches'}
-            text={campaigns.length === 0
-              ? 'Accept an invitation to start your first campaign.'
-              : 'Try another filter or clear the search.'}
-            action={campaigns.length === 0
-              ? <Button onClick={() => navigate('/creator/invitations')}>Browse invitations</Button>
-              : <Button variant="ghost" onClick={() => { setQuery(''); setFilter('all'); }}>Clear filters</Button>}
-          />
-        </div>
+        <EmptyBoard hasAny={campaigns.length > 0} onBrowse={() => navigate('/creator/invitations')} onClear={() => { setQuery(''); setFilter('all'); }} />
       ) : (
-        <div className="cx-list">
+        <div className="cgn-grid">
           {shown.map(inv => (
-            <CampaignItem key={inv.id} inv={inv} items={deliverables[inv.id]} mode="campaign" onOpen={() => navigate(`/creator/campaigns/${inv.id}`)} />
+            <WorkTile
+              key={inv.id}
+              inv={inv}
+              items={deliverables[inv.id]}
+              onOpen={() => navigate(`/creator/campaigns/${inv.id}`)}
+            />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function WorkTile({ inv, items, onOpen }: { inv: Invitation; items?: Deliverable[]; onOpen: () => void }) {
+  const status = CAMPAIGN_STATUS[inv.status];
+  const { done, total } = progressOf(inv, items);
+  const due = nextDue(inv, items);
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  return (
+    <button type="button" className="cgn-work" onClick={onOpen}>
+      <span className="cgn-work__media">
+        {inv.image ? <img src={inv.image} alt="" /> : <span>{inv.brand.slice(0, 1)}</span>}
+        {status && <span className={`cgn-flag cgn-flag--${status.tone}`}>{status.label}</span>}
+      </span>
+      <span className="cgn-work__body">
+        <span className="cgn-work__brand">
+          {inv.brand}
+          {inv.brandVerified && <BadgeCheck size={14} aria-label="Verified brand" />}
+        </span>
+        <strong>{inv.brief.title}</strong>
+        <span className="cgn-work__sum">{inv.brief.summary}</span>
+        <span className="cgn-work__facts">
+          <em>{inv.deliverables.join(' · ')}</em>
+          <em>{dateRange(inv.brief.startDate, inv.brief.endDate)}</em>
+        </span>
+        {items?.some(item => item.revisionNote) && <span className="cgn-rev">Revision requested</span>}
+        <span className="cgn-progress" aria-label={`${done} of ${total} pieces approved`}>
+          <span><em>Delivered</em><b>{done}/{total}</b></span>
+          <i><b style={{ width: `${pct}%` }} /></i>
+        </span>
+        <span className="cgn-work__pay">
+          <span>
+            <b>{inr(inv.agreedRate ?? inv.proposedRate)}</b>
+            <em>{inv.status === 'completed' ? 'Processing' : 'Expected'}{due && inv.status !== 'completed' ? ` · ${dueLabel(due)} · ${shortDate(due)}` : ''}</em>
+          </span>
+          <ChevronRight size={18} />
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function EmptyBoard({ hasAny, onBrowse, onClear }: { hasAny: boolean; onBrowse: () => void; onClear: () => void }) {
+  return (
+    <section className="cgn-empty">
+      <span className="cgn-empty__mark" aria-hidden><Clapperboard size={22} /></span>
+      <h2>{hasAny ? 'Nothing matches' : 'No campaigns yet'}</h2>
+      <p>{hasAny ? 'Try another filter or clear the search.' : 'Accept an invitation to start your first campaign. Nothing here is confirmed until you do.'}</p>
+      {hasAny
+        ? <button type="button" className="cgn-go cgn-go--quiet" onClick={onClear}>Clear filters</button>
+        : <button type="button" className="cgn-go" onClick={onBrowse}>See invitations</button>}
+    </section>
   );
 }

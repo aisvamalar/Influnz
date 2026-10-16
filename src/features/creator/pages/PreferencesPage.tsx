@@ -39,6 +39,7 @@ export default function PreferencesPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
+          <p className="cr-kicker">You</p>
           <h1 className="cr-page-title">Preferences</h1>
           <p className="cr-page-sub">Control the campaigns you see and how your AI agent negotiates.</p>
         </div>

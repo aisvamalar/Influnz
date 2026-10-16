@@ -33,9 +33,8 @@ export default function ReferralsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1 className="cr-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Share2 size={22} style={{ color: 'var(--in-coral-text)' }} /> Referrals
-        </h1>
+        <p className="cr-kicker">Invite</p>
+        <h1 className="cr-page-title">Referrals</h1>
         <p className="cr-page-sub">Invite other creators and earn rewards when they join.</p>
       </div>
 

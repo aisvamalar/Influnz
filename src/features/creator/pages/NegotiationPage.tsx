@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Sparkles, Send, Check, X, Bot, Building2, Info, ShieldCheck,
+  ArrowLeft, Send, Check, X, Bot, Building2, Info, ShieldCheck,
 } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
 import { Card, Button, Toast, EmptyState } from '../ui';
@@ -130,9 +130,8 @@ export default function NegotiationPage() {
       </button>
 
       <div>
-        <h1 className="cr-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Sparkles size={22} style={{ color: 'var(--in-coral-text)' }} /> AI Negotiation · {inv.brand}
-        </h1>
+        <p className="cr-kicker">Offer</p>
+        <h1 className="cr-page-title">AI Negotiation · {inv.brand}</h1>
         <p className="cr-page-sub">Your AI agent negotiates within the limits you set in Preferences.</p>
       </div>
 

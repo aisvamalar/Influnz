@@ -19,8 +19,9 @@ export default function EarningsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
+        <p className="cr-kicker">Money</p>
         <h1 className="cr-page-title">Earnings & Payouts</h1>
-        <p className="cr-page-sub">Every payment is protected in escrow and released on approval.</p>
+        <p className="cr-page-sub">Payment is protected and released when the brand approves the work.</p>
       </div>
 
       <div className="cr-grid cr-grid--3">
@@ -29,9 +30,9 @@ export default function EarningsPage() {
         <StatCard icon={Wallet} value={inr(totals.lifetime)} label="Lifetime earnings" />
       </div>
 
-      <Card style={{ background: 'linear-gradient(135deg, rgba(124,196,164,0.12), rgba(90,155,212,0.08))', border: '1px solid rgba(124,196,164,0.4)' }}>
+      <Card style={{ background: '#fef9f5', borderLeft: '3px solid #f2846b' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.875rem', color: 'var(--in-charcoal)' }}>
-          <ShieldCheck size={18} style={{ color: 'var(--in-success)' }} />
+          <ShieldCheck size={18} style={{ color: '#e06a4f' }} />
           <span><strong>Payment protection is on.</strong> Funds are held securely and released once your deliverables are approved.</span>
         </div>
       </Card>

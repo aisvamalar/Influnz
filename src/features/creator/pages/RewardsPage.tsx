@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Gift, Crown, Check, Lock, TrendingUp } from 'lucide-react';
+import { Check, Lock, TrendingUp } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
 import { Card, ProgressBar } from '../ui';
 import type { RewardTier } from '../types';
@@ -24,21 +24,17 @@ export default function RewardsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1 className="cr-page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Gift size={22} style={{ color: 'var(--in-coral-text)' }} /> Creator Partner & Rewards
-        </h1>
+        <p className="cr-kicker">Standing</p>
+        <h1 className="cr-page-title">Creator Partner & Rewards</h1>
         <p className="cr-page-sub">Unlock benefits as your reputation and performance grow.</p>
       </div>
 
       {/* Current standing */}
-      <Card style={{ background: 'linear-gradient(135deg, rgba(242,132,107,0.08), rgba(248,208,196,0.14))', border: '1px solid var(--in-coral)' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
-          <span style={{ width: 56, height: 56, borderRadius: 18, background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Crown size={26} />
-          </span>
+      <Card style={{ background: 'transparent', borderTop: '1px solid #efe6e1', paddingLeft: 0, paddingRight: 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--in-gray)', fontWeight: 700 }}>Current tier</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--in-charcoal)' }}>{currentTier.label}</div>
+            <div className="cr-kicker">Current tier</div>
+            <div style={{ fontSize: '2rem', fontWeight: 650, letterSpacing: '-0.03em', color: '#1a1a1a', lineHeight: 1 }}>{currentTier.label}</div>
             {nextTier ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', margin: '10px 0 6px' }}>

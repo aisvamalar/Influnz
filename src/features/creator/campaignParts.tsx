@@ -8,10 +8,11 @@
 import type { ReactNode } from 'react';
 import {
   ArrowRight, AtSign, BadgeCheck, Calendar, Check, CircleAlert, CircleCheck, Clock, Hash, Languages,
-  MapPin, RefreshCw, ShieldCheck, Sparkles, Tag, ThumbsDown, ThumbsUp, Wallet, X,
+  MapPin, RefreshCw, ShieldCheck, Sparkles, Tag, Wallet,
 } from 'lucide-react';
 import PlatformMark, { type PlatformId } from '../../components/mobile/PlatformMark';
 import { useCreator } from './CreatorContext';
+import { DosDonts } from './pages/invitationBits';
 import { tierOf } from './campaignMatch';
 import { compact, dateRange, daysUntil, dueLabel, inr, shortDate } from './format';
 import type { CampaignBrief, Deliverable, DeliverableSpec, DeliverableStatus, Invitation, InvitationStatus, MatchBreakdown } from './types';
@@ -184,36 +185,43 @@ export function CampaignHero({ inv, items }: { inv: Invitation; items?: Delivera
   const live = inv.status === 'active' || inv.status === 'completed';
   const due = nextDue(inv, items);
 
-  return (
-    <header className="cx-hero">
-      {inv.image && <img className="cx-hero__bg" src={inv.image} alt="" />}
-      <span className="cx-hero__shade" aria-hidden="true" />
-      {inv.image && <img className="cx-hero__thumb" src={inv.image} alt="" />}
+  const status = PILLS[inv.status].label;
 
-      <div className="cx-hero__main">
-        <div className="cx-hero__brand">
-          {inv.brand}
-          {inv.brandVerified && <BadgeCheck size={15} />}
-          <span style={{ marginLeft: 4 }}><Pill status={inv.status} /></span>
-        </div>
+  return (
+    <div className="cx-hero">
+      {inv.image && (
+        <figure className="cx-hero__photo">
+          <img src={inv.image} alt="" />
+        </figure>
+      )}
+
+      <div className="cx-hero__copy">
+        <p className="cx-hero__kicker">
+          {status}
+          {live ? ` · ${done} of ${total} approved` : ` · ${inv.matchPct}% fit`}
+        </p>
         <h1 className="cx-hero__title">{brief.title}</h1>
-        <CampaignMeta brief={brief} />
+        <p className="cx-hero__by">
+          <span>
+            {inv.brand}
+            {inv.brandVerified && <BadgeCheck size={14} />}
+          </span>
+          <span>{brief.platforms.join(', ')}</span>
+          <span>{dateRange(brief.startDate, brief.endDate)}</span>
+          <span>{brief.location}</span>
+          <span>{brief.category}</span>
+        </p>
       </div>
 
       <div className="cx-hero__pay">
-        <Eyebrow>{inv.agreedRate ? 'Agreed payout' : 'Your payout'}</Eyebrow>
-        <div className="cx-amount">{inr(payout)}<small>{inv.paymentProtected ? 'escrow protected' : ''}</small></div>
-        {live ? (
-          <div>
-            <div className="cx-bar-row"><span>Delivered</span><span>{done}/{total}</span></div>
-            <div className="cx-bar"><i style={{ width: `${total ? (done / total) * 100 : 0}%`, background: '#f0735a' }} /></div>
-          </div>
-        ) : (
-          <div className="cx-bar-row" style={{ marginBottom: 0 }}><span>{inv.matchPct}% match for you</span></div>
+        <span>{inv.agreedRate ? 'Agreed payout' : 'Your payout'}</span>
+        <b>{inr(payout)}</b>
+        {inv.paymentProtected && <small>Payment protected</small>}
+        {due && inv.status !== 'declined' && inv.status !== 'completed' && (
+          <em>{dueLabel(due)} · {shortDate(due)}</em>
         )}
-        {due && inv.status !== 'declined' && inv.status !== 'completed' && <DueText iso={due} />}
       </div>
-    </header>
+    </div>
   );
 }
 
@@ -252,25 +260,22 @@ export function stagesFor(inv: Invitation, items?: Deliverable[]): Stage[] {
     {
       key: 'payout', label: '5. Payout', value: inr(payout),
       state: past('completed') ? 'now' : 'todo',
-      sub: past('completed') ? 'Releasing' : 'Held in escrow',
+      sub: past('completed') ? 'Releasing' : 'Payment protected',
     },
   ];
 }
 
 export function StageTiles({ inv, items }: { inv: Invitation; items?: Deliverable[] }) {
   return (
-    <div className="cx-stages" aria-label="Campaign progress">
-      {stagesFor(inv, items).map(st => (
-        <div key={st.key} className={`cx-stage is-${st.state}`}>
-          <div className="cx-stage__k">{st.label}</div>
-          <div className="cx-stage__v">{st.value}</div>
-          <div className="cx-stage__s">
-            {st.state === 'done' ? <Check size={12} /> : st.state === 'now' ? <RefreshCw size={12} /> : <Clock size={12} />}
-            {st.sub}
-          </div>
-        </div>
+    <ol className="cx-steps" aria-label="Campaign progress">
+      {stagesFor(inv, items).map((st, i) => (
+        <li key={st.key} className={st.state === 'done' ? 'is-done' : st.state === 'now' ? 'is-now' : ''}>
+          <b>{String(i + 1).padStart(2, '0')}</b>
+          <span>{st.label.replace(/^\d+\.\s*/, '')}</span>
+          <em>{st.sub}</em>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 
@@ -311,32 +316,15 @@ interface RowProps {
   extra?: ReactNode;
 }
 
-/** One short label for the tile corner: "30–60s", "3 frames", "5–8 slides" … */
-function tileToken(spec: string): string {
-  const first = spec.split('·')[0].trim();
-  if (/^\d+\s*[–-]\s*\d+\s*(s|min|minutes)\b/i.test(first)) return first.replace(/\s+/g, '').replace(/minutes/i, 'min');
-  const n = /^(\d+)\s*(frames?|slides?)/i.exec(first);
-  if (n) return `${n[1]} ${n[2].toLowerCase().replace(/s$/, '')}${Number(n[1]) === 1 ? '' : 's'}`;
-  if (/image|video|photo/i.test(first)) return 'Post';
-  if (/live|minutes|min\b/i.test(first)) return 'Live';
-  return first.length > 8 ? `${first.slice(0, 7)}…` : first;
-}
-
-export function DeliverableRow({ title, format, platform, spec, due, count, note, open, status, flag, children, extra }: RowProps) {
-  const short = tileToken(spec);
+export function DeliverableRow({ title, format, spec, due, note, open, status, flag, children, extra }: RowProps) {
   return (
     <div className={`cx-deliv${open ? ' is-open' : ''}`}>
-      <div className="cx-tile" aria-hidden="true">
-        <PlatformBadge label={platform} size={22} />
-        <em>{short}</em>
-        {count && count > 1 ? <b>×{count}</b> : null}
-      </div>
       <div className="cx-deliv__main">
         <div className="cx-deliv__title">{title}</div>
-        <div className="cx-deliv__sub">{format} · {spec}</div>
+        <div className="cx-deliv__sub">{[format, spec].filter(Boolean).join(' · ')}</div>
         <DueText iso={due} />
         {note && <div className="cx-deliv__note">{note}</div>}
-        {flag && <div className="cx-flag"><CircleAlert size={14} /> {flag}</div>}
+        {flag && <div className="cx-flag">{flag}</div>}
       </div>
       <div className="cx-deliv__side">
         {status}
@@ -481,22 +469,7 @@ export function BriefPanel({ brief }: { brief: CampaignBrief }) {
         </>
       )}
 
-      {(brief.dos.length > 0 || brief.donts.length > 0) && (
-        <div className="cx-grid2" style={{ marginTop: 18 }}>
-          {brief.dos.length > 0 && (
-            <div>
-              <p className="cx-sub" style={{ marginTop: 0 }}><ThumbsUp size={13} style={{ verticalAlign: -2, color: 'var(--cx-green)' }} /> Do</p>
-              <ul className="cx-checks">{brief.dos.map(d => <li key={d} className="is-ok"><Check size={16} />{d}</li>)}</ul>
-            </div>
-          )}
-          {brief.donts.length > 0 && (
-            <div>
-              <p className="cx-sub" style={{ marginTop: 0 }}><ThumbsDown size={13} style={{ verticalAlign: -2, color: 'var(--cx-red)' }} /> Don&apos;t</p>
-              <ul className="cx-checks">{brief.donts.map(d => <li key={d} className="is-no"><X size={16} />{d}</li>)}</ul>
-            </div>
-          )}
-        </div>
-      )}
+      <DosDonts dos={brief.dos} donts={brief.donts} />
     </>
   );
 }

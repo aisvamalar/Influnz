@@ -111,7 +111,7 @@ const CAMPAIGNS = [
   {
     id: 3,
     name: 'Bangalore Tech Event',
-    status: 'draft' as const,
+    status: 'pending' as const,
     budget: '₹60,000',
     spent: '₹0',
     fill: 0,
@@ -146,7 +146,7 @@ const NEXT_STEPS = [
 const UPCOMING = [
   { day: '30', month: 'Sep', title: 'Content deadline', sub: 'Chennai Café Launch · 8 creators' },
   { day: '10', month: 'Oct', title: 'Campaign goes live', sub: 'Mumbai Fashion Drop' },
-  { day: '15', month: 'Oct', title: 'Finalise the brief', sub: 'Bangalore Tech Event · draft' },
+  { day: '15', month: 'Oct', title: 'Finalise the brief', sub: 'Bangalore Tech Event · pending' },
 ];
 
 function greeting(hour: number) {

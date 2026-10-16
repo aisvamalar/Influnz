@@ -100,7 +100,7 @@ function BrandPreview() {
           </li>
         ))}
       </ul>
-    </div>
+      </div>
   );
 }
 
@@ -128,7 +128,7 @@ function CreatorPreview() {
             Due 24 Oct
           </span>
         </span>
-      </div>
+        </div>
       <div className="wlp-escrow">
         <ShieldCheck size={18} strokeWidth={2.2} />
         <span>
@@ -185,7 +185,7 @@ export default function LandingPageWeb() {
               Get started
               <ArrowRight size={15} strokeWidth={2.4} aria-hidden="true" />
             </button>
-          </div>
+            </div>
         </div>
       </header>
 
@@ -202,7 +202,7 @@ export default function LandingPageWeb() {
                 Brands grow.
                 <br />
                 We make it <em className="wlp-accent">happen.</em>
-              </h1>
+            </h1>
               <p className="wlp-hero__sub">
                 Influnz finds the right local creators, negotiates fair deals with AI and releases payment only when
                 content goes live.
@@ -212,11 +212,11 @@ export default function LandingPageWeb() {
                 <button type="button" className="wlp-btn wlp-btn--coral wlp-btn--lg" onClick={() => navigate('/signup')}>
                   Start a campaign
                   <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
-                </button>
+              </button>
                 <button type="button" className="wlp-btn wlp-btn--ghost wlp-btn--lg" onClick={() => navigate('/signup?type=creator')}>
                   I'm a creator
-                </button>
-              </div>
+              </button>
+            </div>
 
               <div className="wlp-proof">
                 <span className="wlp-faces" aria-hidden="true">
@@ -233,7 +233,7 @@ export default function LandingPageWeb() {
                   </span>
                   2,400+ creators in 40 cities
                 </span>
-              </div>
+            </div>
 
               <ul className="wlp-trust">
                 {TRUST.map(({ icon: Icon, label }) => (
@@ -297,8 +297,8 @@ export default function LandingPageWeb() {
                 <TrendingUp size={15} strokeWidth={2.4} />
                 <strong>+42%</strong> reach
               </span>
-            </div>
-          </div>
+              </div>
+              </div>
         </section>
 
         {/* ── How it works ── */}
@@ -326,7 +326,7 @@ export default function LandingPageWeb() {
                         <Bot size={14} strokeWidth={2.2} />
                         Got it! Finding food creators near T. Nagar…
                       </span>
-                    </div>
+              </div>
                   )}
                   {i === 1 && (
                     <ul className="wlp-mini wlp-mini--match" aria-hidden="true">
@@ -346,7 +346,7 @@ export default function LandingPageWeb() {
                         <strong>₹28,000 held in escrow</strong>
                         <span>Released when the Reel goes live</span>
                       </span>
-                    </div>
+              </div>
                   )}
                 </li>
               ))}
@@ -361,7 +361,7 @@ export default function LandingPageWeb() {
               <Eyebrow>Everything in one place</Eyebrow>
               <h2 id="wlp-features-title" className="wlp-h2">
                 Built for the way India <em className="wlp-accent">creates</em>
-              </h2>
+            </h2>
               <p className="wlp-lead">One workspace for discovery, negotiation, approvals, payments and results.</p>
             </div>
 
@@ -371,11 +371,11 @@ export default function LandingPageWeb() {
                   <div>
                     <h3 className="wlp-tile__title">AI matchmaking</h3>
                     <p className="wlp-tile__text">Matched by city, language, audience and past performance — not just follower count.</p>
-                  </div>
+                    </div>
                   <span className="wlp-ring wlp-ring--lg" style={{ '--wlp-pct': 96 } as CSSProperties} aria-label="96% match">
                     <strong>96%</strong>
                   </span>
-                </div>
+                    </div>
                 <span className="wlp-faces wlp-faces--lg" aria-hidden="true">
                   {[PHOTOS.foodtales, PHOTOS.cafe, PHOTOS.arjun, PHOTOS.explorer, PHOTOS.anu].map((id) => (
                     <img key={id} src={photo(id, 96, 96)} alt="" loading="lazy" />
@@ -394,7 +394,7 @@ export default function LandingPageWeb() {
                     <Check size={13} strokeWidth={3} />
                     Deal ₹28,000
                   </span>
-                </div>
+            </div>
               </article>
 
               <article className="wlp-tile wlp-tile--white wlp-reveal">
@@ -405,15 +405,15 @@ export default function LandingPageWeb() {
 
               <article className="wlp-tile wlp-tile--wide wlp-tile--white wlp-reveal">
                 <div className="wlp-tile__row">
-                  <div>
+            <div>
                     <h3 className="wlp-tile__title">Live analytics</h3>
                     <p className="wlp-tile__text">Views, enquiries and cost per customer — in real time.</p>
-                  </div>
+              </div>
                   <span className="wlp-roi">
                     <strong>3.2x</strong>
                     <span>avg. ROI</span>
                   </span>
-                </div>
+                  </div>
                 <span className="wlp-chart" aria-hidden="true">
                   {CHART.map((h, i) => (
                     <span key={i} style={{ height: `${h}%` }} />
@@ -448,10 +448,10 @@ export default function LandingPageWeb() {
                 <div key={s.label} className="wlp-stats__item wlp-reveal" style={{ transitionDelay: `${i * 80}ms` }}>
                   <dt>{s.label}</dt>
                   <dd>{s.value}</dd>
-                </div>
+              </div>
               ))}
             </dl>
-          </div>
+              </div>
         </section>
 
         {/* ── Audience switch ── */}
@@ -465,7 +465,7 @@ export default function LandingPageWeb() {
 
               <div className="wlp-switch" role="radiogroup" aria-label="Show benefits for">
                 {(Object.keys(AUDIENCES) as Audience[]).map((key) => (
-                  <button
+              <button
                     key={key}
                     type="button"
                     role="radio"
@@ -475,10 +475,10 @@ export default function LandingPageWeb() {
                   >
                     {key === 'brands' ? <TrendingUp size={16} strokeWidth={2.4} aria-hidden="true" /> : <Users size={16} strokeWidth={2.4} aria-hidden="true" />}
                     {AUDIENCES[key].label}
-                  </button>
+              </button>
                 ))}
                 <span className={`wlp-switch__thumb wlp-switch__thumb--${audience}`} aria-hidden="true" />
-              </div>
+            </div>
 
               <ul className="wlp-points" key={audience}>
                 {current.points.map((p) => (
@@ -495,14 +495,14 @@ export default function LandingPageWeb() {
                 {current.cta}
                 <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
               </button>
-            </div>
+          </div>
 
             <div className="wlp-preview wlp-reveal">
               <span className="wlp-preview__glow" aria-hidden="true" />
               <div className="wlp-preview__swap" key={audience}>
                 {audience === 'brands' ? <BrandPreview /> : <CreatorPreview />}
-              </div>
             </div>
+          </div>
           </div>
         </section>
 
@@ -551,7 +551,7 @@ export default function LandingPageWeb() {
                 <span className="wlp-rating__text">Average rating from 1,200+ brands and creators</span>
               </li>
             </ul>
-          </div>
+              </div>
         </section>
 
         {/* ── FAQ ── */}
@@ -573,9 +573,9 @@ export default function LandingPageWeb() {
                   </summary>
                   <p>{f.a}</p>
                 </details>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
         </section>
 
         {/* ── Final CTA ── */}
@@ -599,8 +599,8 @@ export default function LandingPageWeb() {
                   <button type="button" className="wlp-final__login" onClick={() => navigate('/login')}>
                     Already have an account? <strong>Log in</strong>
                   </button>
-                </div>
               </div>
+            </div>
               <div className="wlp-final__art" aria-hidden="true">
                 {[PHOTOS.hero, PHOTOS.pranav, PHOTOS.foodtales].map((id, i) => (
                   <img key={id} className={`wlp-final__photo wlp-final__photo--${i}`} src={photo(id, 300, 380)} alt="" loading="lazy" />
@@ -636,7 +636,7 @@ export default function LandingPageWeb() {
                 Log in
               </button>
             </nav>
-          </div>
+            </div>
           <p className="wlp-foot__copy">© 2026 Influnz · Made in India</p>
         </div>
       </footer>

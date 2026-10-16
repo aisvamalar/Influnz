@@ -10,7 +10,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Mail, Briefcase, Wallet, TrendingUp, UserCircle, SlidersHorizontal,
-  Star, Gift, Share2, Bell, Search, Menu, ChevronDown, ChevronLeft,
+  Star, Gift, Share2, Bell, Search, Menu, ChevronDown, ChevronLeft, Home, type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
 import LogoLight from '../../components/LogoLight';
@@ -21,6 +21,7 @@ import { useCreator } from './CreatorContext';
 import '../../styles/web-responsive.css';
 import '../business/business-sidebar.css';
 import '../../components/mobile/mobile-app-header.css';
+import '../../components/mobile/mobile-bottom-nav.css';
 import './creator-ui.css';
 
 /** Width the screens are designed at; wider viewports scale the whole shell up. */
@@ -94,7 +95,16 @@ export default function CreatorLayout() {
 
   const newInvites = invitations.filter(i => i.status === 'new').length;
   const primaryNav: NavItem[] = PRIMARY.map(item => (item.key === 'invitations' && newInvites > 0 ? { ...item, badge: newInvites } : item));
-  const bottomNav: NavItem[] = [primaryNav[0], primaryNav[1], primaryNav[2], primaryNav[3], PREFS_NAV];
+  const onCreator = (base: string) => location.pathname === base || location.pathname.startsWith(`${base}/`);
+  const barActive = onCreator('/creator/campaigns')
+    ? 'campaigns'
+    : onCreator('/creator/earnings')
+      ? 'earnings'
+      : onCreator('/creator/growth')
+        ? 'growth'
+        : onCreator('/creator/dashboard') || location.pathname === '/creator'
+          ? 'home'
+          : '';
 
   const displayName = profile.displayName || 'Creator';
   const subtitle = `@${profile.username}`;
@@ -152,7 +162,7 @@ export default function CreatorLayout() {
     <aside className={`bsb biz-aside${railed ? ' is-collapsed' : ''}`} aria-label="Creator navigation">
       <div className="bsb__panel">
         <div className="bsb__brand">
-          <LogoLight className="bsb__logo" height={40} />
+          <LogoLight height={34} className="bsb__logo" />
           <button type="button" className="bsb__mark" onClick={() => setCollapsed(false)} aria-label="Expand sidebar">
             <LogoLight variant="mark" height={34} title="" />
           </button>
@@ -202,16 +212,6 @@ export default function CreatorLayout() {
   const mobileHeader = (
     <div className="mah" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
       <div className="mah__brand">
-        <button
-          type="button"
-          className="biz-header__menu"
-          onClick={() => setDrawerOpen(v => !v)}
-          aria-label="Open navigation"
-          aria-expanded={drawerOpen}
-          style={{ marginRight: 4 }}
-        >
-          <Menu size={18} />
-        </button>
         <img src={logoImg} alt="Influnz" className="mah__logo" />
         <span className="mah__badge">CREATOR</span>
       </div>
@@ -241,11 +241,12 @@ export default function CreatorLayout() {
       style={{ display: 'flex', minHeight: SCREEN_HEIGHT, background: '#faf8f5', zoom: scale, '--biz-zoom': scale } as React.CSSProperties}
       className="business-layout creator-layout"
     >
-      {/* ── Desktop sidebar slot ── */}
-      <div className={`biz-sidebar-slot${collapsed ? ' is-collapsed' : ''}`}>{renderSidebar(collapsed, width > 768)}</div>
+      {/* Sidebar stays on desktop. Phones use the bottom bar only. */}
+      {!isMobile && (
+        <div className={`biz-sidebar-slot${collapsed ? ' is-collapsed' : ''}`}>{renderSidebar(collapsed, true)}</div>
+      )}
 
-      {/* ── Mobile drawer ── */}
-      {drawerOpen && (
+      {drawerOpen && !isMobile && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)' }}
           onClick={() => setDrawerOpen(false)}
@@ -311,12 +312,12 @@ export default function CreatorLayout() {
               display: 'flex', alignItems: 'center', gap: 8,
               height: 36, padding: '0 14px',
               background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 10,
-              width: 'clamp(160px, 22vw, 280px)',
+              width: 'min(520px, 46vw)',
             }}
           >
             <span style={{ color: '#a8a8a8', display: 'flex', flexShrink: 0 }}><Search size={16} /></span>
             <input
-              placeholder="Search invitations, campaigns..."
+              placeholder="Search invitations, campaigns, brands..."
               style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.8125rem', color: '#2d2d2d', fontFamily: 'inherit', width: '100%' }}
               aria-label="Search invitations and campaigns"
             />
@@ -430,25 +431,63 @@ export default function CreatorLayout() {
         </main>
       </div>
 
-      {/* ── Mobile bottom tab bar ── */}
-      <nav className="biz-bottom-nav" aria-label="Main navigation">
-        {bottomNav.map(item => {
-          const active = isActive(item);
-          return (
-            <button
-              key={item.key}
-              className={`biz-bottom-nav__item${active ? ' biz-bottom-nav__item--active' : ''}`}
-              onClick={() => navigate(item.path)}
-              aria-current={active ? 'page' : undefined}
-              aria-label={item.label}
-            >
-              {item.badge ? <span className="biz-bottom-nav__badge">{item.badge}</span> : null}
-              <span className="biz-bottom-nav__icon-wrap" aria-hidden="true">{item.icon}</span>
-              <span className="biz-bottom-nav__label">{item.key === 'dashboard' ? 'Home' : item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {isMobile && (
+        <CreatorTabBar
+          active={barActive}
+          invites={newInvites}
+          onNavigate={navigate}
+        />
+      )}
     </div>
+  );
+}
+
+function CreatorTabBar({
+  active,
+  invites,
+  onNavigate,
+}: {
+  active: string;
+  invites: number;
+  onNavigate: (path: string) => void;
+}) {
+  const item = (key: string, label: string, path: string, Icon: LucideIcon) => {
+    const on = active === key;
+    return (
+      <button
+        type="button"
+        className={`mbn__item${on ? ' mbn__item--active' : ''}`}
+        aria-current={on ? 'page' : undefined}
+        onClick={() => onNavigate(path)}
+      >
+        <Icon
+          size={24}
+          strokeWidth={on ? 2.2 : 1.8}
+          fill={on && key === 'home' ? 'currentColor' : 'none'}
+          fillOpacity={on && key === 'home' ? 0.9 : 0}
+        />
+        {label}
+      </button>
+    );
+  };
+
+  return (
+    <nav className="mbn" aria-label="Main navigation">
+      {item('home', 'Home', '/creator/dashboard', Home)}
+      {item('campaigns', 'Campaigns', '/creator/campaigns', Briefcase)}
+      <div className="mbn__fab-slot">
+        <button
+          type="button"
+          className="mbn__fab"
+          aria-label={invites > 0 ? `${invites} new invitations` : 'Invitations'}
+          onClick={() => onNavigate('/creator/invitations')}
+        >
+          <Mail size={26} strokeWidth={2.2} />
+          {invites > 0 && <span className="mbn__fab-badge">{invites}</span>}
+        </button>
+      </div>
+      {item('earnings', 'Earnings', '/creator/earnings', Wallet)}
+      {item('growth', 'Growth', '/creator/growth', TrendingUp)}
+    </nav>
   );
 }
