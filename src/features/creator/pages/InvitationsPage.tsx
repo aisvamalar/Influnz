@@ -23,7 +23,7 @@ export default function InvitationsPage() {
 function InvitationsWeb() {
   const navigate = useNavigate();
   const rail = useRef<HTMLUListElement>(null);
-  const { invitations, filter, setFilter, query, setQuery, sort, setSort, counts, shown } = useInvitationList();
+  const { invitations, moved, filter, setFilter, query, setQuery, sort, setSort, counts, shown } = useInvitationList();
   const rest = shown.slice(1);
   const nudge = (dir: number) => rail.current?.scrollBy({ left: dir * 260, behavior: 'smooth' });
 
@@ -93,11 +93,16 @@ function InvitationsWeb() {
           <h2>{invitations.length === 0 ? 'No invitations yet' : 'Nothing in this view'}</h2>
           <p>
             {invitations.length === 0
-              ? 'When a brand sends you a private invitation, it shows up here. This is not a public job board.'
+              ? 'When a brand near you sends you an invitation, it shows up here. Open campaigns further away are under Browse in Campaigns.'
               : 'Try another filter, or clear the search.'}
           </p>
           {(query || filter !== 'all') && (
             <button type="button" className="iv-text" onClick={() => { setQuery(''); setFilter('all'); }}>Show all</button>
+          )}
+          {moved > 0 && filter === 'all' && !query && (
+            <button type="button" className="iv-text" onClick={() => navigate('/creator/campaigns')}>
+              {moved} accepted {moved === 1 ? 'campaign is' : 'campaigns are'} in Campaigns
+            </button>
           )}
         </section>
       ) : (

@@ -1,287 +1,237 @@
-import { useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, BadgeCheck } from 'lucide-react';
-import { useResponsive } from '../../../hooks/useResponsive';
-import { useCreator } from '../CreatorContext';
-import { compact, daysUntil, dueLabel, inr } from '../format';
-import type { Invitation, PaymentStatus } from '../types';
-import DashboardPageMobile from './DashboardPageMobile';
+/**
+ * Creator dashboard — "Creator workspace" (prefix: chd).
+ *
+ * Desktop follows the workspace design: title and three quick stats, the campaign
+ * workflow, live activity down the right, and four insight tiles underneath.
+ * Phones get the same content in reading order, with the actions list inline (on
+ * desktop it opens from the "Action needed" stat) and the workflow as a timeline.
+ * Layout reflows on the content width (container queries on .biz-canvas), so it also
+ * adapts when the sidebar is a rail.
+ */
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Activity, ArrowRight, ChevronRight, CircleAlert, CircleCheckBig, FilePen, FileText, IdCard,
+  IndianRupee, Megaphone, MessagesSquare, Play, RotateCcw, Sparkles, TriangleAlert, Upload, Bot,
+  type LucideIcon,
+} from 'lucide-react';
+import { dueLabel } from '../format';
+import { Chip, EmptyNote, dueTone, type Tone } from './dashboardBits';
+import { useDashboardData, type ActionKind, type ActivityKind, type ActivityItem, type DashboardAction } from './dashboardData';
+import { DeadlineTile, EarningsTile, ScoreTile, UpdatesTile } from './dashboardTiles';
+import DashboardWorkflow from './DashboardWorkflow';
 import './creator-dashboard.css';
 
-const TAKEN = ['accepted', 'contract_pending', 'active', 'completed'];
-const FRESH = ['new', 'in_negotiation'];
+const ACTION_LOOK: Record<ActionKind, { icon: LucideIcon; tone: Tone }> = {
+  revise: { icon: RotateCcw, tone: 'red' },
+  payment: { icon: TriangleAlert, tone: 'red' },
+  sign: { icon: FilePen, tone: 'violet' },
+  submit: { icon: Upload, tone: 'amber' },
+  negotiate: { icon: MessagesSquare, tone: 'blue' },
+  passport: { icon: IdCard, tone: 'teal' },
+};
 
-function greetingFor(date: Date): string {
-  const hour = date.getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+const ACTIVITY_LOOK: Record<ActivityKind, { icon: LucideIcon; tone: Tone }> = {
+  invite: { icon: Sparkles, tone: 'coral' },
+  offer: { icon: MessagesSquare, tone: 'coral' },
+  counter: { icon: Bot, tone: 'violet' },
+  signed: { icon: FileText, tone: 'amber' },
+  live: { icon: Play, tone: 'blue' },
+  paid: { icon: IndianRupee, tone: 'pink' },
+};
 
-function DashboardWeb() {
-  const navigate = useNavigate();
-  const { profile, invitations, payments, deliverables, ensureDeliverables } = useCreator();
-  const today = new Date();
-
-  const fresh = useMemo(
-    () => invitations.filter(i => FRESH.includes(i.status)).sort((a, b) => b.matchPct - a.matchPct),
-    [invitations],
-  );
-  const featured = fresh[0];
-  const running = useMemo(
-    () => invitations.filter(i => TAKEN.includes(i.status)),
-    [invitations],
-  );
-
-  useEffect(() => {
-    running.forEach(ensureDeliverables);
-  }, [running, ensureDeliverables]);
-
-  const sum = (statuses: PaymentStatus[]) =>
-    payments.filter(p => statuses.includes(p.status)).reduce((s, p) => s + p.amount, 0);
-  const paid = sum(['paid']);
-  const pending = sum(['pending']);
-  const processing = sum(['processing']);
-  const expected = sum(['upcoming']);
-  const problem = sum(['failed', 'disputed']);
-
-  const next = [...running]
-    .map(i => ({ inv: i, days: daysUntil(i.brief.endDate) }))
-    .sort((a, b) => a.days - b.days)[0];
-
-  const openWork = running.flatMap(i => {
-    const open = (deliverables[i.id] ?? []).filter(d => d.status === 'not_started' || d.status === 'changes_requested');
-    return open.length ? [{ inv: i, count: open.length }] : [];
-  });
-
-  const audience = [
-    { label: profile.audience.topCity, pct: profile.audience.topCityPct },
-    { label: profile.audience.topLanguage, pct: profile.audience.topLanguagePct },
-    { label: profile.audience.topAgeRange, pct: profile.audience.topAgePct },
-    { label: profile.audience.topCountry, pct: profile.audience.topCountryPct },
-  ];
-  const others = fresh.filter(inv => inv.id !== featured?.id);
-  const nextOpen = next ? openWork.find(item => item.inv.id === next.inv.id) : undefined;
-  const otherWork = openWork.filter(item => item.inv.id !== next?.inv.id);
-  const todoCount = otherWork.length + (next ? 1 : 0);
-
-  return (
-    <div className="cdb">
-      <header className="cdb-hello">
-        <p className="cdb-hello__date">
-          {today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
-        <h1>{greetingFor(today)}, {profile.displayName}</h1>
-        <p>One invitation to open, the work that is due, and what you have been paid.</p>
-      </header>
-
-      <section className="cdb-kpis" aria-label="Snapshot">
-        <Kpi
-          label="New invitations"
-          value={String(fresh.length)}
-          note={fresh[0] ? `${fresh[0].matchPct}% best fit` : 'None waiting'}
-          onClick={() => navigate('/creator/invitations')}
-        />
-        <Kpi
-          label="Campaigns in progress"
-          value={String(running.length)}
-          note={running.length ? 'Accepted work' : 'Nothing active'}
-          onClick={() => navigate('/creator/campaigns')}
-        />
-        <Kpi
-          label="Next deadline"
-          value={next ? shortDay(next.inv.brief.endDate) : '—'}
-          note={next ? next.inv.brief.title : 'No deadlines yet'}
-          onClick={() => navigate(next ? `/creator/campaigns/${next.inv.id}` : '/creator/campaigns')}
-        />
-        <Kpi
-          label="Received"
-          value={inr(paid)}
-          note="Already paid to you"
-          onClick={() => navigate('/creator/earnings')}
-        />
-      </section>
-
-      <div className="cdb-main">
-      <section className="cdb-hero">
-        <div className="cdb-hero__art">
-          {featured?.image && <img src={featured.image} alt="" />}
-        </div>
-        <div className="cdb-hero__copy">
-          <span className="cdb-hero__kicker">
-            {featured ? `New invitation · ${featured.matchPct}% fit` : 'Invitations'}
-          </span>
-          <h2>{featured ? featured.brief.title : 'Nothing waiting'}</h2>
-          <p className="cdb-hero__by">
-            {featured
-              ? `${featured.brand} · ${featured.category} · ${featured.location}`
-              : 'When a brand chooses you, the invitation shows up here.'}
-          </p>
-          {featured && <p className="cdb-hero__lead">{featured.brief.summary}</p>}
-          {featured && <b className="cdb-hero__pay">{inr(featured.agreedRate ?? featured.proposedRate)}</b>}
-          <button type="button" className="cdb-btn" onClick={() => navigate(featured ? `/creator/invitations/${featured.id}` : '/creator/invitations')}>
-            {featured ? 'Open invitation' : 'See invitations'} <ArrowRight size={16} />
-          </button>
-        </div>
-      </section>
-
-      {others.length > 0 && (
-        <section className="cdb-panel cdb-invites">
-          <div className="cdb-panel__head">
-            <div>
-              <h2>Also waiting</h2>
-              <p>Other invitations matched to you.</p>
-            </div>
-            <button type="button" className="cdb-textlink" onClick={() => navigate('/creator/invitations')}>View all</button>
-          </div>
-          {others.slice(0, 3).map(inv => (
-            <InviteRow key={inv.id} inv={inv} onOpen={() => navigate(`/creator/invitations/${inv.id}`)} />
-          ))}
-        </section>
-      )}
-
-      <section className="cdb-panel cdb-perf">
-        <div className="cdb-panel__head">
-          <div>
-            <h2>Performance</h2>
-            <p>From your connected profiles.</p>
-          </div>
-          <button type="button" className="cdb-textlink" onClick={() => navigate('/creator/growth')}>Open growth</button>
-        </div>
-        <div className="cdb-perf__body">
-          <div className="cdb-metrics">
-            <Metric label="Followers" value={compact(profile.followers)} />
-            <Metric label="Engagement" value={`${profile.engagement}%`} />
-            <Metric label="Avg views" value={compact(profile.avgViews)} />
-          </div>
-          <div className="cdb-bars" aria-hidden>
-            {audience.map(a => (
-              <span key={a.label} style={{ height: `${Math.max(18, a.pct)}%` }} />
-            ))}
-          </div>
-        </div>
-        <ul className="cdb-audience">
-          {audience.map(a => (
-            <li key={a.label}><strong>{a.pct}%</strong> {a.label}</li>
-          ))}
-        </ul>
-      </section>
-      </div>
-
-      <aside className="cdb-side">
-        <section className="cdb-panel">
-          <div className="cdb-panel__head">
-            <h2>To do{todoCount > 0 && <span className="cdb-count">{todoCount}</span>}</h2>
-            <button type="button" className="cdb-textlink" onClick={() => navigate('/creator/campaigns')}>Campaigns</button>
-          </div>
-          {next && (
-            <button type="button" className="cdb-task" onClick={() => navigate(`/creator/campaigns/${next.inv.id}`)}>
-              <b>Due</b>
-              <span>
-                <strong>{next.inv.brief.title}</strong>
-                <small>
-                  {nextOpen ? `Submit ${nextOpen.count} piece${nextOpen.count > 1 ? 's' : ''} · ` : ''}
-                  {dueLabel(next.inv.brief.endDate)}
-                </small>
-              </span>
-            </button>
-          )}
-          {otherWork.slice(0, 3).map(item => (
-            <button key={item.inv.id} type="button" className="cdb-task" onClick={() => navigate(`/creator/campaigns/${item.inv.id}`)}>
-              <b>Send</b>
-              <span>
-                <strong>{item.inv.brief.title}</strong>
-                <small>Submit {item.count} piece{item.count > 1 ? 's' : ''}</small>
-              </span>
-            </button>
-          ))}
-          {todoCount === 0 && <p className="cdb-empty">You are caught up.</p>}
-        </section>
-
-        <section className="cdb-panel">
-          <div className="cdb-panel__head">
-            <h2>Earnings</h2>
-            <button type="button" className="cdb-textlink" onClick={() => navigate('/creator/earnings')}>View all</button>
-          </div>
-          <dl className="cdb-earn__more">
-            <div><dt>Received</dt><dd>{inr(paid)}</dd></div>
-            <div><dt>Expected</dt><dd>{inr(expected)}</dd></div>
-            <div><dt>Pending</dt><dd>{inr(pending)}</dd></div>
-            <div><dt>Processing</dt><dd>{inr(processing)}</dd></div>
-            {problem > 0 && <div className="is-bad"><dt>Failed or disputed</dt><dd>{inr(problem)}</dd></div>}
-          </dl>
-          <p className="cdb-note">Expected is not earned until it is paid.</p>
-        </section>
-
-        <section className="cdb-panel">
-          <h2>Standing</h2>
-          <button type="button" className="cdb-stand" onClick={() => navigate('/creator/reputation')}>
-            <b>{profile.reliability}</b>
-            <span>Reliability · rating {profile.rating.toFixed(1)}</span>
-          </button>
-        </section>
-      </aside>
-    </div>
-  );
-}
-
-function shortDay(iso: string): string {
-  const hit = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!hit) return '—';
-  return `${Number(hit[3])} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(hit[2]) - 1]}`;
-}
-
-function Kpi({ label, value, note, onClick }: {
-  label: string;
-  value: string;
-  note: string;
-  onClick: () => void;
-}) {
-  return (
-    <button type="button" className="cdb-kpi" onClick={onClick}>
-      <span className="cdb-kpi__label">{label}</span>
-      <strong>{value}</strong>
-      <small>{note}</small>
-    </button>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="cdb-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function InviteRow({ inv, onOpen }: { inv: Invitation; onOpen: () => void }) {
-  return (
-    <article className="cdb-invite">
-      {inv.image ? <img src={inv.image} alt="" /> : <span className="cdb-invite__ph" />}
-      <div className="cdb-invite__main">
-        <strong>{inv.brief.title}</strong>
-        <span>{inv.category} · {inv.location}</span>
-        <small>
-          {inv.brand}
-          {inv.brandVerified && <BadgeCheck size={13} />}
-          {' · '}{inv.deliverables.length} deliverable{inv.deliverables.length === 1 ? '' : 's'}
-          {' · '}{inv.matchPct}% match
-        </small>
-      </div>
-      <div className="cdb-invite__pay">
-        <b>{inr(inv.proposedRate)}</b>
-        <span>Your payout</span>
-      </div>
-      <div className="cdb-invite__actions">
-        <button type="button" className="cdb-btn" onClick={onOpen}>Open</button>
-      </div>
-    </article>
-  );
-}
+const FEED_SIZE = 6;
 
 export default function DashboardPage() {
-  const { isMobile } = useResponsive();
-  return isMobile ? <DashboardPageMobile /> : <DashboardWeb />;
+  const data = useDashboardData();
+  const { profile, open, running, money, actions, activity } = data;
+  const first = profile.displayName.trim().split(' ')[0] || 'there';
+
+  return (
+    <div className="chd">
+      <div className="chd-head">
+        <div className="chd-head__intro">
+          <h1>
+            Creator workspace
+            <Sparkles className="chd-head__spark" size={24} strokeWidth={2} aria-hidden="true" />
+          </h1>
+          <p>Your campaigns, deliverables and AI activity in one place.</p>
+          <p className="chd-head__hello">Hi {first}, {data.summary.charAt(0).toLowerCase() + data.summary.slice(1)}</p>
+        </div>
+
+        <div className="chd-stats" role="group" aria-label="At a glance">
+          <Link to="/creator/campaigns" className="chd-stat">
+            <span className="chd-stat__icon tone-green" aria-hidden="true"><Megaphone size={20} strokeWidth={2} /></span>
+            <span className="chd-stat__text">
+              <strong>{running.length}</strong>
+              <small>{running.length === 1 ? 'Active campaign' : 'Active campaigns'}</small>
+            </span>
+          </Link>
+          <ActionStat actions={actions} />
+          <a href="#chd-feed" className="chd-stat">
+            <span className="chd-stat__icon tone-violet" aria-hidden="true"><Activity size={20} strokeWidth={2} /></span>
+            <span className="chd-stat__text">
+              <strong>{data.recentCount}</strong>
+              <small>Recent updates</small>
+            </span>
+          </a>
+        </div>
+      </div>
+
+      <ActionsList actions={actions} />
+
+      <DashboardWorkflow campaigns={running.map(r => r.inv)} invites={open} />
+
+      <ActivityPanel items={activity} />
+
+      <div className="chd-tiles">
+        <EarningsTile money={money} months={data.months} />
+        <ScoreTile profile={profile} />
+        <DeadlineTile next={running.find(r => r.next)} />
+        <UpdatesTile activity={activity} />
+      </div>
+
+      <Link to="/creator/invitations" className="chd-grow">
+        <svg className="chd-grow__waves" viewBox="0 0 340 120" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M140 0 C 190 40, 230 -10, 270 40 S 330 90, 340 60 L 340 0 Z" fill="#f9b59c" opacity="0.5" />
+          <path d="M180 0 C 220 60, 270 10, 300 70 S 335 110, 340 100 L 340 0 Z" fill="#fbc8b5" opacity="0.5" />
+        </svg>
+        <span className="chd-grow__copy">
+          <strong>Create. Collaborate. Grow.</strong>
+          <small>AI-matched opportunities for Indian creators.</small>
+        </span>
+        <span className="chd-grow__go" aria-hidden="true"><ChevronRight size={18} strokeWidth={2.2} /></span>
+      </Link>
+    </div>
+  );
 }
 
+/** "Action needed" stat. Opens a popover on desktop; on phones the list is already on the page. */
+function ActionStat({ actions }: { actions: DashboardAction[] }) {
+  const [openPop, setOpenPop] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!openPop) return;
+    const onDown = (e: MouseEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpenPop(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenPop(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [openPop]);
+
+  const onClick = () => {
+    const inline = document.getElementById('chd-actions');
+    if (inline && inline.offsetParent !== null) {
+      inline.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    setOpenPop(v => !v);
+  };
+
+  return (
+    <div className="chd-stat-wrap" ref={wrap}>
+      <button
+        type="button"
+        className={`chd-stat${actions.length ? ' is-alert' : ''}`}
+        onClick={onClick}
+        aria-expanded={openPop}
+        aria-controls="chd-actions-pop"
+      >
+        <span className="chd-stat__icon chd-stat__icon--solid" aria-hidden="true"><CircleAlert size={21} strokeWidth={2.2} /></span>
+        <span className="chd-stat__text">
+          <strong>{actions.length}</strong>
+          <small>Action needed</small>
+        </span>
+      </button>
+      {openPop && (
+        <div className="chd-pop" id="chd-actions-pop" role="group" aria-label="Action needed">
+          <p className="chd-pop__title">Action needed</p>
+          <ActionRows actions={actions} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActionRows({ actions }: { actions: DashboardAction[] }) {
+  if (actions.length === 0) {
+    return <EmptyNote icon={CircleCheckBig} title="You are all caught up">Nothing needs you right now.</EmptyNote>;
+  }
+  return (
+    <ul className="chd-todo__list">
+      {actions.map(a => {
+        const look = ACTION_LOOK[a.kind];
+        return (
+          <li key={a.key}>
+            <Link to={a.to} className="chd-todo__item">
+              <span className={`chd-todo__icon tone-${look.tone}`} aria-hidden="true"><look.icon size={17} /></span>
+              <span className="chd-todo__text">
+                <strong>{a.title}</strong>
+                <small>{a.detail}</small>
+              </span>
+              {a.due && <Chip tone={dueTone(a.due)}>{dueLabel(a.due)}</Chip>}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ActionsList({ actions }: { actions: DashboardAction[] }) {
+  return (
+    <section className="chd-panel chd-todo" id="chd-actions" aria-labelledby="chd-todo-title">
+      <div className="chd-panel__head">
+        <h2 id="chd-todo-title">Action needed{actions.length > 0 && <span className="chd-count">{actions.length}</span>}</h2>
+      </div>
+      <ActionRows actions={actions.slice(0, 4)} />
+      {actions.length > 4 && (
+        <Link to="/creator/campaigns" className="chd-link chd-todo__more">
+          {actions.length - 4} more in campaigns <ArrowRight size={15} aria-hidden="true" />
+        </Link>
+      )}
+    </section>
+  );
+}
+
+function ActivityPanel({ items }: { items: ActivityItem[] }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? items : items.slice(0, FEED_SIZE);
+  return (
+    <section className="chd-panel chd-feed" id="chd-feed" aria-labelledby="chd-feed-title">
+      <div className="chd-panel__head">
+        <h2 id="chd-feed-title">Live activity</h2>
+        {items.length > FEED_SIZE && (
+          <button type="button" className="chd-link" onClick={() => setAll(v => !v)} aria-expanded={all}>
+            {all ? 'Show less' : 'All activity'} <ArrowRight size={15} strokeWidth={2.2} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      {shown.length === 0 ? (
+        <EmptyNote icon={Activity} title="No activity yet">Invitations, offers and payments will show up here.</EmptyNote>
+      ) : (
+        <ol className="chd-feed__list">
+          {shown.map(a => {
+            const look = ACTIVITY_LOOK[a.kind];
+            return (
+              <li key={a.key} className={`tone-${look.tone}`}>
+                <Link to={a.to} className="chd-feed__item">
+                  <span className="chd-feed__icon" aria-hidden="true"><look.icon size={18} strokeWidth={2} /></span>
+                  <span className="chd-feed__text">
+                    <small>{a.when}</small>
+                    <strong>{a.title}</strong>
+                    <span>{a.detail}</span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}

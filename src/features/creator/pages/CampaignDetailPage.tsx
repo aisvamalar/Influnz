@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, ArrowRight, Check, CircleAlert, CircleCheck, Clapperboard, FileText, LayoutGrid, Megaphone,
-  RefreshCw, ScanLine, Send, ShieldCheck, Target, Upload, Wallet, X,
+  ArrowLeft, ArrowRight, CalendarRange, Check, CircleAlert, CircleCheck, Clapperboard, FileText, LayoutGrid, ListChecks,
+  Megaphone, MessagesSquare, RefreshCw, ScanLine, Send, Sparkles, Target, Upload, Wallet, X,
 } from 'lucide-react';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { useCreator } from '../CreatorContext';
 import { Button, EmptyState, Toast } from '../ui';
 import {
-  BriefPanel, CampaignHero, ChecklistPanel, DelivPill, DeliverableRow, Panel, PayoutSchedule, StageTiles, TermsGrid,
+  BriefPanel, CampaignHero, CampaignKpis, ChecklistPanel, DelivPill, DeliverableRow, DueText, Panel, PayoutSchedule,
+  SpecRequirements, StageTiles, TermsGrid, TimelineList,
 } from '../campaignParts';
-import { dueLabel } from '../format';
 import type { ComplianceCheck, Deliverable } from '../types';
 import '../campaign-ui.css';
 
@@ -111,19 +111,47 @@ export default function CampaignDetailPage() {
 
   const nextItem = items.filter(d => d.status !== 'approved').sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 
+  // The action that moves the next piece forward, shared by its row and the next-step panel.
+  const actionFor = (d: Deliverable): { label: string; icon: typeof Upload; run: () => void } | null => {
+    if (d.status === 'not_started') return { label: 'Upload', icon: Upload, run: () => upload(d) };
+    if (d.status === 'uploaded') return { label: 'Check & submit', icon: ScanLine, run: () => submitForReview(d) };
+    if (d.status === 'changes_requested') return { label: 'Re-upload', icon: Upload, run: () => reupload(d) };
+    return null;
+  };
+  const nextAction = nextItem && !waitingForContract ? actionFor(nextItem) : null;
+
   const nextStep = (
-    <Panel icon={<Target size={18} />} title="Your next step">
+    <Panel icon={<Target size={18} />} title="Your next step" focus>
       {waitingForContract ? (
         <>
-          <p className="cx-text" style={{ marginBottom: 12 }}>Sign the contract to lock in your payout and start delivering.</p>
-          <Button style={{ width: '100%' }} onClick={() => navigate(`/creator/deal/${inv.id}`)}>Open deal room <ArrowRight size={16} /></Button>
+          <p className="cx-next__lead">Sign the contract</p>
+          <p className="cx-text cx-muted">It locks in your payout and unlocks your deliverables.</p>
+          <div className="cx-next__go">
+            <Button onClick={() => navigate(`/creator/deal/${inv.id}`)}>Open deal room <ArrowRight size={16} /></Button>
+          </div>
         </>
       ) : inv.status === 'completed' ? (
-        <p className="cx-text"><CircleCheck size={16} style={{ verticalAlign: -3, color: 'var(--cx-green)' }} /> Every piece is approved. Your payout is being released.</p>
+        <>
+          <p className="cx-next__lead"><CircleCheck size={18} className="cx-next__ok" /> All pieces approved</p>
+          <p className="cx-text cx-muted">Your payout is being released.</p>
+        </>
       ) : nextItem ? (
         <>
-          <p className="cx-text"><b>{nextItem.label}</b> is next. {dueLabel(nextItem.dueDate)}.</p>
-          {nextItem.notes && <p className="cx-text cx-muted" style={{ marginTop: 8 }}>{nextItem.notes}</p>}
+          <p className="cx-next__lead">
+            {nextItem.status === 'changes_requested' ? 'Fix' : nextItem.status === 'pending_approval' ? 'Waiting on' : nextItem.status === 'uploaded' ? 'Submit' : 'Make'} {nextItem.label}
+          </p>
+          <div className="cx-next__meta">
+            <DelivPill status={nextItem.status} />
+            <DueText iso={nextItem.dueDate} />
+          </div>
+          {nextItem.revisionNote
+            ? <p className="cx-flag"><CircleAlert size={15} aria-hidden="true" /><span>{nextItem.revisionNote}</span></p>
+            : nextItem.notes && <p className="cx-text cx-muted">{nextItem.notes}</p>}
+          {nextAction && (
+            <div className="cx-next__go">
+              <Button onClick={nextAction.run}><nextAction.icon size={16} /> {nextAction.label}</Button>
+            </div>
+          )}
         </>
       ) : (
         <p className="cx-text cx-muted">Nothing left to deliver.</p>
@@ -133,7 +161,7 @@ export default function CampaignDetailPage() {
 
   const deliverPanel = (
     <Panel
-      icon={<Clapperboard size={18} />} title="Your deliverables"
+      icon={<Clapperboard size={18} />} title="Your deliverables" tone="coral"
       sub={waitingForContract ? 'Unlocks once your contract is signed' : `${items.filter(d => d.status === 'approved').length} of ${items.length} approved`}
     >
       <div className="cx-delivs">
@@ -145,12 +173,12 @@ export default function CampaignDetailPage() {
             <DeliverableRow
               key={d.id} title={d.label} format={d.format ?? ''} platform={spec?.platform ?? 'Instagram'}
               spec={d.spec ?? ''} due={d.dueDate} note={d.notes} open={d === nextItem && !waitingForContract}
-              status={<DelivPill status={d.status} />}
+              state={d.status} status={<DelivPill status={d.status} />}
               flag={d.revisionNote}
               extra={result && (
                 <div className={`cx-scan ${failed ? 'is-fail' : 'is-pass'}`}>
-                  <div style={{ fontSize: '0.8125rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <ScanLine size={15} style={{ color: failed ? 'var(--cx-red)' : 'var(--cx-green)' }} />
+                  <div className="cx-scan__head">
+                    <ScanLine size={15} aria-hidden="true" />
                     AI compliance {failed ? 'needs action' : 'passed'}
                   </div>
                   <ul className="cx-checks">
@@ -172,7 +200,7 @@ export default function CampaignDetailPage() {
               )}
               {d.status === 'pending_approval' && (
                 <>
-                  <span className="cx-flag" style={{ color: 'var(--cx-blue)' }}><Send size={14} /> With {inv.brand}</span>
+                  <span className="cx-waiting"><Send size={14} aria-hidden="true" /> With {inv.brand}</span>
                   <Button variant="ghost" small onClick={() => approve(d)}><Check size={14} /> Simulate approve</Button>
                   <Button variant="ghost" small onClick={() => requestChanges(d)}><RefreshCw size={14} /> Simulate changes</Button>
                 </>
@@ -187,42 +215,39 @@ export default function CampaignDetailPage() {
     </Panel>
   );
 
-  const checkPanel = <Panel icon={<ShieldCheck size={18} />} title="AI assistant" sub="Checks product, brand, CTA, disclosure, format and deliverable count before you submit"><ChecklistPanel brief={brief} /></Panel>;
-  const payPanel = <Panel icon={<Wallet size={18} />} title="Payment status" sub={inv.status === 'completed' ? 'Processing' : 'Expected until the brand approves'}><PayoutSchedule inv={inv} /></Panel>;
-  const termsPanel = <Panel icon={<FileText size={18} />} title="Deal terms"><TermsGrid inv={inv} /></Panel>;
-  const briefPanel = <Panel icon={<Megaphone size={18} />} title="Campaign brief" sub={`From ${inv.brand}`}><BriefPanel brief={brief} /></Panel>;
+  const checkPanel = (
+    <Panel icon={<Sparkles size={18} />} title="AI assistant" tone="violet" sub="Checks these before anything reaches the brand">
+      <ChecklistPanel brief={brief} />
+    </Panel>
+  );
+  const payPanel = (
+    <Panel icon={<Wallet size={18} />} title="Payment" tone="green" sub={inv.status === 'completed' ? 'Processing' : 'Expected until the brand approves'}>
+      <PayoutSchedule inv={inv} />
+    </Panel>
+  );
+  const termsPanel = <Panel icon={<FileText size={18} />} title="Deal terms" tone="pink"><TermsGrid inv={inv} /></Panel>;
+  const briefPanel = <Panel icon={<Megaphone size={18} />} title="Campaign brief" tone="amber" sub={`From ${inv.brand}`}><BriefPanel brief={brief} /></Panel>;
   const timelinePanel = (
-    <Panel icon={<LayoutGrid size={18} />} title="Timeline" sub={inv.timeline}>
-      <ul className="cx-checks">
-        {items.map(d => (
-          <li key={d.id} className="is-info"><CircleCheck size={16} />{d.label} · {dueLabel(d.dueDate)}</li>
-        ))}
-      </ul>
+    <Panel icon={<CalendarRange size={18} />} title="Timeline" tone="blue" sub={inv.timeline}>
+      <TimelineList inv={inv} items={items} />
     </Panel>
   );
   const contactPanel = (
-    <Panel icon={<Send size={18} />} title="Brand contact" sub="Approved channel">
-      <p className="cx-text">Stay with {inv.brand} inside this campaign. That is the approved channel. Do not move the deal to a private chat.</p>
+    <Panel icon={<MessagesSquare size={18} />} title="Brand contact" tone="grey" sub="Approved channel">
+      <p className="cx-text">Stay with {inv.brand} inside this campaign. Do not move the deal to a private chat.</p>
     </Panel>
   );
   const submitPanel = (
-    <Panel icon={<FileText size={18} />} title="Submission requirements">
-      <ul className="cx-checks">
-        {brief.deliverableSpecs.map(spec => (
-          <li key={spec.id} className="is-info"><CircleCheck size={16} />{spec.count} × {spec.format}{spec.spec ? ` · ${spec.spec}` : ''}</li>
-        ))}
-        {brief.checklist.map(item => <li key={item} className="is-dot"><CircleCheck size={16} />{item}</li>)}
-      </ul>
+    <Panel icon={<ListChecks size={18} />} title="What to hand in" tone="teal">
+      <SpecRequirements specs={brief.deliverableSpecs} />
     </Panel>
   );
   const revisions = items.filter(d => d.revisionNote);
-  const revisionPanel = (
-    <Panel icon={<RefreshCw size={18} />} title="Revision requests" sub={revisions.length ? `${revisions.length} open` : 'None open'}>
-      {revisions.length === 0 ? <p className="cx-text cx-muted">No revision requests.</p> : (
-        <ul className="cx-checks">
-          {revisions.map(d => <li key={d.id} className="is-no"><CircleAlert size={16} />{d.label}: {d.revisionNote}</li>)}
-        </ul>
-      )}
+  const revisionPanel = revisions.length > 0 && (
+    <Panel icon={<RefreshCw size={18} />} title="Revision requests" tone="red" sub={`${revisions.length} open`}>
+      <ul className="cx-checks">
+        {revisions.map(d => <li key={d.id} className="is-no"><CircleAlert size={16} /><span><b>{d.label}</b>: {d.revisionNote}</span></li>)}
+      </ul>
     </Panel>
   );
 
@@ -234,13 +259,14 @@ export default function CampaignDetailPage() {
 
       <CampaignHero inv={inv} items={items} />
       <StageTiles inv={inv} items={items} />
+      <CampaignKpis inv={inv} items={items} />
 
       {isMobile ? (
         <>
           <div className="cx-tabrow" role="tablist" aria-label="Campaign sections">
             {TABS.map(t => (
               <button key={t.key} role="tab" aria-selected={tab === t.key} className={tab === t.key ? 'is-on' : ''} onClick={() => setTab(t.key)}>
-                <span><t.icon size={20} /></span>{t.label}
+                <t.icon size={17} aria-hidden="true" />{t.label}
               </button>
             ))}
           </div>

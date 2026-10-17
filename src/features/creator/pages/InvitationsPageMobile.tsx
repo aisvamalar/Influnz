@@ -15,7 +15,7 @@ import './creator-invitations-mobile.css';
 
 export default function InvitationsPageMobile() {
   const navigate = useNavigate();
-  const { invitations, filter, setFilter, query, setQuery, sort, setSort, counts, shown } = useInvitationList();
+  const { invitations, moved, filter, setFilter, query, setQuery, sort, setSort, counts, shown } = useInvitationList();
   const rest = shown.slice(1);
   const sortLabel = SORTS.find(item => item.key === sort)?.label ?? 'Sort';
   const cycleSort = () => {
@@ -87,6 +87,11 @@ export default function InvitationsPageMobile() {
           </p>
           {(query || filter !== 'all') && (
             <button type="button" className="ivm-text" onClick={() => { setQuery(''); setFilter('all'); }}>Show all</button>
+          )}
+          {moved > 0 && filter === 'all' && !query && (
+            <button type="button" className="ivm-text" onClick={() => navigate('/creator/campaigns')}>
+              {moved} accepted {moved === 1 ? 'campaign is' : 'campaigns are'} in Campaigns
+            </button>
           )}
         </section>
       ) : (

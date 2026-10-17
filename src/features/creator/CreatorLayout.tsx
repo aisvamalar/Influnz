@@ -1,16 +1,18 @@
 /**
  * CreatorLayout — the creator app shell, built on the same components as BusinessLayout:
- * - Floating sidebar (bsb): brand, main screens, passport + preferences at the foot.
- *   Collapses to an icon rail with tooltips (default on tablets, toggle remembered).
- * - Desktop header: breadcrumb, search bar, notification bell, profile chip.
- * - Mobile: sticky header with drawer + bottom tab bar.
+ * - Desktop sidebar (bsb): flush light-peach panel with the brand, every creator screen,
+ *   and an opportunities promo on tall screens. Collapses to an icon rail with tooltips
+ *   (default on tablets, toggle remembered).
+ * - Desktop header (cr-topbar): search, notifications, profile menu.
+ * - Mobile: sticky app header + bottom tab bar. Detail screens (an invitation) bring
+ *   their own back bar and action bar, so both step aside there.
  * Nested creator routes render through <Outlet />.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Mail, Briefcase, Wallet, TrendingUp, UserCircle, SlidersHorizontal,
-  Star, Gift, Share2, Bell, Search, Menu, ChevronDown, ChevronLeft, Home, type LucideIcon,
+  House, Mail, Megaphone, Wallet, TrendingUp, IdCard, SlidersHorizontal, Award, Gift, UserPlus,
+  Bell, Search, ChevronDown, ChevronLeft, ChevronRight, Home, Briefcase, LogOut, type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
 import LogoLight from '../../components/LogoLight';
@@ -44,47 +46,28 @@ interface NavItem {
   key: string;
   label: string;
   path: string;
-  icon: React.ReactNode;
+  icon: LucideIcon;
   badge?: number;
 }
 
-const PRIMARY: Omit<NavItem, 'badge'>[] = [
-  { key: 'dashboard',   label: 'Dashboard',   path: '/creator/dashboard',   icon: <LayoutDashboard size={18} /> },
-  { key: 'invitations', label: 'Invitations', path: '/creator/invitations', icon: <Mail size={18} /> },
-  { key: 'campaigns',   label: 'Campaigns',   path: '/creator/campaigns',   icon: <Briefcase size={18} /> },
-  { key: 'earnings',    label: 'Earnings',    path: '/creator/earnings',    icon: <Wallet size={18} /> },
-  { key: 'reputation',  label: 'Reputation',  path: '/creator/reputation',  icon: <Star size={18} /> },
-  { key: 'growth',      label: 'Growth',      path: '/creator/growth',      icon: <TrendingUp size={18} /> },
-  { key: 'referrals',   label: 'Referrals',   path: '/creator/referrals',   icon: <Share2 size={18} /> },
-  { key: 'rewards',     label: 'Rewards',     path: '/creator/rewards',     icon: <Gift size={18} /> },
-];
-
-const PASSPORT_NAV: NavItem = { key: 'profile', label: 'Creator Passport', path: '/creator/profile', icon: <UserCircle size={18} /> };
-const PREFS_NAV: NavItem = { key: 'preferences', label: 'Preferences', path: '/creator/preferences', icon: <SlidersHorizontal size={18} /> };
-
-/** Pages reached from a list get their parent's breadcrumb. */
-const CRUMBS: Array<{ prefix: string; label: string }> = [
-  { prefix: '/creator/dashboard', label: 'Dashboard' },
-  { prefix: '/creator/invitations', label: 'Invitations' },
-  { prefix: '/creator/negotiation', label: 'Negotiation' },
-  { prefix: '/creator/deal', label: 'Deal room' },
-  { prefix: '/creator/contract', label: 'Contract' },
-  { prefix: '/creator/campaigns', label: 'Campaigns' },
-  { prefix: '/creator/earnings', label: 'Earnings' },
-  { prefix: '/creator/reputation', label: 'Reputation' },
-  { prefix: '/creator/growth', label: 'Growth' },
-  { prefix: '/creator/referrals', label: 'Referrals' },
-  { prefix: '/creator/rewards', label: 'Rewards' },
-  { prefix: '/creator/profile', label: 'Creator Passport' },
-  { prefix: '/creator/preferences', label: 'Preferences' },
+const NAV: NavItem[] = [
+  { key: 'dashboard',   label: 'Dashboard',        path: '/creator/dashboard',   icon: House },
+  { key: 'campaigns',   label: 'Campaigns',        path: '/creator/campaigns',   icon: Megaphone },
+  { key: 'invitations', label: 'Invitations',      path: '/creator/invitations', icon: Mail },
+  { key: 'earnings',    label: 'Earnings',         path: '/creator/earnings',    icon: Wallet },
+  { key: 'profile',     label: 'Creator Passport', path: '/creator/profile',     icon: IdCard },
+  { key: 'reputation',  label: 'Reputation',       path: '/creator/reputation',  icon: Award },
+  { key: 'growth',      label: 'Growth',           path: '/creator/growth',      icon: TrendingUp },
+  { key: 'referrals',   label: 'Referrals',        path: '/creator/referrals',   icon: UserPlus },
+  { key: 'rewards',     label: 'Rewards',          path: '/creator/rewards',     icon: Gift },
+  { key: 'preferences', label: 'Preferences',      path: '/creator/preferences', icon: SlidersHorizontal },
 ];
 
 export default function CreatorLayout() {
   const { logout } = useAuth();
-  const { profile, invitations } = useCreator();
+  const { profile, invitations, getInvitation } = useCreator();
   const navigate = useNavigate();
   const location = useLocation();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const scale = useViewportScale(DESIGN_WIDTH);
@@ -92,10 +75,24 @@ export default function CreatorLayout() {
   const [collapsePref, setCollapsePref] = useState<boolean | null>(readCollapsePref);
   const collapsed = width > 768 && (collapsePref ?? width < RAIL_BELOW);
   const isMobile = width <= 768;
+  /** Detail screens that bring their own top bar and action bar on phones. */
+  const immersive = isMobile && /^\/creator\/invitations\/[^/]+\/?$/.test(location.pathname);
+
+  // A new screen starts at the top (a filter or tab change in the query string does not).
+  useEffect(() => {
+    if (location.hash) return;
+    // Instant: the page sets smooth scrolling, which would animate the jump.
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.querySelector('.creator-layout .biz-main-content')?.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname, location.hash]);
 
   const newInvites = invitations.filter(i => i.status === 'new').length;
-  const primaryNav: NavItem[] = PRIMARY.map(item => (item.key === 'invitations' && newInvites > 0 ? { ...item, badge: newInvites } : item));
-  const onCreator = (base: string) => location.pathname === base || location.pathname.startsWith(`${base}/`);
+  const nav = NAV.map(item => (item.key === 'invitations' && newInvites > 0 ? { ...item, badge: newInvites } : item));
+  // An open campaign opened from Browse shares the invitation route but belongs to Campaigns.
+  const detailId = /^\/creator\/invitations\/([^/]+)\/?$/.exec(location.pathname)?.[1];
+  const fromBrowse = Boolean(detailId && getInvitation(detailId)?.invited === false);
+  const onCreator = (base: string) => (fromBrowse && base === '/creator/campaigns')
+    || (!(fromBrowse && base === '/creator/invitations') && (location.pathname === base || location.pathname.startsWith(`${base}/`)));
   const barActive = onCreator('/creator/campaigns')
     ? 'campaigns'
     : onCreator('/creator/earnings')
@@ -107,105 +104,145 @@ export default function CreatorLayout() {
           : '';
 
   const displayName = profile.displayName || 'Creator';
-  const subtitle = `@${profile.username}`;
   const initial = displayName.trim()[0]?.toUpperCase() ?? 'C';
-  const breadcrumb = CRUMBS.find(c => location.pathname.startsWith(c.prefix))?.label ?? 'Creator';
+  const city = profile.location.split(',')[0].trim();
 
   const setCollapsed = (next: boolean) => {
     setCollapsePref(next);
     try { localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0'); } catch { /* storage unavailable */ }
   };
-  const toggleCollapsed = () => setCollapsed(!collapsed);
 
   useEffect(() => {
     if (!profileOpen) return;
-    const handler = (e: MouseEvent) => {
+    const onDown = (e: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setProfileOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [profileOpen]);
 
-  useEffect(() => { setDrawerOpen(false); setProfileOpen(false); }, [location.pathname]);
-
-  const isActive = (item: NavItem) => location.pathname.startsWith(item.path);
+  useEffect(() => { setProfileOpen(false); }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login?type=creator', { replace: true });
   };
 
-  const renderNavItem = (item: NavItem, railed: boolean) => {
-    const active = isActive(item);
-    return (
-      <button
-        key={item.key}
-        type="button"
-        className={`bsb__item${active ? ' is-active' : ''}`}
-        onClick={() => {
-          if (railed) setCollapsed(false);
-          navigate(item.path);
-          setDrawerOpen(false);
-        }}
-        aria-current={active ? 'page' : undefined}
-        aria-label={railed ? item.label : undefined}
-      >
-        <span className="bsb__icon">{item.icon}</span>
-        <span className="bsb__label">{item.label}</span>
-        {item.badge ? <span className="bsb__badge">{item.badge}</span> : null}
-        <span className="bsb__tip" aria-hidden="true">{item.label}</span>
-      </button>
-    );
-  };
+  const go = (path: string) => { setProfileOpen(false); navigate(path); };
 
-  const renderSidebar = (railed: boolean, withToggle: boolean) => (
-    <aside className={`bsb biz-aside${railed ? ' is-collapsed' : ''}`} aria-label="Creator navigation">
+  const sidebar = (
+    <aside className={`bsb biz-aside${collapsed ? ' is-collapsed' : ''}`} aria-label="Creator navigation">
       <div className="bsb__panel">
         <div className="bsb__brand">
-          <LogoLight height={34} className="bsb__logo" />
+          <Wordmark height={32} />
           <button type="button" className="bsb__mark" onClick={() => setCollapsed(false)} aria-label="Expand sidebar">
-            <LogoLight variant="mark" height={34} title="" />
+            <LogoLight variant="mark" height={32} title="" />
           </button>
         </div>
 
-        {withToggle && (
-          <button
-            type="button"
-            className="bsb__toggle"
-            onClick={toggleCollapsed}
-            aria-label={railed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!railed}
-          >
-            <ChevronLeft size={12} strokeWidth={2.4} />
-          </button>
-        )}
+        <button
+          type="button"
+          className="bsb__toggle"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+        >
+          <ChevronLeft size={12} strokeWidth={2.4} />
+        </button>
 
         <nav className="bsb__nav" aria-label="Primary">
-          {primaryNav.map(item => renderNavItem(item, railed))}
+          {nav.map(item => {
+            const active = onCreator(item.path);
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={`bsb__item${active ? ' is-active' : ''}`}
+                onClick={() => navigate(item.path)}
+                aria-current={active ? 'page' : undefined}
+                aria-label={collapsed ? item.label : undefined}
+              >
+                <span className="bsb__icon"><Icon size={21} strokeWidth={1.75} /></span>
+                <span className="bsb__label">{item.label}</span>
+                {item.badge ? <span className="bsb__badge">{item.badge}</span> : null}
+                <span className="bsb__tip" aria-hidden="true">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
-        <div className="bsb__foot">
-          <div className="bsb__divider" />
-          <button
-            type="button"
-            className={`bsb__profile${profile.verified ? '' : ' is-incomplete'}`}
-            title={railed ? `${displayName} · ${subtitle}` : undefined}
-            onClick={() => {
-              if (railed) { setCollapsed(false); return; }
-              navigate(PASSPORT_NAV.path);
-              setDrawerOpen(false);
-            }}
-          >
-            <span className="bsb__avatar" aria-hidden="true">{initial}</span>
-            <span className="bsb__who">
-              <strong>{displayName}</strong>
-              <small>{subtitle}</small>
-            </span>
+        {!collapsed && (
+          <button type="button" className="cr-promo" onClick={() => navigate('/creator/invitations')}>
+            <svg className="cr-promo__waves" viewBox="0 0 220 120" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 58 C 42 18, 88 96, 136 54 S 206 6, 220 26 L 220 0 L 0 0 Z" fill="#f9b59c" opacity="0.55" />
+              <path d="M0 86 C 50 40, 96 112, 150 70 S 204 40, 220 58 L 220 0 L 0 0 Z" fill="#fbc8b5" opacity="0.5" />
+            </svg>
+            <strong>Create<br />Collaborate<br />Grow</strong>
+            <small>AI-matched opportunities for Indian creators.</small>
+            <span className="cr-promo__go" aria-hidden="true"><ChevronRight size={18} strokeWidth={2.2} /></span>
           </button>
-          {renderNavItem(PREFS_NAV, railed)}
-        </div>
+        )}
       </div>
     </aside>
+  );
+
+  /* Desktop header — search, notifications and the profile menu. */
+  const desktopHeader = (
+    <header className="cr-topbar">
+      <label className="cr-search">
+        <Search size={18} strokeWidth={1.9} aria-hidden="true" />
+        <input type="search" placeholder="Search campaigns, brands, messages..." aria-label="Search campaigns, brands and messages" />
+      </label>
+
+      <div className="cr-topbar__end">
+        <button
+          type="button"
+          className="cr-bell"
+          aria-label={newInvites > 0 ? `${newInvites} new invitations` : 'Invitations'}
+          onClick={() => navigate('/creator/invitations')}
+        >
+          <Bell size={22} strokeWidth={1.7} />
+          {newInvites > 0 && <span className="cr-bell__dot">{newInvites > 9 ? '9+' : newInvites}</span>}
+        </button>
+
+        <span className="cr-topbar__divider" aria-hidden="true" />
+
+        <div className="cr-profile" ref={profileRef}>
+          <button
+            type="button"
+            className="cr-profile__btn"
+            onClick={() => setProfileOpen(v => !v)}
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+          >
+            <span className="cr-profile__avatar" aria-hidden="true">
+              {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" /> : initial}
+              {profile.verified && <i />}
+            </span>
+            <span className="cr-profile__who">
+              <strong>{displayName}</strong>
+              <small>{city ? `Creator · ${city}` : 'Creator'}</small>
+            </span>
+            <ChevronDown size={18} strokeWidth={2} className="cr-profile__chev" aria-hidden="true" />
+          </button>
+
+          {profileOpen && (
+            <div className="cr-menu" role="menu">
+              <button type="button" role="menuitem" onClick={() => go('/creator/profile')}><IdCard size={16} /> Creator Passport</button>
+              <button type="button" role="menuitem" onClick={() => go('/creator/preferences')}><SlidersHorizontal size={16} /> Preferences</button>
+              <span className="cr-menu__line" />
+              <button type="button" role="menuitem" className="is-danger" onClick={handleLogout}><LogOut size={16} /> Sign out</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
   );
 
   /* Phone header — same top app bar the business mobile screens use (mah). */
@@ -226,8 +263,8 @@ export default function CreatorLayout() {
           </button>
           {profileOpen && (
             <div className="mah__menu" role="menu">
-              <button type="button" role="menuitem" className="mah__menu-item" onClick={() => { setProfileOpen(false); navigate('/creator/profile'); }}>Creator Passport</button>
-              <button type="button" role="menuitem" className="mah__menu-item" onClick={() => { setProfileOpen(false); navigate('/creator/preferences'); }}>Preferences</button>
+              <button type="button" role="menuitem" className="mah__menu-item" onClick={() => go('/creator/profile')}>Creator Passport</button>
+              <button type="button" role="menuitem" className="mah__menu-item" onClick={() => go('/creator/preferences')}>Preferences</button>
               <button type="button" role="menuitem" className="mah__menu-item mah__menu-item--danger" onClick={handleLogout}>Sign out</button>
             </div>
           )}
@@ -238,200 +275,27 @@ export default function CreatorLayout() {
 
   return (
     <div
-      style={{ display: 'flex', minHeight: SCREEN_HEIGHT, background: '#faf8f5', zoom: scale, '--biz-zoom': scale } as React.CSSProperties}
-      className="business-layout creator-layout"
+      style={{ display: 'flex', minHeight: SCREEN_HEIGHT, background: '#fdf8f5', zoom: scale, '--biz-zoom': scale } as React.CSSProperties}
+      className={`business-layout creator-layout${immersive ? ' is-immersive' : ''}`}
     >
       {/* Sidebar stays on desktop. Phones use the bottom bar only. */}
       {!isMobile && (
-        <div className={`biz-sidebar-slot${collapsed ? ' is-collapsed' : ''}`}>{renderSidebar(collapsed, true)}</div>
+        <div className={`biz-sidebar-slot${collapsed ? ' is-collapsed' : ''}`}>{sidebar}</div>
       )}
 
-      {drawerOpen && !isMobile && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)' }}
-          onClick={() => setDrawerOpen(false)}
-          role="presentation"
-        >
-          <div
-            style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: 280, animation: 'slideInLeft 0.22s ease' }}
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation menu"
-          >
-            <button
-              onClick={() => setDrawerOpen(false)}
-              aria-label="Close menu"
-              style={{
-                position: 'absolute', top: 30, right: 22, zIndex: 3,
-                width: 28, height: 28, borderRadius: 8,
-                background: '#f6f3f1', border: 'none', color: '#5b6472', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem', fontWeight: 700,
-              }}
-            >✕</button>
-            {renderSidebar(false, false)}
-          </div>
-        </div>
-      )}
-
-      {/* ── Main body ── */}
       <div className="biz-main-content" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: SCREEN_HEIGHT }}>
-        {isMobile ? mobileHeader : (
-        <header style={{
-          position: 'sticky', top: 0, zIndex: 100,
-          height: 56,
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 20px',
-          background: '#fdfaf8',
-          borderBottom: '1px solid var(--in-border)',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-        }}>
-          <button
-            className="biz-header__menu mobile-only"
-            onClick={() => setDrawerOpen(v => !v)}
-            aria-label="Open navigation"
-            aria-expanded={drawerOpen}
-            style={{ flexShrink: 0 }}
-          >
-            <Menu size={18} />
-          </button>
-
-          <nav className="biz-crumb desktop-only" aria-label="Breadcrumb">
-            <span style={{ color: '#a8a8a8', fontSize: '0.875rem', fontWeight: 500 }}>Influnz</span>
-            <span style={{ color: '#a8a8a8', margin: '0 6px', fontSize: '0.875rem' }}>›</span>
-            <span style={{ fontWeight: 700, color: '#2d2d2d', fontSize: '0.875rem' }}>{breadcrumb}</span>
-          </nav>
-
-          <span className="biz-header__page-title mobile-only">{breadcrumb}</span>
-
-          <div style={{ flex: 1 }} />
-
-          <div
-            className="biz-header-search desktop-only"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              height: 36, padding: '0 14px',
-              background: '#f5f5f5', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 10,
-              width: 'min(520px, 46vw)',
-            }}
-          >
-            <span style={{ color: '#a8a8a8', display: 'flex', flexShrink: 0 }}><Search size={16} /></span>
-            <input
-              placeholder="Search invitations, campaigns, brands..."
-              style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.8125rem', color: '#2d2d2d', fontFamily: 'inherit', width: '100%' }}
-              aria-label="Search invitations and campaigns"
-            />
-          </div>
-
-          <button
-            style={{
-              position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 36, height: 36, borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer',
-              color: '#6b6b6b', transition: 'background 0.15s', flexShrink: 0,
-            }}
-            aria-label={newInvites > 0 ? `${newInvites} new invitations` : 'Invitations'}
-            onClick={() => navigate('/creator/invitations')}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.08)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-          >
-            <Bell size={18} />
-            {newInvites > 0 && (
-              <span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, borderRadius: '50%', background: 'var(--in-coral)', border: '1.5px solid white' }} aria-hidden="true" />
-            )}
-          </button>
-
-          <div ref={profileRef} style={{ position: 'relative', flexShrink: 0 }}>
-            <button
-              onClick={() => setProfileOpen(v => !v)}
-              aria-expanded={profileOpen}
-              aria-haspopup="menu"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '4px 10px 4px 4px',
-                background: 'rgba(242,132,107,0.06)', border: '1px solid var(--in-border)',
-                borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.12)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.06)')}
-            >
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--in-coral), var(--in-coral-dark))',
-                color: 'white', fontSize: '0.8125rem', fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                {initial}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }} className="biz-profile__text">
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#2d2d2d', maxWidth: 110, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {displayName}
-                </span>
-                <span style={{ fontSize: '0.625rem', color: '#a8a8a8' }}>Creator</span>
-              </div>
-              <span style={{ color: '#a8a8a8', display: 'flex' }}><ChevronDown size={12} strokeWidth={2.2} /></span>
-            </button>
-
-            {profileOpen && (
-              <div
-                style={{
-                  position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                  minWidth: 190, background: 'white',
-                  border: '1px solid var(--in-border)', borderRadius: 14,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)', overflow: 'hidden', zIndex: 200,
-                  animation: 'fadeInScale 0.2s ease',
-                }}
-                role="menu"
-              >
-                {[
-                  { label: 'Creator Passport', onClick: () => navigate('/creator/profile') },
-                  { label: 'Dashboard', onClick: () => navigate('/creator/dashboard') },
-                  { label: 'Preferences', onClick: () => navigate('/creator/preferences') },
-                ].map(m => (
-                  <button
-                    key={m.label}
-                    role="menuitem"
-                    onClick={() => { setProfileOpen(false); m.onClick(); }}
-                    style={{
-                      display: 'block', width: '100%', padding: '11px 16px', textAlign: 'left',
-                      fontSize: '0.875rem', fontWeight: 500, color: '#2d2d2d',
-                      background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(242,132,107,0.07)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-                <div style={{ height: 1, background: 'var(--in-border)', margin: '4px 0' }} />
-                <button
-                  role="menuitem"
-                  onClick={handleLogout}
-                  style={{
-                    display: 'block', width: '100%', padding: '11px 16px', textAlign: 'left',
-                    fontSize: '0.875rem', fontWeight: 500, color: 'var(--in-danger)',
-                    background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(224,82,82,0.06)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-        )}
+        {isMobile ? (immersive ? null : mobileHeader) : desktopHeader}
 
         <main
           id="main-content"
           className="biz-canvas"
-          style={{ flex: 1, padding: 'clamp(16px, 2vw, 28px)', maxWidth: 1600, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
+          style={{ flex: 1, padding: 'clamp(16px, 1.8vw, 28px)', maxWidth: 1640, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
         >
           <Outlet />
         </main>
       </div>
 
-      {isMobile && (
+      {isMobile && !immersive && (
         <CreatorTabBar
           active={barActive}
           invites={newInvites}
@@ -439,6 +303,23 @@ export default function CreatorLayout() {
         />
       )}
     </div>
+  );
+}
+
+/** logo.png cropped to the mark and wordmark, for the light sidebar (LogoLight is for dark panels). */
+function Wordmark({ height }: { height: number }) {
+  const box = { x: 300, y: 172, w: 1380, h: 428 };
+  return (
+    <svg
+      className="bsb__logo cr-wordmark"
+      width={Math.round((height * box.w) / box.h)}
+      height={height}
+      viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
+      role="img"
+      aria-label="Influnz"
+    >
+      <image href={logoImg} width={1983} height={793} />
+    </svg>
   );
 }
 

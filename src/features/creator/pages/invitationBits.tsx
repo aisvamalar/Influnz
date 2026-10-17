@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
+import { Check, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { PlatformId } from '../../../components/mobile/PlatformMark';
 import { useCreator } from '../CreatorContext';
-import { dateRange, inr, shortDate } from '../format';
 import type { Invitation, InvitationStatus, MatchBreakdown } from '../types';
 
-export type Filter = 'all' | 'new' | 'in_negotiation' | 'accepted' | 'closed';
+/** Accepted invitations move to Campaigns, so this list only has open and closed ones. */
+export type Filter = 'all' | 'new' | 'in_negotiation' | 'closed';
 export type Sort = 'match' | 'payout' | 'deadline';
 export type DetailTab = 'overview' | 'deliverables' | 'guidelines' | 'brand' | 'files';
 
@@ -13,7 +14,6 @@ export const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: 'all', label: 'All' },
   { key: 'new', label: 'New' },
   { key: 'in_negotiation', label: 'Countering' },
-  { key: 'accepted', label: 'Accepted' },
   { key: 'closed', label: 'Closed' },
 ];
 
@@ -55,8 +55,8 @@ export const FIT: Array<[keyof MatchBreakdown, string]> = [
 ];
 
 export function matchesFilter(inv: Invitation, filter: Filter): boolean {
+  if (TAKEN.includes(inv.status)) return false;
   if (filter === 'all') return true;
-  if (filter === 'accepted') return TAKEN.includes(inv.status);
   if (filter === 'closed') return inv.status === 'declined' || inv.status === 'expired';
   return inv.status === filter;
 }
@@ -83,7 +83,8 @@ export function earliestDue(inv: Invitation): string {
 }
 
 export function latestDue(inv: Invitation): string {
-  return [...inv.brief.deliverableSpecs].map(spec => spec.due).sort().at(-1) ?? inv.brief.endDate;
+  const dues = inv.brief.deliverableSpecs.map(spec => spec.due).sort();
+  return dues[dues.length - 1] ?? inv.brief.endDate;
 }
 
 export function progress(status: InvitationStatus): { index: number; bad: boolean; note: string } {
@@ -122,7 +123,10 @@ export function stepHref(inv: Invitation, index: number, place: StepPlace = 'inv
 }
 
 export function useInvitationList() {
-  const { invitations } = useCreator();
+  const { invitations: everything } = useCreator();
+  // Once accepted, an invitation is worked on from Campaigns.
+  const invitations = useMemo(() => everything.filter(inv => !TAKEN.includes(inv.status)), [everything]);
+  const moved = everything.length - invitations.length;
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>('match');
@@ -144,14 +148,17 @@ export function useInvitationList() {
     });
   }, [invitations, filter, query, sort]);
 
-  return { invitations, filter, setFilter, query, setQuery, sort, setSort, counts, shown };
+  return { invitations, moved, filter, setFilter, query, setQuery, sort, setSort, counts, shown };
 }
 
 export function useInvitationDetail() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
-  const { getInvitation, updateInvitation } = useCreator();
+  const { getInvitation, updateInvitation, interests, expressInterest, withdrawInterest } = useCreator();
   const inv = getInvitation(id);
+  // An open campaign the brand did not send: the creator can only express interest.
+  const browsing = Boolean(inv && !inv.invited);
+  const interestAt = inv ? interests[inv.id] : undefined;
   const [toast, setToast] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -177,6 +184,18 @@ export function useInvitationDetail() {
     window.setTimeout(() => navigate('/creator/invitations'), 500);
   };
 
+  const sendInterest = () => {
+    if (!inv) return;
+    expressInterest(inv.id);
+    flash(`Interest sent to ${inv.brand}`);
+  };
+
+  const withdraw = () => {
+    if (!inv) return;
+    withdrawInterest(inv.id);
+    flash('Interest withdrawn');
+  };
+
   const share = async () => {
     if (!inv) return;
     const url = window.location.href;
@@ -191,7 +210,7 @@ export function useInvitationDetail() {
     }
   };
 
-  const open = inv?.status === 'new' || inv?.status === 'in_negotiation';
+  const open = !browsing && (inv?.status === 'new' || inv?.status === 'in_negotiation');
   const next = !inv ? null
     : inv.status === 'accepted' || inv.status === 'contract_pending'
       ? { label: 'Continue', to: `/creator/deal/${inv.id}` }
@@ -208,13 +227,25 @@ export function useInvitationDetail() {
     accept,
     decline,
     share,
+    notify: flash,
     open,
     next,
+    browsing,
+    interestAt,
+    sendInterest,
+    withdraw,
     go: (to: string) => navigate(to),
-    back: () => navigate('/creator/invitations'),
+    backLabel: browsing ? 'Browse campaigns' : 'All invitations',
+    back: () => navigate(browsing ? '/creator/campaigns?view=browse' : '/creator/invitations'),
   };
 }
 
+const STEP_HINTS = ['Read the brief', 'See offer', 'Sign contract', 'Submit content', 'Get paid'];
+
+/**
+ * The five-step rail (Brief, Offer, Contract, Content, Payout) shared by the invitation,
+ * deal room and contract screens. The current step carries a short note instead of its hint.
+ */
 export function StepRail({
   inv, className, onHere, place = 'invitation',
 }: {
@@ -228,10 +259,10 @@ export function StepRail({
   const contractOpen = inv.status === 'accepted' || inv.status === 'contract_pending' || step.index >= 2;
   const current = place === 'invitation' ? step.index : Math.max(step.index, contractOpen ? 2 : step.index);
   return (
-    <ol className={className} aria-label="Invitation progress">
+    <ol className={`cr-steps ${className}`} aria-label="Invitation progress">
       {STEP_NAMES.map((name, index) => {
         const href = stepHref(inv, index, place);
-        const state = index < current ? 'is-done' : index === current ? (step.bad ? 'is-bad' : 'is-now') : href ? 'is-open' : '';
+        const state = index < current ? 'is-done' : index === current ? (step.bad ? 'is-bad' : 'is-now') : href ? 'is-open' : 'is-locked';
         return (
           <li key={name} className={state}>
             <button
@@ -243,8 +274,11 @@ export function StepRail({
                 else if (href) navigate(href);
               }}
             >
-              <b>{String(index + 1).padStart(2, '0')}</b>
-              <span>{name}</span>
+              <b aria-hidden="true">{index < current ? <Check size={15} strokeWidth={2.6} /> : String(index + 1).padStart(2, '0')}</b>
+              <span className="cr-steps__name">{name}</span>
+              {index === current
+                ? <span className="cr-steps__note">{step.note}</span>
+                : <small className="cr-steps__hint">{STEP_HINTS[index]}</small>}
             </button>
           </li>
         );
@@ -253,14 +287,44 @@ export function StepRail({
   );
 }
 
-/** A proof sheet: Do is marked, Don't is struck. Same block on the invitation and the campaign brief. */
+const INTEREST_STEPS: Array<[string, string]> = [
+  ['Interest', 'Tell the brand'],
+  ['Brand review', 'Passport and fit'],
+  ['Invitation', 'Offer to accept'],
+  ['Campaign', 'Make and get paid'],
+];
+
+/**
+ * The path for an open campaign the creator found under Browse: interest first, then
+ * the brand decides whether to send an invitation with the offer.
+ */
+export function InterestRail({ sent, className }: { sent: boolean; className: string }) {
+  const current = sent ? 1 : 0;
+  return (
+    <ol className={`cr-steps ${className}`} aria-label="How an open campaign works">
+      {INTEREST_STEPS.map(([name, hint], index) => (
+        <li key={name} className={index < current ? 'is-done' : index === current ? 'is-now' : 'is-locked'}>
+          <button type="button" disabled aria-current={index === current ? 'step' : undefined}>
+            <b aria-hidden="true">{index < current ? <Check size={15} strokeWidth={2.6} /> : String(index + 1).padStart(2, '0')}</b>
+            <span className="cr-steps__name">{name}</span>
+            {index === current
+              ? <span className="cr-steps__note">{sent ? 'Waiting for the brand' : 'Not sent yet'}</span>
+              : <small className="cr-steps__hint">{hint}</small>}
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Do and Don't, as two tinted cards with numbered points. Same block on the invitation and the campaign brief. */
 export function DosDonts({ dos, donts }: { dos: string[]; donts: string[] }) {
   if (dos.length === 0 && donts.length === 0) return null;
   return (
     <div className={`proof${dos.length === 0 || donts.length === 0 ? ' proof--one' : ''}`}>
       {dos.length > 0 && (
         <section className="proof__do">
-          <h2><span>Do</span></h2>
+          <h2><span className="proof__mark" aria-hidden="true"><Check size={16} strokeWidth={3} /></span>Do</h2>
           <ol>
             {dos.map((item, index) => (
               <li key={item}><b>{String(index + 1).padStart(2, '0')}</b><span>{item}</span></li>
@@ -270,7 +334,7 @@ export function DosDonts({ dos, donts }: { dos: string[]; donts: string[] }) {
       )}
       {donts.length > 0 && (
         <section className="proof__dont">
-          <h2><span>Don&apos;t</span></h2>
+          <h2><span className="proof__mark" aria-hidden="true"><X size={16} strokeWidth={3} /></span>Don&apos;t</h2>
           <ol>
             {donts.map((item, index) => (
               <li key={item}><b>{String(index + 1).padStart(2, '0')}</b><span>{item}</span></li>
@@ -282,158 +346,11 @@ export function DosDonts({ dos, donts }: { dos: string[]; donts: string[] }) {
   );
 }
 
-export function WhyBlock({ inv }: { inv: Invitation }) {
-  if (inv.whySelected.length === 0) return null;
-  return (
-    <section className="idp-why">
-      <h2>Why this fits you</h2>
-      <ol>
-        {inv.whySelected.map((reason, index) => (
-          <li key={reason}><span>{String(index + 1).padStart(2, '0')}</span>{reason}</li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-export function FitBlock({ inv }: { inv: Invitation }) {
-  return (
-    <section className="idp-fit">
-      <div className="idp-fithead">
-        <h2>Campaign fit</h2>
-        <strong>{inv.matchPct}</strong>
-      </div>
-      <p>Scored against your profile and preferences.</p>
-      {FIT.map(([key, label]) => (
-        <div key={key} className="idp-bar">
-          <span>{label}</span>
-          <i><b style={{ width: `${inv.matchBreakdown[key]}%` }} /></i>
-          <em>{inv.matchBreakdown[key]}</em>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-export function TermsList({ inv }: { inv: Invitation }) {
-  const { brief } = inv;
-  const pieces = pieceCount(inv);
-  return (
-    <dl className="idp-terms">
-      <div><dt>Payout</dt><dd>{inr(rateOf(inv))}</dd></div>
-      <div><dt>Deliverables</dt><dd>{pieces} piece{pieces === 1 ? '' : 's'}</dd></div>
-      <div><dt>Window</dt><dd>{dateRange(brief.startDate, brief.endDate)}</dd></div>
-      <div><dt>Final delivery</dt><dd>{shortDate(latestDue(inv))}</dd></div>
-      <div><dt>Usage rights</dt><dd>{inv.usageRights}</dd></div>
-      <div><dt>Exclusivity</dt><dd>{inv.exclusivityDays} days</dd></div>
-      <div><dt>Revisions</dt><dd>{inv.revisions} included</dd></div>
-    </dl>
-  );
-}
-
-export function DetailPanels({ inv, tab }: { inv: Invitation; tab: DetailTab }) {
-  if (tab === 'overview') return <Overview inv={inv} />;
-  if (tab === 'deliverables') return <Deliverables inv={inv} />;
-  if (tab === 'guidelines') return <Guidelines inv={inv} />;
-  if (tab === 'brand') return <Brand inv={inv} />;
-  return (
-    <section className="idp">
-      <div className="idp-sec">
-        <h2>Files</h2>
-        <p>No files from the brand yet. The brief, hashtags and deliverables are on the other tabs.</p>
-      </div>
-    </section>
-  );
-}
-
-function Overview({ inv }: { inv: Invitation }) {
-  const { brief } = inv;
-  const mentions = brief.mentions ?? [];
-  const tags = brief.hashtags ?? [];
-  const marks = [
-    ...mentions.map(mention => `@${mention.replace(/^@/, '')}`),
-    ...tags.map(tag => `#${tag.replace(/^#/, '')}`),
-  ];
-  return (
-    <div className="idp">
-      <section className="idp-sec">
-        <h2>The brief</h2>
-        <p className="idp-quote">{brief.objective || inv.objective}</p>
-        <p>{brief.summary}</p>
-      </section>
-      {brief.guidelines && (
-        <section className="idp-sec">
-          <h2>Direction</h2>
-          <p>{brief.guidelines}</p>
-        </section>
-      )}
-      {marks.length > 0 && (
-        <section className="idp-sec">
-          <h2>On the post</h2>
-          <p className="idp-marks">{marks.join('  ·  ')}</p>
-        </section>
-      )}
-      <DosDonts dos={brief.dos} donts={brief.donts} />
-    </div>
-  );
-}
-
-function Deliverables({ inv }: { inv: Invitation }) {
-  const specs = inv.brief.deliverableSpecs;
-  return (
-    <div className="idp">
-      <section className="idp-sec">
-        <h2>What you will deliver</h2>
-        <p>{pieceCount(inv)} piece{pieceCount(inv) === 1 ? '' : 's'} for {inv.brief.title}.</p>
-      </section>
-      {specs.length === 0 ? (
-        <p className="idp-quiet">The brand has not listed deliverables yet.</p>
-      ) : (
-        <ol className="idp-work">
-          {specs.map((spec, index) => (
-            <li key={spec.id}>
-              <span>{String(index + 1).padStart(2, '0')}</span>
-              <div>
-                <strong>{spec.title}</strong>
-                {spec.notes && <p>{spec.notes}</p>}
-                <small>
-                  {spec.count}× {spec.format}
-                  {spec.spec ? ` · ${spec.spec}` : ''}
-                  {` · Due ${shortDate(spec.due)}`}
-                </small>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-}
-
-function Guidelines({ inv }: { inv: Invitation }) {
-  return (
-    <section className="idp">
-      <div className="idp-sec">
-        <h2>Before you submit</h2>
-        <p>The check looks for these. A failed check is shown exactly, before you send the work.</p>
-      </div>
-      {inv.brief.checklist.length === 0 ? (
-        <p className="idp-quiet">No checklist on this brief yet.</p>
-      ) : (
-        <ol className="idp-check">
-          {inv.brief.checklist.map((item, index) => (
-            <li key={item}><span>{String(index + 1).padStart(2, '0')}</span>{item}</li>
-          ))}
-        </ol>
-      )}
-    </section>
-  );
-}
-
 export function pieceBlurb(inv: Invitation): string {
   const counts = new Map<string, number>();
   for (const spec of inv.brief.deliverableSpecs) {
-    const kind = spec.format.split(' ').at(-1) || 'Piece';
+    const words = spec.format.split(' ');
+    const kind = words[words.length - 1] || 'Piece';
     counts.set(kind, (counts.get(kind) ?? 0) + spec.count);
   }
   if (counts.size === 0) {
@@ -465,23 +382,5 @@ export function FitRing({ value, size = 52 }: { value: number; size?: number }) 
       </svg>
       <b>{value}</b>
     </span>
-  );
-}
-
-function Brand({ inv }: { inv: Invitation }) {
-  const { brief } = inv;
-  return (
-    <section className="idp">
-      <header className="idp-sec">
-        <h2>{inv.category}</h2>
-        <p className="idp-name">{inv.brand}</p>
-      </header>
-      <dl className="idp-facts">
-        <div><dt>Place</dt><dd>{brief.brandCity || inv.location}</dd></div>
-        <div><dt>Languages</dt><dd>{brief.languages.join(', ') || '—'}</dd></div>
-        {brief.paymentTerms && <div><dt>Payment</dt><dd>{brief.paymentTerms}</dd></div>}
-        <div><dt>Window</dt><dd>{dateRange(brief.startDate, brief.endDate)}</dd></div>
-      </dl>
-    </section>
   );
 }

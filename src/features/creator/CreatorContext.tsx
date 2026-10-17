@@ -3,6 +3,7 @@ import { useAuth } from '../../app/AuthContext';
 import { getCreatorAccount, updateCreatorAccount, usernameFrom } from './creatorAccount';
 import { usePublishedCampaigns } from './campaignFeed';
 import { invitationFromCampaign } from './campaignMatch';
+import { distanceKm, isAnywhere } from './geo';
 import type {
   CreatorProfile, CreatorPreferences, Invitation,
   NegotiationMessage, Deliverable, Payment, VerificationStep, VerificationStatus,
@@ -94,9 +95,18 @@ interface CreatorContextValue {
   preferences: CreatorPreferences;
   updatePreferences: (patch: Partial<CreatorPreferences>) => void;
 
+  /** Campaigns the brand sent to this creator. */
   invitations: Invitation[];
+  /** Open campaigns further away, which the creator can browse and express interest in. */
+  discover: Invitation[];
   updateInvitation: (id: string, patch: Partial<Invitation>) => void;
+  /** Finds a campaign in either list. */
   getInvitation: (id: string) => Invitation | undefined;
+
+  /** Open campaigns this creator has expressed interest in, with when. */
+  interests: Record<string, string>;
+  expressInterest: (id: string) => void;
+  withdrawInterest: (id: string) => void;
 
   negotiations: Record<string, NegotiationMessage[]>;
   setNegotiation: (id: string, messages: NegotiationMessage[]) => void;
@@ -126,13 +136,16 @@ interface CreatorContextValue {
 
 const CreatorContext = createContext<CreatorContextValue | null>(null);
 
+/** Brands invite creators within about this distance of the campaign. */
+const INVITE_KM = 60;
+
 function deliverablesFor(inv: Invitation): Deliverable[] {
   // One item per piece of content the brief asks for ("2 Instagram Stories" → two items).
   const items: Deliverable[] = [];
   inv.brief.deliverableSpecs.forEach(spec => {
     const platform = /youtube/i.test(spec.format) ? 'youtube' : /tiktok/i.test(spec.format) ? 'tiktok' : 'instagram';
     for (let i = 0; i < spec.count; i++) {
-      const needsDisclosure = inv.id === 'cat-1' && spec.id.endsWith('-d0') && i === 0;
+      const needsDisclosure = inv.id === 'cat-6' && spec.id.endsWith('-d0') && i === 0;
       items.push({
         id: `${inv.id}_${spec.id}_${i}`,
         label: spec.count > 1 ? `${spec.title} ${i + 1}` : spec.title,
@@ -179,12 +192,12 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
   const [preferences, setPreferences] = useState<CreatorPreferences>(seedPreferences);
   const published = usePublishedCampaigns();
   // What this creator did with each campaign (status, agreed rate). The campaigns themselves come from the feed.
-  // Chennai Café and Summer Drinks are already live on the business side, so this
-  // creator's campaigns screen starts with that active work. The rest stay invitations.
+  // Summer Drinks is already live on the business side, so this creator's campaigns
+  // screen starts with that active work. The rest start as fresh invitations.
   const [patches, setPatches] = useState<Record<string, Partial<Invitation>>>({
-    'cat-1': { status: 'active' },
     'cat-6': { status: 'active' },
   });
+  const [interests, setInterests] = useState<Record<string, string>>({});
   const [negotiations, setNegotiations] = useState<Record<string, NegotiationMessage[]>>({});
   const [deliverables, setDeliverables] = useState<Record<string, Deliverable[]>>({});
   const [paymentRecords, setPayments] = useState<Payment[]>(seedPayments);
@@ -206,16 +219,33 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
     setPreferences(p => ({ ...p, ...patch }));
   }, []);
 
-  // Every published campaign becomes an invitation, scored and priced for this creator.
-  const invitations = useMemo<Invitation[]>(
+  // Every published campaign is scored and priced for this creator. Brands invite the
+  // creators around their campaign; campaigns further away (or open across India) are
+  // listed under Browse instead. Anything the creator has already acted on stays theirs.
+  const all = useMemo<Invitation[]>(
     () => published
-      .map(c => ({ ...invitationFromCampaign(c, profile, preferences), ...patches[c.campaignId] }))
+      .map(c => {
+        const patch = patches[c.campaignId];
+        const km = distanceKm(profile.location, c.location);
+        const near = !isAnywhere(c.location) && (km === null || km <= INVITE_KM);
+        return { ...invitationFromCampaign(c, profile, preferences), ...patch, invited: near || Boolean(patch?.status && patch.status !== 'new') };
+      })
       .sort((a, b) => Number(b.status === 'new') - Number(a.status === 'new') || b.matchPct - a.matchPct),
     [published, profile, preferences, patches],
   );
+  const invitations = useMemo(() => all.filter(i => i.invited), [all]);
+  const discover = useMemo(() => all.filter(i => !i.invited), [all]);
 
   const updateInvitation = useCallback((id: string, patch: Partial<Invitation>) => {
     setPatches(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+  }, []);
+
+  const expressInterest = useCallback((id: string) => {
+    setInterests(prev => (prev[id] ? prev : { ...prev, [id]: new Date().toISOString() }));
+  }, []);
+
+  const withdrawInterest = useCallback((id: string) => {
+    setInterests(({ [id]: _gone, ...rest }) => rest);
   }, []);
 
   // Money this creator is owed follows the campaigns they have taken on.
@@ -235,7 +265,7 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
     return [...owed, ...paymentRecords];
   }, [invitations, paymentRecords]);
 
-  const getInvitation = useCallback((id: string) => invitations.find(i => i.id === id), [invitations]);
+  const getInvitation = useCallback((id: string) => all.find(i => i.id === id), [all]);
 
   const setNegotiation = useCallback((id: string, messages: NegotiationMessage[]) => {
     setNegotiations(n => ({ ...n, [id]: messages }));
@@ -308,7 +338,8 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<CreatorContextValue>(() => ({
     profile, updateProfile,
     preferences, updatePreferences,
-    invitations, updateInvitation, getInvitation,
+    invitations, discover, updateInvitation, getInvitation,
+    interests, expressInterest, withdrawInterest,
     negotiations, setNegotiation,
     deliverables, updateDeliverable, ensureDeliverables,
     payments, addPayment, updatePayment,
@@ -316,8 +347,8 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
     onboarding, completeOnboardingStep, resetOnboarding,
     contracts, getContract, ensureContract, signContract,
     referrals,
-  }), [profile, updateProfile, preferences, updatePreferences, invitations, updateInvitation,
-    getInvitation, negotiations, setNegotiation, deliverables, updateDeliverable, ensureDeliverables,
+  }), [profile, updateProfile, preferences, updatePreferences, invitations, discover, updateInvitation,
+    getInvitation, interests, expressInterest, withdrawInterest, negotiations, setNegotiation, deliverables, updateDeliverable, ensureDeliverables,
     payments, addPayment, updatePayment, verification, setVerification,
     onboarding, completeOnboardingStep, resetOnboarding,
     contracts, getContract, ensureContract, signContract, referrals]);

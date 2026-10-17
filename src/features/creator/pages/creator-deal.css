@@ -104,7 +104,9 @@
   flex-shrink: 0;
 }
 
-.dlr-section { margin: 18px 0 10px; font-size: 1rem; }
+.dlr-section { margin: 18px 0 10px; font-size: 1.05rem; font-weight: 700; color: #1d1d1f; }
+.dlr-sheet h2 { margin: 4px 0 0; font-family: var(--cr-display); font-size: 1.5rem; line-height: 1.15; font-weight: 800; letter-spacing: -0.025em; color: #1d1d1f; }
+.dlr-terms h2 { font-weight: 700; color: #1d1d1f; }
 .dlr-pieces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .dlr-piece {
   padding: 8px 8px 4px;
@@ -311,6 +313,7 @@
 
 @media (max-width: 900px) {
   .dlr-sheet { grid-template-columns: minmax(0, 1fr); }
+  .dlr-photo { height: 220px; min-height: 0; }
   .dlr-pay { grid-column: auto; }
   .dlr-pieces { grid-template-columns: 1fr; }
 }
@@ -432,19 +435,9 @@
   letter-spacing: -0.035em;
   line-height: 1.05;
 }
-.dlr-pill, .ctr-pill {
-  height: auto;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #2d2d2d;
-}
-.dlr-pill--wait, .ctr-pill--wait,
-.dlr-pill--no, .ctr-pill--no { background: transparent; color: #e06a4f; }
+.dlr-pill, .ctr-pill { border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
+.dlr-pill--wait, .ctr-pill--wait { background: #fdf0dc; color: #c2700f; }
+.dlr-pill--no, .ctr-pill--no { background: #fdeae8; color: #d23a2c; }
 .ctr-steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -540,14 +533,7 @@
   border-radius: 0;
   background: transparent;
 }
-.ctr-sign__kicker {
-  margin: 0;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: #2d2d2d;
-}
+.ctr-sign__kicker { margin: 0; font-size: 0.8125rem; font-weight: 650; color: #c4532f; }
 .ctr-sign h2 {
   margin: 8px 0 6px;
   font-size: 1.55rem;
@@ -556,13 +542,7 @@
 }
 .ctr-sign > p { margin: 0 0 16px; color: #6b625c; font-size: 0.88rem; line-height: 1.45; }
 .ctr-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.ctr-field span {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #2d2d2d;
-}
+.ctr-field span { font-size: 0.8125rem; font-weight: 650; color: #1d1d1f; }
 .ctr-field input {
   height: 42px;
   padding: 0 0 6px;

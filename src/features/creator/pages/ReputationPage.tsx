@@ -1,7 +1,15 @@
 import { useMemo } from 'react';
-import { Star, ShieldCheck, CircleCheck, TrendingUp, Clock } from 'lucide-react';
+import { Star, ShieldCheck, CircleCheck, TrendingUp, Clock, type LucideIcon } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
 import { Card, StatCard, ProgressBar } from '../ui';
+import { reputationFactors, type ReputationKey } from '../reputation';
+
+const FACTOR_ICONS: Record<ReputationKey, LucideIcon> = {
+  ontime: Clock,
+  ratings: Star,
+  quality: TrendingUp,
+  communication: ShieldCheck,
+};
 
 export default function ReputationPage() {
   const { profile, invitations } = useCreator();
@@ -9,12 +17,7 @@ export default function ReputationPage() {
   const completed = useMemo(() => invitations.filter(i => i.status === 'completed'), [invitations]);
   const onTime = completed.length; // mock: all completed treated as on-time
 
-  const factors = [
-    { label: 'On-time delivery', value: profile.reliability, icon: Clock },
-    { label: 'Brand ratings', value: Math.round(profile.rating * 20), icon: Star },
-    { label: 'Content quality', value: 88, icon: TrendingUp },
-    { label: 'Communication', value: 91, icon: ShieldCheck },
-  ];
+  const factors = reputationFactors(profile).map(f => ({ ...f, icon: FACTOR_ICONS[f.key] }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

@@ -176,7 +176,7 @@ export default function NegotiationPage() {
 function OfferStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div>
-      <div style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--in-gray)', fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: '0.78rem', color: 'var(--cr-muted)', fontWeight: 600 }}>{label}</div>
       <div style={{ fontSize: '1.1rem', fontWeight: 800, color: highlight ? 'var(--in-coral-text)' : 'var(--in-charcoal)' }}>{value}</div>
     </div>
   );

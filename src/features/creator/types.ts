@@ -145,6 +145,11 @@ export interface Invitation {
   paymentProtected: boolean;
   image?: string;
   selectedForYou?: boolean;
+  /**
+   * False for an open campaign the brand did not send to this creator: it is listed under
+   * Browse, and the creator can only express interest in it.
+   */
+  invited: boolean;
   /** The published campaign this invitation comes from. */
   brief: CampaignBrief;
 }

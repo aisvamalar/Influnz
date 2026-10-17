@@ -143,6 +143,7 @@ export function invitationFromCampaign(c: PublishedCampaign, profile: CreatorPro
     paymentProtected: true,
     image: c.image,
     selectedForYou: fit.pct >= 85,
+    invited: true,
     brief: c,
   };
 }

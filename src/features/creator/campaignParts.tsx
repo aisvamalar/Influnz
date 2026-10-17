@@ -7,8 +7,9 @@
  */
 import type { ReactNode } from 'react';
 import {
-  ArrowRight, AtSign, BadgeCheck, Calendar, Check, CircleAlert, CircleCheck, Clock, Hash, Languages,
-  MapPin, RefreshCw, ShieldCheck, Sparkles, Tag, Wallet,
+  ArrowRight, AtSign, BadgeCheck, BadgeIndianRupee, Calendar, CalendarClock, CalendarRange, Check, CircleAlert,
+  CircleCheck, CircleCheckBig, Clapperboard, Clock, Eye, FileCheck, Film, Hash, Images, Languages, Lock, MapPin,
+  Megaphone, Package, RefreshCw, Ruler, ShieldCheck, Sparkles, Tag, Wallet, MonitorPlay, type LucideIcon,
 } from 'lucide-react';
 import PlatformMark, { type PlatformId } from '../../components/mobile/PlatformMark';
 import { useCreator } from './CreatorContext';
@@ -38,8 +39,8 @@ export function Pill({ status }: { status: InvitationStatus }) {
 const DELIV_PILLS: Record<DeliverableStatus, { cls: string; label: string }> = {
   not_started: { cls: 'off', label: 'Not started' },
   uploaded: { cls: 'neg', label: 'Uploaded' },
-  pending_approval: { cls: 'sign', label: 'In review' },
-  changes_requested: { cls: 'neg', label: 'Changes requested' },
+  pending_approval: { cls: 'review', label: 'In review' },
+  changes_requested: { cls: 'fix', label: 'Changes requested' },
   approved: { cls: 'done', label: 'Approved' },
 };
 
@@ -78,15 +79,18 @@ export function nextDue(inv: Invitation, items?: Deliverable[]): string | null {
   return open.length ? [...open].sort()[0] : null;
 }
 
-function dueClass(iso: string): string {
+export type DueTone = 'late' | 'soon' | 'ok';
+
+/** Red once overdue, amber inside three days, green while there is time. */
+export function dueTone(iso: string): DueTone {
   const n = daysUntil(iso);
-  return n < 0 ? ' is-late' : n <= 3 ? ' is-soon' : '';
+  return n < 0 ? 'late' : n <= 3 ? 'soon' : 'ok';
 }
 
 export function DueText({ iso }: { iso: string }) {
   return (
-    <span className={`cx-due${dueClass(iso)}`}>
-      <Clock size={13} /> {dueLabel(iso)} · {shortDate(iso)}
+    <span className={`cx-due is-${dueTone(iso)}`}>
+      <Clock size={13} aria-hidden="true" /> {dueLabel(iso)} · {shortDate(iso)}
     </span>
   );
 }
@@ -182,46 +186,88 @@ export function CampaignHero({ inv, items }: { inv: Invitation; items?: Delivera
   const { brief } = inv;
   const payout = inv.agreedRate ?? inv.proposedRate;
   const { done, total } = progressOf(inv, items);
-  const live = inv.status === 'active' || inv.status === 'completed';
-  const due = nextDue(inv, items);
-
-  const status = PILLS[inv.status].label;
+  const pct = total ? Math.round((done / total) * 100) : 0;
 
   return (
-    <div className="cx-hero">
-      {inv.image && (
-        <figure className="cx-hero__photo">
-          <img src={inv.image} alt="" />
-        </figure>
-      )}
+    <section className="cx-hero" aria-labelledby="cx-hero-title">
+      <figure className="cx-hero__photo">
+        {inv.image ? <img src={inv.image} alt="" /> : <span aria-hidden="true">{inv.brand[0]}</span>}
+      </figure>
 
       <div className="cx-hero__copy">
-        <p className="cx-hero__kicker">
-          {status}
-          {live ? ` · ${done} of ${total} approved` : ` · ${inv.matchPct}% fit`}
-        </p>
-        <h1 className="cx-hero__title">{brief.title}</h1>
+        <div className="cx-hero__tags">
+          <Pill status={inv.status} />
+          {brief.platforms.map(p => (
+            <span key={p} className="cx-chip"><PlatformBadge label={p} size={14} />{p}</span>
+          ))}
+          <span className="cx-chip"><Tag size={12} aria-hidden="true" />{brief.category}</span>
+        </div>
+        <h1 className="cx-hero__title" id="cx-hero-title">{brief.title}</h1>
         <p className="cx-hero__by">
-          <span>
+          <span className="cx-hero__brand">
             {inv.brand}
-            {inv.brandVerified && <BadgeCheck size={14} />}
+            {inv.brandVerified && <BadgeCheck size={15} aria-label="Verified brand" />}
           </span>
-          <span>{brief.platforms.join(', ')}</span>
-          <span>{dateRange(brief.startDate, brief.endDate)}</span>
-          <span>{brief.location}</span>
-          <span>{brief.category}</span>
+          <span><CalendarRange size={14} aria-hidden="true" />{dateRange(brief.startDate, brief.endDate)}</span>
+          <span><MapPin size={14} aria-hidden="true" />{brief.location}</span>
         </p>
+        <div className="cx-hero__progress" aria-label={`${done} of ${total} pieces approved`}>
+          <div><span>Content approved</span><b>{done}/{total}</b></div>
+          <i><em style={{ width: `${pct}%` }} /></i>
+        </div>
       </div>
 
       <div className="cx-hero__pay">
         <span>{inv.agreedRate ? 'Agreed payout' : 'Your payout'}</span>
         <b>{inr(payout)}</b>
-        {inv.paymentProtected && <small>Payment protected</small>}
-        {due && inv.status !== 'declined' && inv.status !== 'completed' && (
-          <em>{dueLabel(due)} · {shortDate(due)}</em>
-        )}
+        <small>{inv.status === 'completed' ? 'Processing' : 'Expected on approval'}</small>
+        {inv.paymentProtected && <em><ShieldCheck size={14} aria-hidden="true" /> Payment protected</em>}
       </div>
-    </div>
+    </section>
+  );
+}
+
+/** "In 7 days", "Today", "2 days overdue" — the due label without its leading "Due". */
+function shortDue(iso: string): string {
+  const text = dueLabel(iso).replace(/^Due /, '');
+  return text[0].toUpperCase() + text.slice(1);
+}
+
+/** Four coloured figures under the header: approved, next due, with the brand, revisions. */
+export function CampaignKpis({ inv, items }: { inv: Invitation; items?: Deliverable[] }) {
+  const list = items ?? [];
+  const { done, total } = progressOf(inv, items);
+  const due = inv.status === 'completed' ? null : nextDue(inv, items);
+  const review = list.filter(d => d.status === 'pending_approval').length;
+  const changes = list.filter(d => d.status === 'changes_requested').length;
+  const tone = due ? dueTone(due) : 'ok';
+
+  const tiles: Array<{ key: string; icon: LucideIcon; tone: string; label: string; value: string; sub: string }> = [
+    { key: 'done', icon: CircleCheckBig, tone: 'green', label: 'Approved', value: `${done}/${total}`, sub: done === total && total ? 'All approved' : `${total - done} to go` },
+    {
+      key: 'due', icon: CalendarClock, tone: tone === 'late' ? 'red' : tone === 'soon' ? 'amber' : 'teal', label: 'Next due',
+      value: due ? shortDate(due) : '—', sub: due ? shortDue(due) : inv.status === 'completed' ? 'Nothing left' : 'Not set yet',
+    },
+    { key: 'review', icon: Eye, tone: 'blue', label: 'In review', value: String(review), sub: 'With the brand' },
+    {
+      key: 'rev', icon: RefreshCw, tone: changes ? 'red' : 'violet', label: 'Revisions',
+      value: changes ? String(changes) : String(inv.revisions), sub: changes ? 'To fix' : 'Included',
+    },
+  ];
+
+  return (
+    <ul className="cx-figs" aria-label="Campaign at a glance">
+      {tiles.map(t => (
+        <li key={t.key} className={`cx-fig cx-tone-${t.tone}`}>
+          <span className="cx-fig__icon" aria-hidden="true"><t.icon size={18} strokeWidth={2} /></span>
+          <span className="cx-fig__txt">
+            <small>{t.label}</small>
+            <b>{t.value}</b>
+            <em>{t.sub}</em>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -281,13 +327,21 @@ export function StageTiles({ inv, items }: { inv: Invitation; items?: Deliverabl
 
 // ── Panel ────────────────────────────────────────────────────────────────────
 
+export type PanelTone = 'coral' | 'violet' | 'green' | 'amber' | 'blue' | 'teal' | 'pink' | 'red' | 'grey';
+
 export function Panel({
-  icon, title, sub, tail, children, id,
-}: { icon?: ReactNode; title: string; sub?: string; tail?: ReactNode; children: ReactNode; id?: string }) {
+  icon, title, sub, tail, children, id, tone = 'coral', focus,
+}: {
+  icon?: ReactNode; title: string; sub?: string; tail?: ReactNode; children: ReactNode; id?: string;
+  /** Colour of the icon tile, so panels can be told apart at a glance. */
+  tone?: PanelTone;
+  /** The one panel that says what to do now. */
+  focus?: boolean;
+}) {
   return (
-    <section className="cx-panel" id={id}>
+    <section className={`cx-panel cx-tone-${tone}${focus ? ' cx-panel--focus' : ''}`} id={id}>
       <div className="cx-panel__head">
-        {icon && <span className="cx-panel__icon">{icon}</span>}
+        {icon && <span className="cx-panel__icon" aria-hidden="true">{icon}</span>}
         <div className="cx-panel__txt">
           <h2 className="cx-panel__title">{title}</h2>
           {sub && <p className="cx-panel__sub">{sub}</p>}
@@ -310,24 +364,38 @@ interface RowProps {
   count?: number;
   note?: string;
   open?: boolean;
+  /** Drives the colour of the row's rail and icon. */
+  state?: DeliverableStatus;
   status?: ReactNode;
   flag?: ReactNode;
   children?: ReactNode;
   extra?: ReactNode;
+  id?: string;
 }
 
-export function DeliverableRow({ title, format, spec, due, note, open, status, flag, children, extra }: RowProps) {
+/** Reel, story, video or post, from the brief's format name. */
+export function formatIcon(format: string): LucideIcon {
+  if (/youtube|video/i.test(format)) return MonitorPlay;
+  if (/reel|short|tiktok/i.test(format)) return Clapperboard;
+  if (/story|stories|carousel/i.test(format)) return Images;
+  return Film;
+}
+
+export function DeliverableRow({ title, format, spec, due, note, open, state = 'not_started', status, flag, children, extra, id }: RowProps) {
+  const Icon = formatIcon(format);
+  const done = state === 'approved';
   return (
-    <div className={`cx-deliv${open ? ' is-open' : ''}`}>
+    <div className={`cx-deliv is-${state}${open ? ' is-open' : ''}`} id={id}>
+      <span className="cx-deliv__icon" aria-hidden="true">{done ? <Check size={18} strokeWidth={2.6} /> : <Icon size={18} strokeWidth={1.9} />}</span>
       <div className="cx-deliv__main">
-        <div className="cx-deliv__title">{title}</div>
+        <div className="cx-deliv__top">
+          <div className="cx-deliv__title">{title}</div>
+          {status}
+        </div>
         <div className="cx-deliv__sub">{[format, spec].filter(Boolean).join(' · ')}</div>
-        <DueText iso={due} />
+        {!done && <DueText iso={due} />}
         {note && <div className="cx-deliv__note">{note}</div>}
-        {flag && <div className="cx-flag">{flag}</div>}
-      </div>
-      <div className="cx-deliv__side">
-        {status}
+        {flag && <div className="cx-flag"><CircleAlert size={15} aria-hidden="true" /><span>{flag}</span></div>}
         {children && <div className="cx-deliv__actions">{children}</div>}
       </div>
       {extra}
@@ -356,22 +424,25 @@ export function TermsGrid({ inv }: { inv: Invitation }) {
   const { brief } = inv;
   const pieces = pieceCount(brief.deliverableSpecs);
   const lastDue = brief.deliverableSpecs.map(d => d.due).sort().pop();
-  const items: Array<{ k: string; v: string; icon: ReactNode; wide?: boolean }> = [
-    { k: inv.agreedRate ? 'Agreed payout' : 'Your payout', v: inr(inv.agreedRate ?? inv.proposedRate), icon: <Wallet size={12} /> },
-    { k: 'Deliverables', v: `${pieces} ${pieces === 1 ? 'piece' : 'pieces'}`, icon: <Check size={12} /> },
-    { k: 'Final delivery', v: lastDue ? shortDate(lastDue) : 'On agreement', icon: <Calendar size={12} /> },
-    { k: 'Campaign window', v: dateRange(brief.startDate, brief.endDate), icon: <Clock size={12} /> },
-    { k: 'Usage rights', v: inv.usageRights, icon: <ShieldCheck size={12} />, wide: true },
-    { k: 'Exclusivity', v: `${inv.exclusivityDays} days`, icon: <ShieldCheck size={12} /> },
-    { k: 'Revisions', v: `${inv.revisions} included`, icon: <RefreshCw size={12} /> },
-    { k: 'Payment terms', v: brief.paymentTerms, icon: <Wallet size={12} />, wide: true },
+  const items: Array<{ k: string; v: string; icon: LucideIcon; wide?: boolean }> = [
+    { k: inv.agreedRate ? 'Agreed payout' : 'Your payout', v: inr(inv.agreedRate ?? inv.proposedRate), icon: BadgeIndianRupee },
+    { k: 'Deliverables', v: `${pieces} ${pieces === 1 ? 'piece' : 'pieces'}`, icon: Clapperboard },
+    { k: 'Final delivery', v: lastDue ? shortDate(lastDue) : 'On agreement', icon: Calendar },
+    { k: 'Campaign window', v: dateRange(brief.startDate, brief.endDate), icon: CalendarRange },
+    { k: 'Exclusivity', v: `${inv.exclusivityDays} days`, icon: Lock },
+    { k: 'Revisions', v: `${inv.revisions} included`, icon: RefreshCw },
+    { k: 'Usage rights', v: inv.usageRights, icon: ShieldCheck, wide: true },
+    { k: 'Payment terms', v: brief.paymentTerms, icon: Wallet, wide: true },
   ];
   return (
     <div className="cx-terms">
       {items.map(t => (
         <div key={t.k} className={`cx-term${t.wide ? ' cx-term--wide' : ''}`}>
-          <div className="cx-term__k">{t.icon} {t.k}</div>
-          <div className="cx-term__v">{t.v}</div>
+          <span className="cx-term__icon" aria-hidden="true"><t.icon size={15} strokeWidth={2} /></span>
+          <div>
+            <div className="cx-term__k">{t.k}</div>
+            <div className="cx-term__v">{t.v}</div>
+          </div>
         </div>
       ))}
     </div>
@@ -382,22 +453,32 @@ export function TermsGrid({ inv }: { inv: Invitation }) {
 
 export function PayoutSchedule({ inv }: { inv: Invitation }) {
   const payout = inv.agreedRate ?? inv.proposedRate;
+  const done = inv.status === 'completed';
   const rows = inv.brief.milestones.length
     ? inv.brief.milestones
     : [{ name: 'On approval of all content', date: '', pct: 100 }];
   return (
-    <ul className="cx-pay">
-      {rows.map(m => (
-        <li key={m.name}>
-          <span className="cx-pay__dot" />
-          <div>
-            <div className="cx-pay__name">{m.name}</div>
-            <div className="cx-pay__date">{m.date ? shortDate(m.date) : 'After the brand approves'}</div>
-          </div>
-          <div className="cx-pay__amt">{inr(Math.round((payout * m.pct) / 100))}<small>{m.pct}%</small></div>
-        </li>
-      ))}
-    </ul>
+    <>
+      <div className="cx-paybar" aria-hidden="true">
+        {rows.map((m, i) => <i key={m.name} style={{ flexGrow: m.pct }} className={`is-${i % 2 ? 'b' : 'a'}`} />)}
+      </div>
+      <ul className="cx-pay">
+        {rows.map((m, i) => (
+          <li key={m.name}>
+            <span className={`cx-pay__dot is-${i % 2 ? 'b' : 'a'}`} />
+            <div>
+              <div className="cx-pay__name">{m.name}</div>
+              <div className="cx-pay__date">{m.date ? shortDate(m.date) : 'After the brand approves'} · {m.pct}%</div>
+            </div>
+            <div className="cx-pay__amt">
+              {inr(Math.round((payout * m.pct) / 100))}
+              <small className={done ? 'is-processing' : 'is-expected'}>{done ? 'Processing' : 'Expected'}</small>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="cx-pay__total"><span>Total</span><b>{inr(payout)}</b></p>
+    </>
   );
 }
 
@@ -474,14 +555,85 @@ export function BriefPanel({ brief }: { brief: CampaignBrief }) {
   );
 }
 
+/** An icon for each kind of compliance check, so the list reads at a glance. */
+function checkIcon(label: string): LucideIcon {
+  if (/tag|@/i.test(label)) return AtSign;
+  if (/disclosure|#ad|paid/i.test(label)) return Megaphone;
+  if (/product/i.test(label)) return Package;
+  if (/claim|mislead/i.test(label)) return ShieldCheck;
+  if (/format|duration|length/i.test(label)) return Ruler;
+  return FileCheck;
+}
+
 /** What the business' AI compliance check looks for — the creator's pre-flight list. */
 export function ChecklistPanel({ brief }: { brief: CampaignBrief }) {
   return (
-    <ul className="cx-checks">
-      {brief.checklist.map(c => <li key={c} className="is-info"><ShieldCheck size={16} />{c}</li>)}
+    <ul className="cx-checkgrid">
+      {brief.checklist.map(c => {
+        const Icon = checkIcon(c);
+        return <li key={c}><span aria-hidden="true"><Icon size={15} strokeWidth={2} /></span>{c}</li>;
+      })}
     </ul>
   );
 }
+
+/** What to hand in: each format from the brief with its spec. */
+export function SpecRequirements({ specs }: { specs: DeliverableSpec[] }) {
+  return (
+    <ul className="cx-reqs">
+      {specs.map(s => {
+        const Icon = formatIcon(s.format);
+        return (
+          <li key={s.id}>
+            <span className="cx-reqs__icon" aria-hidden="true"><Icon size={17} strokeWidth={1.9} /></span>
+            <span className="cx-reqs__txt">
+              <b>{s.count} × {s.format}</b>
+              {s.spec && <small>{s.spec}</small>}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Deliverables and payment milestones on one dated line, each coloured by where it stands. */
+export function TimelineList({ inv, items }: { inv: Invitation; items: Deliverable[] }) {
+  const firstOpen = items.filter(d => d.status !== 'approved').sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  const rows: Array<{ key: string; date: string; label: string; sub: string; state: string; icon: LucideIcon }> = [
+    ...items.map(d => {
+      const done = d.status === 'approved';
+      const tone = dueTone(d.dueDate);
+      return {
+        key: d.id, date: d.dueDate, label: d.label,
+        sub: done ? 'Approved' : d.status === 'pending_approval' ? `With ${inv.brand}` : dueLabel(d.dueDate),
+        state: done ? 'done' : tone === 'late' ? 'late' : d === firstOpen ? 'next' : 'todo',
+        icon: done ? Check : formatIcon(d.format ?? ''),
+      };
+    }),
+    ...inv.brief.milestones.filter(m => m.date).map(m => ({
+      key: `pay-${m.name}`, date: m.date, label: m.name, sub: `${m.pct}% of payout`, state: 'pay', icon: Wallet,
+    })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+
+  if (!rows.length) return <p className="cx-text cx-muted">Dates appear once the contract is signed.</p>;
+  return (
+    <ol className="cx-tl">
+      {rows.map(r => {
+        const [, m, d] = r.date.split('-').map(Number);
+        return (
+          <li key={r.key} className={`is-${r.state}`}>
+            <span className="cx-tl__date"><b>{d}</b>{MONTHS[m - 1]}</span>
+            <span className="cx-tl__dot" aria-hidden="true"><r.icon size={13} strokeWidth={2.4} /></span>
+            <span className="cx-tl__txt"><b>{r.label}</b><small>{r.sub}</small></span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // ── Who the brand is looking for, checked against this creator ───────────────
 

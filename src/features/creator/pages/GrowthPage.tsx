@@ -2,9 +2,9 @@ import { TrendingUp, Star, CircleCheck, Circle, Users, Activity, Zap, Award } fr
 import { useCreator } from '../CreatorContext';
 import { Card, StatCard, ProgressBar, Button } from '../ui';
 import { compact } from '../format';
+import { CREATOR_SCORE as SCORE, tierFor } from '../creatorScore';
 
-const SCORE = 72;
-const NEXT_TIER = 'Established Creator';
+const { current: TIER, next: NEXT_TIER } = tierFor(SCORE);
 
 const FACTORS = [
   { label: 'Audience quality', value: 82, icon: Users },
@@ -32,7 +32,7 @@ export default function GrowthPage() {
       </div>
 
       {/* Score hero */}
-      <Card style={{ background: '#fef9f5', borderTop: '3px solid #f2846b' }}>
+      <Card className="cr-card--hero">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -40,15 +40,15 @@ export default function GrowthPage() {
               <span style={{ color: 'var(--in-gray)', fontWeight: 600 }}>/100</span>
             </div>
             <span className="cr-chip cr-chip--static" style={{ background: 'rgba(242,132,107,0.12)', borderColor: 'var(--in-coral)', color: 'var(--in-coral-text)' }}>
-              <TrendingUp size={13} /> Rising Creator
+              <TrendingUp size={13} /> {TIER.label}
             </span>
           </div>
           <div style={{ flex: 1, minWidth: 220 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: 6 }}>
-              <span style={{ color: 'var(--in-gray)' }}>Progress to {NEXT_TIER}</span>
-              <span style={{ fontWeight: 700, color: 'var(--in-charcoal)' }}>{100 - SCORE} pts to go</span>
+              <span style={{ color: 'var(--in-gray)' }}>{NEXT_TIER ? `Progress to ${NEXT_TIER.label}` : 'Top tier reached'}</span>
+              <span style={{ fontWeight: 700, color: 'var(--in-charcoal)' }}>{NEXT_TIER ? `${NEXT_TIER.minScore - SCORE} pts to go` : ''}</span>
             </div>
-            <ProgressBar value={SCORE} />
+            <ProgressBar value={NEXT_TIER ? (SCORE / NEXT_TIER.minScore) * 100 : 100} />
             <p style={{ fontSize: '0.8125rem', color: 'var(--in-gray)', marginTop: 10, lineHeight: 1.5 }}>
               Established Creators get priority matching, higher-value campaigns, and a verified badge upgrade.
             </p>

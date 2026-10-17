@@ -2,16 +2,7 @@ import { useMemo } from 'react';
 import { Check, Lock, TrendingUp } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
 import { Card, ProgressBar } from '../ui';
-import type { RewardTier } from '../types';
-
-const TIERS: RewardTier[] = [
-  { key: 'rising', label: 'Rising Creator', minScore: 0, benefits: ['Access to campaign invitations', 'AI negotiation agent', 'Protected payments'] },
-  { key: 'established', label: 'Established Creator', minScore: 75, benefits: ['Priority matching', 'Higher-value campaigns', 'Verified badge upgrade'] },
-  { key: 'partner', label: 'Influnz Partner', minScore: 90, benefits: ['Dedicated success manager', 'Early access to premium brands', 'Faster payouts', 'Referral bonus boost'] },
-];
-
-// Creator score mirrors the growth score used elsewhere (mock)
-const CREATOR_SCORE = 72;
+import { CREATOR_SCORE, REWARD_TIERS as TIERS } from '../creatorScore';
 
 export default function RewardsPage() {
   const { profile } = useCreator();
@@ -30,11 +21,11 @@ export default function RewardsPage() {
       </div>
 
       {/* Current standing */}
-      <Card style={{ background: 'transparent', borderTop: '1px solid #efe6e1', paddingLeft: 0, paddingRight: 0 }}>
+      <Card className="cr-card--hero">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 220 }}>
             <div className="cr-kicker">Current tier</div>
-            <div style={{ fontSize: '2rem', fontWeight: 650, letterSpacing: '-0.03em', color: '#1a1a1a', lineHeight: 1 }}>{currentTier.label}</div>
+            <div style={{ fontFamily: 'var(--cr-display)', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--cr-ink)', lineHeight: 1.15 }}>{currentTier.label}</div>
             {nextTier ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', margin: '10px 0 6px' }}>

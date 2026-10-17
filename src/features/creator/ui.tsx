@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import './creator-ui.css';
 import type { LucideIcon } from 'lucide-react';
 
@@ -150,13 +151,14 @@ export function Tabs<T extends string>({ tabs, active, onChange }: { tabs: { key
   );
 }
 
-// ── Toast ──
+// ── Toast ── (portalled: the canvas is a size container, which would trap position: fixed)
 export function Toast({ message, icon: Icon }: { message: string; icon?: LucideIcon }) {
-  return (
+  return createPortal(
     <div className="cr-toast" role="status">
       {Icon && <Icon size={16} />}
       {message}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
