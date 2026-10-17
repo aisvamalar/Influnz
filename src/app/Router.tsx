@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { ProtectedRoute, PublicOnlyRoute } from './ProtectedRoute';
 import { CreatorProvider } from '../features/creator/CreatorContext';
 
@@ -52,11 +52,16 @@ const PassportStep         = lazy(() => import('../features/creator/onboarding/P
 const PreferencesStep      = lazy(() => import('../features/creator/onboarding/PreferencesStep'));
 
 // New lifecycle pages
-const DealRoomPage         = lazy(() => import('../features/creator/pages/DealRoomPage'));
 const ContractPage         = lazy(() => import('../features/creator/pages/ContractPage'));
 const ReputationPage       = lazy(() => import('../features/creator/pages/ReputationPage'));
 const ReferralsPage        = lazy(() => import('../features/creator/pages/ReferralsPage'));
 const RewardsPage          = lazy(() => import('../features/creator/pages/RewardsPage'));
+
+// Accepting an offer now confirms the terms and opens the contract, so old deal room links land there.
+function DealRoomRedirect() {
+  const { id = '' } = useParams();
+  return <Navigate to={`/creator/contract/${id}`} replace />;
+}
 
 // Renders nested creator routes inside the CreatorProvider
 function CreatorAreaOutlet() {
@@ -139,7 +144,7 @@ export default function AppRouter() {
             <Route path="invitations" element={<CreatorInvitations />} />
             <Route path="invitations/:id" element={<CreatorInvitationDet />} />
             <Route path="negotiation/:id" element={<CreatorNegotiation />} />
-            <Route path="deal/:id" element={<DealRoomPage />} />
+            <Route path="deal/:id" element={<DealRoomRedirect />} />
             <Route path="contract/:id" element={<ContractPage />} />
             <Route path="campaigns" element={<CreatorCampaigns />} />
             <Route path="campaigns/:id" element={<CreatorCampaignDet />} />

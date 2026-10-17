@@ -8,7 +8,8 @@
  */
 
 .ivd,
-.ivd-m {
+.ivd-m,
+.ivd-accept {
   --ivd-ink: #1d1d1f;
   --ivd-text: #3d3634;
   --ivd-muted: #776e6a;
@@ -33,7 +34,8 @@
 .ivd ul, .ivd ol, .ivd-m ul, .ivd-m ol { list-style: none; }
 
 .ivd button,
-.ivd-m button {
+.ivd-m button,
+.ivd-accept button {
   font-family: inherit;
   cursor: pointer;
 }
@@ -46,7 +48,8 @@
 
 /* ── Buttons ── */
 .ivd .ivd-btn,
-.ivd-m .ivd-btn {
+.ivd-m .ivd-btn,
+.ivd-accept .ivd-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -904,6 +907,229 @@
 
 .ivd-toast--docked { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 
+/*
+ * ── Accept confirmation (portalled to <body>) ──
+ * Centred panel on wide screens, bottom sheet on phones. Sizes restate !important where
+ * mobile-responsive.css restyles buttons and headings below 768px.
+ */
+.ivd-accept {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /* Portalled outside .creator-layout, so restate the creator button colours. */
+  --cr-primary: #d6532f;
+  --cr-primary-hover: #bf4627;
+  background: rgba(29, 22, 19, 0.46);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  font-family: 'Plus Jakarta Sans', var(--font-sans, system-ui), sans-serif;
+  color: var(--ivd-text);
+  animation: ivd-fade 0.18s ease;
+}
+
+.ivd-accept h2, .ivd-accept p, .ivd-accept dl, .ivd-accept dd { margin: 0; padding: 0; }
+
+.ivd-accept__panel {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 22px 22px 18px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 30px 70px -28px rgba(40, 18, 8, 0.55);
+  animation: ivd-rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ivd-accept__grip { display: none; }
+
+.ivd-accept__head {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.ivd-accept__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff1ea, #ffe1d4);
+  color: var(--ivd-coral-ink);
+}
+
+.ivd-accept .ivd-accept__head h2 {
+  font-family: var(--ivd-display);
+  font-size: 19px !important;
+  line-height: 1.25 !important;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ivd-ink);
+}
+
+.ivd-accept__head p {
+  margin-top: 2px !important;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--ivd-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ivd-accept .ivd-accept__close {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  width: 36px;
+  height: 36px;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: -4px -6px 0 0;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ivd-muted);
+}
+
+.ivd-accept__close:hover { background: var(--ivd-soft); color: var(--ivd-ink); }
+
+.ivd-accept__pay {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid #f6d9cb;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fff8f4 0%, #fff1ea 100%);
+}
+
+.ivd-accept__pay > span { display: flex; flex-direction: column; min-width: 0; }
+.ivd-accept__pay small { font-size: 12px; font-weight: 600; color: var(--ivd-muted); }
+
+.ivd-accept__pay strong {
+  font-family: var(--ivd-display);
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ivd-ink);
+}
+
+.ivd-accept__pay em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: #1f7a45;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+  box-shadow: 0 1px 2px rgba(31, 122, 69, 0.12);
+}
+
+.ivd-accept__terms {
+  display: flex;
+  flex-direction: column;
+  margin-top: 14px !important;
+}
+
+.ivd-accept__terms > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 2px;
+  border-bottom: 1px dashed var(--ivd-line-2);
+}
+
+.ivd-accept__terms > div:last-child { border-bottom: 0; }
+
+.ivd-accept__terms dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 13.5px;
+  color: var(--ivd-muted);
+}
+
+.ivd-accept__terms dt svg { position: relative; top: 2px; color: var(--ivd-coral); }
+
+.ivd-accept__terms dd {
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--ivd-ink);
+  text-align: right;
+}
+
+.ivd-accept__next {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px !important;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--ivd-soft);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ivd-text);
+}
+
+.ivd-accept__next svg { flex-shrink: 0; margin-top: 1px; color: var(--ivd-coral-ink); }
+.ivd-accept__next b { font-weight: 700; color: var(--ivd-ink); }
+
+.ivd-accept__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.ivd-accept .ivd-accept__actions .ivd-btn { height: 50px; font-size: 15px !important; border-radius: 12px; }
+.ivd-accept .ivd-accept__actions .ivd-btn--quiet { height: 44px; }
+
+@keyframes ivd-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ivd-rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes ivd-slide { from { transform: translateY(100%); } to { transform: none; } }
+
+@media (max-width: 768px) {
+  .ivd-accept { align-items: flex-end; padding: 0; }
+
+  .ivd-accept .ivd-accept__panel {
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    margin: 0 !important;
+    padding: 8px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-radius: 24px 24px 0 0 !important;
+    animation: ivd-slide 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .ivd-accept__grip {
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 0 auto 14px;
+    border-radius: 999px;
+    background: #e7dbd4;
+  }
+
+  .ivd-accept__pay strong { font-size: 26px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ivd *, .ivd-m * { transition: none !important; animation: none !important; }
+  .ivd *, .ivd-m *, .ivd-accept, .ivd-accept * { transition: none !important; animation: none !important; }
 }

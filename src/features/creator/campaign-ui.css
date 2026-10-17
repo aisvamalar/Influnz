@@ -40,10 +40,9 @@
 .cx-tone-pink { --tone: #c2378a; --tone-bg: #fce7f3; }
 .cx-tone-red { --tone: #c8432f; --tone-bg: #fdecec; }
 .cx-tone-grey { --tone: #6d6460; --tone-bg: #f3eeeb; }
-/* The mobile bottom tab bar is 72px tall and fixed, so phone layouts keep clear of it. */
-.cx.is-tabbed { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
-.cx.has-actionbar { padding-bottom: calc(172px + env(safe-area-inset-bottom, 0px)); }
-@media (max-width: 768px) { .cx { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } .cx.has-actionbar { padding-bottom: calc(172px + env(safe-area-inset-bottom, 0px)); } }
+/* The creator layout already keeps phone content clear of the fixed tab bar, so the page
+   adds no bottom padding of its own; only an action bar above the tab bar needs room. */
+@media (max-width: 768px) { .cx.has-actionbar { padding-bottom: 76px; } }
 
 .cx-muted { color: var(--cr-muted); }
 .cx-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

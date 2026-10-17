@@ -1,23 +1,24 @@
 /**
  * Invitation detail on phones (prefix: ivd, .ivd-m). The app header and tab bar step
  * aside on this screen (CreatorLayout), so it carries its own back bar and a sticky
- * payout bar with the one primary action: Accept for an invitation, Express interest
- * for an open campaign opened from Browse.
+ * payout bar with the one primary action: Accept for an invitation (it confirms the
+ * terms in a bottom sheet, then opens the contract), Express interest for an open
+ * campaign opened from Browse.
  */
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ArrowRight, CircleCheck, HandHeart, MessagesSquare, Share2 } from 'lucide-react';
 import { inr, timeAgo } from '../format';
 import { DETAIL_TABS, InterestRail, pieceCount, progress, rateOf, useInvitationDetail, StepRail, type DetailTab } from './invitationBits';
-import { CampaignFit, Chips, DealTerms, DetailContent, MetaLine, QuickFacts } from './invitationDetailParts';
+import { AcceptSheet, CampaignFit, Chips, DealTerms, DetailContent, MetaLine, QuickFacts } from './invitationDetailParts';
 import './creator-invitation-detail.css';
 
 export default function InvitationDetailMobile() {
   const detail = useInvitationDetail();
   const [tab, setTab] = useState<DetailTab>('overview');
   const {
-    inv, toast, confirming, askDecline, cancelDecline, accept, decline, share, open, next, go, back, backLabel, notify,
-    browsing, interestAt, sendInterest, withdraw,
+    inv, toast, confirming, askDecline, cancelDecline, accept, accepting, confirmAccept, cancelAccept, decline, share, open,
+    next, go, back, backLabel, notify, browsing, interestAt, sendInterest, withdraw,
   } = detail;
 
   if (!inv) {
@@ -75,7 +76,7 @@ export default function InvitationDetailMobile() {
         {open && !confirming && (
           <div className="ivd-m__pair">
             <button type="button" className="ivd-btn ivd-btn--outline" onClick={() => go(`/creator/negotiation/${inv.id}`)}>
-              <MessagesSquare size={16} aria-hidden="true" /> Counter
+              <MessagesSquare size={16} aria-hidden="true" /> Negotiate
             </button>
             <button type="button" className="ivd-btn ivd-btn--danger" onClick={askDecline}>Decline</button>
           </div>
@@ -148,12 +149,13 @@ export default function InvitationDetailMobile() {
             ? <button type="button" className="ivd-btn ivd-btn--primary" onClick={accept}>Accept offer</button>
             : next && (
               <button type="button" className="ivd-btn ivd-btn--primary" onClick={() => go(next.to)}>
-                {next.label === 'Continue' ? 'Deal room' : next.label} <ArrowRight size={16} aria-hidden="true" />
+                {next.label} <ArrowRight size={16} aria-hidden="true" />
               </button>
             )}
         </div>
       )}
 
+      {accepting && <AcceptSheet inv={inv} onConfirm={confirmAccept} onClose={cancelAccept} />}
       {toast && createPortal(<div className="ivd-toast ivd-toast--docked" role="status">{toast}</div>, document.body)}
     </div>
   );

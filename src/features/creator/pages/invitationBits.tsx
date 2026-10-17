@@ -13,7 +13,7 @@ export type DetailTab = 'overview' | 'deliverables' | 'guidelines' | 'brand' | '
 export const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: 'all', label: 'All' },
   { key: 'new', label: 'New' },
-  { key: 'in_negotiation', label: 'Countering' },
+  { key: 'in_negotiation', label: 'Negotiating' },
   { key: 'closed', label: 'Closed' },
 ];
 
@@ -33,7 +33,7 @@ export const DETAIL_TABS: Array<{ key: DetailTab; label: string }> = [
 
 export const STATUS: Record<InvitationStatus, { label: string; tone: string }> = {
   new: { label: 'New', tone: 'new' },
-  in_negotiation: { label: 'Countering', tone: 'neg' },
+  in_negotiation: { label: 'Negotiating', tone: 'neg' },
   accepted: { label: 'Accepted', tone: 'ok' },
   contract_pending: { label: 'Contract pending', tone: 'ok' },
   active: { label: 'Confirmed', tone: 'ok' },
@@ -90,7 +90,7 @@ export function latestDue(inv: Invitation): string {
 export function progress(status: InvitationStatus): { index: number; bad: boolean; note: string } {
   switch (status) {
     case 'new': return { index: 0, bad: false, note: 'Review the brief' };
-    case 'in_negotiation': return { index: 1, bad: false, note: 'Countering' };
+    case 'in_negotiation': return { index: 1, bad: false, note: 'Negotiating' };
     case 'declined': return { index: 1, bad: true, note: 'Declined' };
     case 'expired': return { index: 1, bad: true, note: 'Expired' };
     case 'accepted': return { index: 1, bad: false, note: 'Offer accepted' };
@@ -100,7 +100,7 @@ export function progress(status: InvitationStatus): { index: number; bad: boolea
   }
 }
 
-export type StepPlace = 'invitation' | 'deal' | 'contract';
+export type StepPlace = 'invitation' | 'contract';
 
 /** Where a step goes. `here` stays on this screen. null is still ahead. */
 export function stepHref(inv: Invitation, index: number, place: StepPlace = 'invitation'): string | 'here' | null {
@@ -113,9 +113,7 @@ export function stepHref(inv: Invitation, index: number, place: StepPlace = 'inv
   }
   if (index === 2) {
     if (!contractOpen) return null;
-    if (place === 'deal') return `/creator/contract/${inv.id}`;
-    if (place === 'contract') return 'here';
-    return `/creator/deal/${inv.id}`;
+    return place === 'contract' ? 'here' : `/creator/contract/${inv.id}`;
   }
   if (index > here) return null;
   if (index === 3) return `/creator/campaigns/${inv.id}`;
@@ -161,19 +159,20 @@ export function useInvitationDetail() {
   const interestAt = inv ? interests[inv.id] : undefined;
   const [toast, setToast] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [accepting, setAccepting] = useState(false);
 
   const flash = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 2200);
   };
 
-  const accept = () => {
+  // Accept opens a short confirmation with the terms. Confirming goes straight to the
+  // contract, so the creator never lands back on a page that has nothing left to do.
+  const confirmAccept = () => {
     if (!inv) return;
     updateInvitation(inv.id, { status: 'accepted', agreedRate: rateOf(inv) });
-    flash('Offer accepted');
-    window.setTimeout(() => {
-      document.getElementById('inv-offer')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 40);
+    setAccepting(false);
+    navigate(`/creator/contract/${inv.id}`, { state: { accepted: true } });
   };
 
   const decline = () => {
@@ -213,7 +212,7 @@ export function useInvitationDetail() {
   const open = !browsing && (inv?.status === 'new' || inv?.status === 'in_negotiation');
   const next = !inv ? null
     : inv.status === 'accepted' || inv.status === 'contract_pending'
-      ? { label: 'Continue', to: `/creator/deal/${inv.id}` }
+      ? { label: 'Sign contract', to: `/creator/contract/${inv.id}` }
       : inv.status === 'active' || inv.status === 'completed'
         ? { label: 'Open campaign', to: `/creator/campaigns/${inv.id}` }
         : null;
@@ -224,7 +223,10 @@ export function useInvitationDetail() {
     confirming,
     askDecline: () => setConfirming(true),
     cancelDecline: () => setConfirming(false),
-    accept,
+    accepting,
+    accept: () => { setConfirming(false); setAccepting(true); },
+    cancelAccept: () => setAccepting(false),
+    confirmAccept,
     decline,
     share,
     notify: flash,

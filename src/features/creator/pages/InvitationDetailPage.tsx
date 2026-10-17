@@ -1,7 +1,7 @@
 /**
  * Invitation detail (prefix: ivd). Desktop: hero banner, the five-step rail, tabs and
- * the brief on the left; payout with Accept / Counter / Decline, deal terms and campaign
- * fit on the right. An open campaign opened from Browse uses the same screen, but the
+ * the brief on the left; payout with Accept / Negotiate / Decline, deal terms and campaign
+ * fit on the right. Accept confirms the terms in a sheet and opens the contract. An open campaign opened from Browse uses the same screen, but the
  * creator is the one reaching out, so the only action is Express interest.
  * Phones get InvitationDetailPageMobile.
  */
@@ -12,7 +12,7 @@ import { useResponsive } from '../../../hooks/useResponsive';
 import { inr, timeAgo } from '../format';
 import InvitationDetailMobile from './InvitationDetailPageMobile';
 import { DETAIL_TABS, InterestRail, pieceCount, progress, rateOf, useInvitationDetail, StepRail, type DetailTab } from './invitationBits';
-import { CampaignFit, Chips, DealTerms, DetailContent, MetaLine } from './invitationDetailParts';
+import { AcceptSheet, CampaignFit, Chips, DealTerms, DetailContent, MetaLine } from './invitationDetailParts';
 import './creator-invitation-detail.css';
 
 export default function InvitationDetailPage() {
@@ -104,23 +104,24 @@ function InvitationDetailWeb() {
         <CampaignFit inv={inv} />
       </aside>
 
+      {detail.accepting && <AcceptSheet inv={inv} onConfirm={detail.confirmAccept} onClose={detail.cancelAccept} />}
       {toast && createPortal(<div className="ivd-toast" role="status">{toast}</div>, document.body)}
     </div>
   );
 }
 
-/** Your payout with the one decision on this screen: Accept, then Counter, Decline last and quiet. */
+/** Your payout with the one decision on this screen: Accept, then Negotiate, Decline last and quiet. */
 export function PayoutCard({ detail }: { detail: Detail }) {
   const { inv, confirming, askDecline, cancelDecline, accept, decline, open, next, go } = detail;
   if (!inv) return null;
   const pieces = pieceCount(inv);
   const step = progress(inv.status);
   const note = inv.status === 'accepted' || inv.status === 'contract_pending'
-    ? 'Offer accepted. Continue to the deal room to confirm the terms.'
+    ? 'Offer accepted. Sign the contract to lock in your payout.'
     : inv.status === 'active' || inv.status === 'completed'
       ? 'This campaign is confirmed. Your work and payout live in the campaign.'
       : open
-        ? `For ${pieces} piece${pieces === 1 ? '' : 's'}. Accepting stays on this page and confirms the offer.`
+        ? `For ${pieces} piece${pieces === 1 ? '' : 's'}. Accept to confirm the terms, then sign the contract.`
         : `${step.note}. This invitation is closed.`;
 
   return (
@@ -143,13 +144,13 @@ export function PayoutCard({ detail }: { detail: Detail }) {
         {open && !confirming && (
           <>
             <button type="button" className="ivd-btn ivd-btn--primary" onClick={accept}>Accept</button>
-            <button type="button" className="ivd-btn ivd-btn--outline" onClick={() => go(`/creator/negotiation/${inv.id}`)}>Counter</button>
+            <button type="button" className="ivd-btn ivd-btn--outline" onClick={() => go(`/creator/negotiation/${inv.id}`)}>Negotiate</button>
             <button type="button" className="ivd-btn ivd-btn--danger" onClick={askDecline}>Decline</button>
           </>
         )}
         {!open && next && (
           <button type="button" className="ivd-btn ivd-btn--primary" onClick={() => go(next.to)}>
-            {next.label === 'Continue' ? 'Continue to deal room' : next.label} <ArrowRight size={16} aria-hidden="true" />
+            {next.label} <ArrowRight size={16} aria-hidden="true" />
           </button>
         )}
       </div>

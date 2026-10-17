@@ -1,18 +1,19 @@
 /**
  * Building blocks for the invitation detail screen (prefix: ivd), shared by the desktop
- * and phone layouts. Behaviour (accept, counter, decline, share) stays in
+ * and phone layouts. Behaviour (accept, negotiate, decline, share) stays in
  * useInvitationDetail; these pieces only present the invitation.
  */
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
-  BadgeCheck, BadgeIndianRupee, Calendar, CalendarCheck, CalendarDays, CalendarRange, Camera,
-  ChartColumnIncreasing, Check, Copy, FileText, FolderOpen, Languages, Layers, ListChecks, Lock, MapPin,
-  RefreshCw, ShieldCheck, Sparkles, Star, Tag, Target, Wallet, type LucideIcon,
+  ArrowRight, BadgeCheck, BadgeIndianRupee, Calendar, CalendarCheck, CalendarDays, CalendarRange, Camera,
+  ChartColumnIncreasing, Check, Copy, FilePen, FileText, FolderOpen, Handshake, Languages, Layers, ListChecks, Lock, MapPin,
+  RefreshCw, ShieldCheck, Sparkles, Star, Tag, Target, Wallet, X, type LucideIcon,
 } from 'lucide-react';
 import PlatformMark from '../../../components/mobile/PlatformMark';
 import { dateRange, inr, shortDate } from '../format';
 import type { Invitation } from '../types';
-import { DosDonts, FIT, latestDue, pieceCount, platformId, rateOf, type DetailTab } from './invitationBits';
+import { DosDonts, FIT, latestDue, pieceBlurb, pieceCount, platformId, rateOf, type DetailTab } from './invitationBits';
 
 // ── Small pieces ──────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ export function BrandDot({ name, size = 26 }: { name: string; size?: number }) {
 
 export function Chips({ inv, light, interested }: { inv: Invitation; light?: boolean; interested?: boolean }) {
   const label = !inv.invited ? (interested ? 'Interest sent' : 'Open campaign')
-    : inv.status === 'new' ? 'New' : inv.status === 'in_negotiation' ? 'Countering'
+    : inv.status === 'new' ? 'New' : inv.status === 'in_negotiation' ? 'Negotiating'
       : inv.status === 'declined' ? 'Declined' : inv.status === 'expired' ? 'Expired' : 'Accepted';
   const closed = inv.status === 'declined' || inv.status === 'expired';
   return (
@@ -185,6 +186,91 @@ export function CampaignFit({ inv }: { inv: Invitation }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+// ── Accept confirmation ───────────────────────────────────────────────────
+
+/**
+ * Shown when the creator taps Accept: the payout and the terms they are agreeing to, and
+ * what happens next. Confirming opens the contract straight away. A bottom sheet on
+ * phones, a centred panel on wider screens. role="alertdialog" on purpose: the shared
+ * mobile sheet stretches anything with role="dialog" to full screen.
+ */
+export function AcceptSheet({ inv, onConfirm, onClose }: { inv: Invitation; onConfirm: () => void; onClose: () => void }) {
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    const before = document.activeElement as HTMLElement | null;
+    confirmRef.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRef.current(); };
+    document.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+      before?.focus?.({ preventScroll: true });
+    };
+  }, []);
+
+  const terms: Array<[LucideIcon, string, string]> = [
+    [Layers, 'Deliverables', pieceBlurb(inv)],
+    [CalendarRange, 'Window', dateRange(inv.brief.startDate, inv.brief.endDate)],
+    [CalendarCheck, 'Final delivery', shortDate(latestDue(inv))],
+    [ShieldCheck, 'Usage rights', inv.usageRights],
+  ];
+
+  return createPortal(
+    <div className="ivd-accept" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="ivd-accept__panel" role="alertdialog" aria-modal="true" aria-labelledby="ivd-accept-title" aria-describedby="ivd-accept-note">
+        <span className="ivd-accept__grip" aria-hidden="true" />
+        <header className="ivd-accept__head">
+          <span className="ivd-accept__icon" aria-hidden="true"><Handshake size={22} strokeWidth={1.9} /></span>
+          <div>
+            <h2 id="ivd-accept-title">Accept this offer?</h2>
+            <p>{inv.brief.title} · {inv.brand}</p>
+          </div>
+          <button type="button" className="ivd-accept__close" onClick={onClose} aria-label="Close">
+            <X size={20} strokeWidth={2} />
+          </button>
+        </header>
+
+        <div className="ivd-accept__pay">
+          <span>
+            <small>Your payout</small>
+            <strong>{inr(rateOf(inv))}</strong>
+          </span>
+          {inv.paymentProtected && (
+            <em><ShieldCheck size={15} strokeWidth={2.2} aria-hidden="true" /> Payment protected</em>
+          )}
+        </div>
+
+        <dl className="ivd-accept__terms">
+          {terms.map(([Icon, label, value]) => (
+            <div key={label}>
+              <dt><Icon size={16} strokeWidth={1.9} aria-hidden="true" />{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <p className="ivd-accept__next" id="ivd-accept-note">
+          <FilePen size={17} strokeWidth={1.9} aria-hidden="true" />
+          <span><b>Next: sign the contract.</b> It opens right after this. Nothing is binding until you sign.</span>
+        </p>
+
+        <div className="ivd-accept__actions">
+          <button ref={confirmRef} type="button" className="ivd-btn ivd-btn--primary ivd-btn--block" onClick={onConfirm}>
+            Accept &amp; review contract <ArrowRight size={17} aria-hidden="true" />
+          </button>
+          <button type="button" className="ivd-btn ivd-btn--quiet ivd-btn--block" onClick={onClose}>Not yet</button>
+        </div>
+      </section>
+    </div>,
+    document.body,
   );
 }
 

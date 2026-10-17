@@ -4,7 +4,7 @@ import {
   ArrowLeft, Send, Check, X, Bot, Building2, Info, ShieldCheck,
 } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
-import { Card, Button, Toast, EmptyState } from '../ui';
+import { Card, Button, EmptyState } from '../ui';
 import { inr } from '../format';
 import type { NegotiationMessage } from '../types';
 
@@ -20,7 +20,6 @@ export default function NegotiationPage() {
   } = useCreator();
   const inv = getInvitation(id);
   const [draft, setDraft] = useState('');
-  const [toast, setToast] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo<NegotiationMessage[]>(() => negotiations[id] ?? [], [negotiations, id]);
@@ -61,11 +60,9 @@ export default function NegotiationPage() {
     );
   }
 
-  const flash = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 2600); };
-
   const currentOffer = [...messages].reverse().find(m => typeof m.offer === 'number')?.offer ?? inv.proposedRate;
 
-  // AI agent produces a counter based on preferences
+  // AI agent proposes a new rate based on preferences
   const runAiCounter = (base: NegotiationMessage[], brandOffer: number) => {
     const target = preferences.aiMinAcceptableRate;
     const floor = Math.round(target * (1 - preferences.aiFlexibilityPct / 100));
@@ -87,7 +84,7 @@ export default function NegotiationPage() {
       id: uid(), sender: 'creator_ai',
       text: `Thanks for the offer. Based on ${inv.deliverables.length} deliverable(s) and the creator's audience fit, I'd propose ${inr(counter)}.`,
       offer: counter,
-      reason: `Countering toward target ${inr(target)} within ${preferences.aiFlexibilityPct}% flexibility`,
+      reason: `Negotiating toward target ${inr(target)} within ${preferences.aiFlexibilityPct}% flexibility`,
       permissionUsed: `AI negotiation · min ${inr(preferences.aiMinAcceptableRate)}`,
       limitReached,
       timestamp: 'Just now',
@@ -103,6 +100,8 @@ export default function NegotiationPage() {
     const next = [...messages, mine];
     setNegotiation(id, next);
     setDraft('');
+    // Writing to the brand opens the negotiation, whatever the agent ends up proposing.
+    if (inv.status === 'new') updateInvitation(inv.id, { status: 'in_negotiation' });
     // simulate brand reply + AI counter
     window.setTimeout(() => {
       const brandBump = Math.round(currentOffer * 1.05);
@@ -119,8 +118,7 @@ export default function NegotiationPage() {
 
   const acceptCurrent = () => {
     updateInvitation(inv.id, { status: 'accepted', agreedRate: currentOffer });
-    flash('Deal accepted — opening Deal Room');
-    window.setTimeout(() => navigate(`/creator/deal/${inv.id}`), 800);
+    navigate(`/creator/contract/${inv.id}`, { state: { accepted: true } });
   };
 
   return (
@@ -168,7 +166,6 @@ export default function NegotiationPage() {
         </Button>
       </div>
 
-      {toast && <Toast message={toast} icon={Check} />}
     </div>
   );
 }

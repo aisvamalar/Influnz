@@ -527,13 +527,21 @@
 }
 
 .chd-node--invite { --node: #f39a72; --node-soft: rgba(243, 154, 114, 0.22); }
-.chd-node--review { --node: #a98af0; --node-soft: rgba(169, 138, 240, 0.22); }
 .chd-node--negotiate { --node: #f5a35c; --node-soft: rgba(245, 163, 92, 0.22); }
 .chd-node--contract { --node: #4cc07f; --node-soft: rgba(76, 192, 127, 0.22); }
 .chd-node--content { --node: #62a8f0; --node-soft: rgba(98, 168, 240, 0.22); }
 .chd-node--payment { --node: #f07aa6; --node-soft: rgba(240, 122, 166, 0.22); }
 
-.chd-node__head {
+.chd .chd-node__head {
+  margin: 0 !important;
+  font-size: 14.5px !important;
+  line-height: 1.3 !important;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--chd-ink);
+}
+
+.chd-node__row {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -549,25 +557,51 @@
   flex-shrink: 0;
 }
 
-.chd .chd-node__head h3 {
-  flex: 1;
-  min-width: 0;
-  font-size: 14.5px !important;
-  line-height: 1.3 !important;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  color: var(--chd-ink);
-}
+.chd-node__name { flex: 1; min-width: 0; }
 
 .chd-node__summary {
-  margin-top: 3px !important;
+  display: block;
+  margin-top: 3px;
   font-size: 13px;
   line-height: 1.4;
+  font-weight: 450;
+  letter-spacing: 0;
   color: var(--chd-muted);
 }
 
+/* Phone timeline: the whole step row is the button that opens it. */
+.chd .chd-node__toggle {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chd-node__toggle:focus-visible { outline: 2px solid var(--node); outline-offset: 3px; }
+
+.chd-node__chev {
+  margin-left: -2px;
+  color: var(--chd-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.chd-node.is-open .chd-node__chev { transform: rotate(180deg); }
+
+.chd-node__more { display: flex; flex-direction: column; }
 .chd-node__body { margin-top: 14px; }
 .chd-node .chd-pill { margin-top: 14px; width: 100%; }
+
+.chd-gain { color: var(--chd-green); font-weight: 700; }
 
 /* Board and canvas: every step is a tile. */
 .chd-canvas.is-board .chd-node,
@@ -591,6 +625,8 @@
 .chd-canvas.is-board .chd-node__summary,
 .chd-canvas.is-canvas .chd-node__summary { display: none; }
 
+.chd-canvas.is-board .chd-node__more,
+.chd-canvas.is-canvas .chd-node__more,
 .chd-canvas.is-board .chd-node__body,
 .chd-canvas.is-canvas .chd-node__body { flex: 1; }
 
@@ -601,35 +637,42 @@
 }
 
 @container chdflow (min-width: 620px) {
-  .chd-canvas.is-board { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 24px; }
+  .chd-canvas.is-board.has-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 24px; }
 }
 
-/* Canvas: staggered flow chart, as in the workspace design. */
+/*
+ * Canvas: a flow chart. Invitation (and negotiation, when there was one) sit centred on
+ * the left, contract stacks over content delivery, and the payout closes on the right.
+ */
 .chd-canvas.is-canvas {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 300px));
+  grid-template-rows: auto auto;
+  justify-content: space-between;
   align-items: start;
-  column-gap: 24px;
-  row-gap: 24px;
+  gap: 36px 44px;
   padding: 0 0 4px;
 }
 
-.chd-canvas.is-canvas .chd-node { width: 92%; }
-.chd-canvas.is-canvas .chd-node--invite { grid-column: 1; grid-row: 1 / span 2; margin-top: 58px; }
-.chd-canvas.is-canvas .chd-node--review { grid-column: 2; grid-row: 1; }
-.chd-canvas.is-canvas .chd-node--negotiate { grid-column: 3; grid-row: 1; margin-top: 22px; }
-.chd-canvas.is-canvas .chd-node--contract { grid-column: 4; grid-row: 1; }
-.chd-canvas.is-canvas .chd-node--content { grid-column: 3; grid-row: 2; justify-self: end; }
-.chd-canvas.is-canvas .chd-node--payment { grid-column: 4; grid-row: 2; justify-self: end; }
+.chd-canvas.is-canvas.has-5 { grid-template-columns: repeat(4, minmax(0, 280px)); column-gap: 40px; }
 
-/* Timeline (phones): a rail with dots; only the current step opens as a card. */
+.chd-canvas.is-canvas .chd-node--invite { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+.chd-canvas.is-canvas .chd-node--negotiate { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+.chd-canvas.is-canvas .chd-node--contract { grid-column: 2; grid-row: 1; }
+.chd-canvas.is-canvas .chd-node--content { grid-column: 2; grid-row: 2; }
+.chd-canvas.is-canvas .chd-node--payment { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
+.chd-canvas.is-canvas.has-5 .chd-node--contract,
+.chd-canvas.is-canvas.has-5 .chd-node--content { grid-column: 3; }
+.chd-canvas.is-canvas.has-5 .chd-node--payment { grid-column: 4; }
+
+/* Timeline (phones): a rail with dots. The current step opens as a card; tap any step to open it. */
 .chd-canvas.is-timeline {
   display: flex;
   flex-direction: column;
 }
 
 .chd-canvas.is-timeline .chd-node {
-  padding: 0 0 18px 34px;
+  padding: 0 0 12px 34px;
 }
 
 .chd-canvas.is-timeline .chd-node:last-child { padding-bottom: 0; }
@@ -649,34 +692,58 @@
 
 .chd-canvas.is-timeline .chd-node__dot {
   position: absolute;
-  top: 6px;
+  top: 8px;
   left: 0;
   width: 12px;
   height: 12px;
 }
 
-.chd-canvas.is-timeline .chd-node.is-next .chd-node__dot { background: #fff; box-shadow: 0 0 0 2px var(--node); }
-.chd-canvas.is-timeline .chd-node.is-next h3 { color: var(--chd-muted); }
+.chd-canvas.is-timeline .chd-node.is-next .chd-node__dot,
+.chd-canvas.is-timeline .chd-node.is-stopped .chd-node__dot { background: #fff; box-shadow: 0 0 0 2px var(--node); }
+.chd-canvas.is-timeline .chd-node.is-next .chd-node__name,
+.chd-canvas.is-timeline .chd-node.is-stopped .chd-node__name { color: var(--chd-muted); }
 
-.chd-canvas.is-timeline .chd-node__body,
-.chd-canvas.is-timeline .chd-node .chd-pill { display: none; }
+/* Closed rows reach over the rail too, so the dot is part of the tap target. */
+.chd-canvas.is-timeline .chd-node:not(.is-open) .chd-node__toggle {
+  width: calc(100% + 34px);
+  margin-left: -34px;
+  padding-left: 34px;
+}
 
-.chd-canvas.is-timeline .chd-node.is-current {
-  margin: 0 0 18px 26px;
-  padding: 14px;
-  border: 1px solid #f6c3ae;
+.chd-canvas.is-timeline .chd-node:not(.is-open) .chd-node__toggle:active { background: rgba(242, 132, 107, 0.06); }
+
+.chd-canvas.is-timeline .chd-node__more { display: none; }
+
+.chd-canvas.is-timeline .chd-node.is-open {
+  margin: 0 0 14px 26px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--chd-line);
   border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 28px -24px rgba(150, 75, 45, 0.5);
+  animation: chd-open 0.22s ease;
+}
+
+.chd-canvas.is-timeline .chd-node.is-open:last-child { margin-bottom: 0; }
+
+.chd-canvas.is-timeline .chd-node.is-open.is-current {
+  border-color: #f6c3ae;
   background: linear-gradient(180deg, #fff7f3 0%, #fff 65%);
   box-shadow: 0 16px 30px -24px rgba(226, 104, 72, 0.6);
 }
 
-.chd-canvas.is-timeline .chd-node.is-current::before { left: -21px; top: 22px; bottom: -18px; }
-.chd-canvas.is-timeline .chd-node.is-current .chd-node__dot { top: 20px; left: -26px; }
-.chd-canvas.is-timeline .chd-node.is-current .chd-node__chip,
-.chd-canvas.is-timeline .chd-node.is-current .chd-node__summary { display: none; }
-.chd-canvas.is-timeline .chd-node.is-current .chd-node__body,
-.chd-canvas.is-timeline .chd-node.is-current .chd-pill { display: flex; }
-.chd-canvas.is-timeline .chd-node.is-current .chd-node__body { display: block; }
+.chd-canvas.is-timeline .chd-node.is-open::before { left: -21px; top: 26px; bottom: -14px; }
+.chd-canvas.is-timeline .chd-node.is-open:last-child::before { display: none; }
+.chd-canvas.is-timeline .chd-node.is-open .chd-node__dot { top: 26px; left: -26px; }
+.chd-canvas.is-timeline .chd-node.is-open .chd-node__chip,
+.chd-canvas.is-timeline .chd-node.is-open .chd-node__summary { display: none; }
+.chd-canvas.is-timeline .chd-node.is-open .chd-node__more { display: flex; }
+.chd-canvas.is-timeline .chd-node.is-open .chd-node__body { margin-top: 10px; }
+
+@keyframes chd-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
 
 /* Step contents */
 .chd-brandbox {
@@ -745,22 +812,6 @@
 .chd-facts b { font-weight: 650; color: var(--chd-ink); white-space: nowrap; }
 
 .chd-node .chd-chip { height: 24px; padding: 0 9px; font-size: 11.5px; }
-
-.chd-match {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.chd-match__word {
-  font-size: 15px;
-  line-height: 1.25;
-  font-weight: 650;
-  color: var(--chd-green);
-}
-
-.chd-match__spark { align-self: flex-start; margin-left: auto; color: #a98af0; fill: #e4d9fc; }
 
 .chd-ring { flex-shrink: 0; }
 .chd-ring__track { fill: none; stroke: #e8f5ed; }
@@ -896,7 +947,8 @@
   color: #fff;
 }
 
-.chd-pieces .is-off .chd-pieces__icon { background: #6f6662; }
+.chd-pieces .is-off .chd-pieces__icon { background: transparent; color: #a59c98; }
+.chd-pieces .is-wait .chd-pieces__icon { background: #f0a43a; }
 .chd-pieces .is-bad .chd-pieces__icon { background: #d23a2c; }
 .chd-pieces__name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .chd-pieces__state { font-weight: 500; color: var(--chd-text); }

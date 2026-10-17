@@ -127,7 +127,7 @@ export default function CampaignDetailPage() {
           <p className="cx-next__lead">Sign the contract</p>
           <p className="cx-text cx-muted">It locks in your payout and unlocks your deliverables.</p>
           <div className="cx-next__go">
-            <Button onClick={() => navigate(`/creator/deal/${inv.id}`)}>Open deal room <ArrowRight size={16} /></Button>
+            <Button onClick={() => navigate(`/creator/contract/${inv.id}`)}>Review contract <ArrowRight size={16} /></Button>
           </div>
         </>
       ) : inv.status === 'completed' ? (

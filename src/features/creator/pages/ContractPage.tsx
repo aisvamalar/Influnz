@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Download } from 'lucide-react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, CircleCheck, Download } from 'lucide-react';
 import logoImg from '../../../assets/logo.png';
 import { useCreator } from '../CreatorContext';
 import { dateRange, inr } from '../format';
@@ -66,6 +66,7 @@ function pieceHint(spec: string): string {
 export default function ContractPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile, getInvitation, getContract, ensureContract, signContract, updateInvitation, ensureDeliverables } = useCreator();
   const inv = getInvitation(id);
   const contract = getContract(id);
@@ -89,7 +90,9 @@ export default function ContractPage() {
   }
 
   const rate = contract?.terms.rate ?? inv.agreedRate ?? inv.proposedRate;
-  const signed = contract?.status === 'signed';
+  const live = inv.status === 'active' || inv.status === 'completed';
+  // A campaign that is already running was signed, even if this session never saw it happen.
+  const signed = contract?.status === 'signed' || live;
   const canSign = agree && name.trim().length > 1 && !signed;
   const specs = inv.brief.deliverableSpecs;
   const totals = lineTotals(specs, rate);
@@ -97,6 +100,9 @@ export default function ContractPage() {
   const dated = `${ordinal(today.getDate())} ${MONTHS[today.getMonth()]} ${today.getFullYear()}`;
   const contractNo = `INF-CAM-${today.getFullYear()}-${inv.id.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 8)}`;
   const span = dateRange(inv.brief.startDate, inv.brief.endDate);
+  // Arriving straight from Accept: say so, and that signing is the one step left.
+  const justAccepted = Boolean((location.state as { accepted?: boolean } | null)?.accepted) && !signed;
+  const backTo = live ? `/creator/campaigns/${inv.id}` : `/creator/invitations/${inv.id}`;
 
   const doSign = () => {
     if (!canSign) return;
@@ -138,9 +144,19 @@ export default function ContractPage() {
 
   return (
     <div className="ctr">
-      <button type="button" className="ctr-back" onClick={() => navigate(`/creator/deal/${inv.id}`)}>
-        <ArrowLeft size={16} /> Back to Deal Room
+      <button type="button" className="ctr-back" onClick={() => navigate(backTo)}>
+        <ArrowLeft size={16} /> {live ? 'Back to campaign' : 'Back to invitation'}
       </button>
+
+      {justAccepted && (
+        <div className="ctr-accepted" role="status">
+          <span className="ctr-accepted__icon" aria-hidden="true"><CircleCheck size={22} strokeWidth={2.2} /></span>
+          <div>
+            <strong>Offer accepted · {inr(rate)}</strong>
+            <p>One step left: read the agreement and sign it to lock in your payout.</p>
+          </div>
+        </div>
+      )}
 
       <header className="ctr-head">
         <div>
@@ -216,7 +232,7 @@ export default function ContractPage() {
             <p><b>4. Usage and exclusivity.</b> {inv.usageRights}. Exclusivity runs {inv.exclusivityDays} days from first publish. Up to {inv.revisions} revision{inv.revisions === 1 ? '' : 's'} included.</p>
             <div className="ctr-paper__sign">
               <div>
-                <b className="ctr-scribble">{(signed ? contract?.signedName : name) || ' '}</b>
+                <b className="ctr-scribble">{(signed ? contract?.signedName ?? name : name) || ' '}</b>
                 <i />
                 <small>Creator signature</small>
               </div>
@@ -248,7 +264,7 @@ export default function ContractPage() {
             />
           </label>
           <div className="ctr-pad" aria-hidden="true">
-            <b className="ctr-scribble">{(signed ? contract?.signedName : name) || ' '}</b>
+            <b className="ctr-scribble">{(signed ? contract?.signedName ?? name : name) || ' '}</b>
             <i />
             <small>{signed ? 'Signed' : 'Signature preview'}</small>
           </div>

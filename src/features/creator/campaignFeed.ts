@@ -384,7 +384,7 @@ const CATALOG_BRIEFS: Record<number, CatalogBrief> = {
     offer: 7500, slots: 6, objective: 'Store visits', languages: ['Tamil', 'English'], startIn: 1, lengthDays: 18,
     deliverables: [
       { title: 'Drink Reel', format: 'Instagram Reel', platform: 'Instagram', count: 1, spec: '15–30s · vertical 9:16', dueIn: 7, notes: 'The pour, the glass and one sip. Natural light.' },
-      { title: 'Counter Stories', format: 'Instagram Story', platform: 'Instagram', count: 2, spec: '2 frames · vertical 9:16', dueIn: 9, notes: 'Location tag on the last frame.' },
+      { title: 'Store Stories', format: 'Instagram Story', platform: 'Instagram', count: 2, spec: '2 frames · vertical 9:16', dueIn: 9, notes: 'Location tag on the last frame.' },
     ],
     guidelines: 'Bright and local. Film at the counter. Say the drink name the way the menu writes it.',
     hashtags: ['SummerDrinks', 'ChennaiFoodie', 'Ad'], mentions: ['SummerDrinks'],

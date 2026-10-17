@@ -3,6 +3,7 @@ import { useAuth } from '../../app/AuthContext';
 import { getCreatorAccount, updateCreatorAccount, usernameFrom } from './creatorAccount';
 import { usePublishedCampaigns } from './campaignFeed';
 import { invitationFromCampaign } from './campaignMatch';
+import { inr } from './format';
 import { distanceKm, isAnywhere } from './geo';
 import type {
   CreatorProfile, CreatorPreferences, Invitation,
@@ -67,6 +68,43 @@ const seedReferrals: Referral[] = [
   { id: 'ref_1', code: 'FOODIE-INV', invitedName: 'Anitha K.', status: 'joined', reward: 500 },
   { id: 'ref_2', code: 'FOODIE-INV', invitedName: 'Rahul M.', status: 'sent' },
 ];
+
+/** Summer Drinks is already live, and its rate was negotiated before it started. */
+const NEGOTIATED_DEAL = 'cat-6';
+
+/**
+ * That negotiation: the brand's offer, one proposal from the creator's AI agent and the
+ * brand meeting it most of the way. Built from the creator's own priced offer so the
+ * amounts line up with the invitation.
+ */
+function seedNegotiation(inv: Invitation): { messages: NegotiationMessage[]; agreed: number } {
+  const to500 = (n: number) => Math.max(500, Math.round(n / 500) * 500);
+  const asked = to500(inv.proposedRate * 1.2);
+  const agreed = to500(inv.proposedRate * 1.12);
+  const start = Date.parse(`${inv.brief.startDate}T10:00:00`);
+  const at = (daysBefore: number, hours = 0) =>
+    new Date((Number.isNaN(start) ? Date.now() : start) - daysBefore * 86400000 + hours * 3600000).toISOString();
+  return {
+    agreed,
+    messages: [
+      {
+        id: `${inv.id}_neg_1`, sender: 'brand', offer: inv.proposedRate, timestamp: at(4),
+        text: `Hi! We'd love to have you on ${inv.brief.title}. We're offering ${inr(inv.proposedRate)} for ${inv.deliverables.join(', ')}.`,
+      },
+      { id: `${inv.id}_neg_2`, sender: 'system', timestamp: at(4), text: 'Your AI agent is negotiating on your behalf within the limits you set in Preferences.' },
+      {
+        id: `${inv.id}_neg_3`, sender: 'creator_ai', offer: asked, timestamp: at(3),
+        text: `Thanks for the offer. For ${inv.deliverables.length} deliverables and this audience fit, I'd propose ${inr(asked)}.`,
+        reason: 'Negotiating toward your target rate',
+      },
+      { id: `${inv.id}_neg_4`, sender: 'brand', offer: agreed, timestamp: at(3, 5), text: `We can meet you at ${inr(agreed)}.` },
+      {
+        id: `${inv.id}_neg_5`, sender: 'creator_ai', offer: agreed, timestamp: at(2),
+        text: `${inr(agreed)} works for you. I accepted it on your behalf.`, reason: 'Within your flexibility',
+      },
+    ],
+  };
+}
 
 // Derive onboarding state from the set of completed steps
 function deriveOnboarding(completedSteps: OnboardingStep[]): OnboardingState {
@@ -239,6 +277,15 @@ export function CreatorProvider({ children }: { children: React.ReactNode }) {
   const updateInvitation = useCallback((id: string, patch: Partial<Invitation>) => {
     setPatches(prev => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   }, []);
+
+  // Seed the live campaign's negotiation once the feed has priced it for this creator.
+  useEffect(() => {
+    const inv = all.find(i => i.id === NEGOTIATED_DEAL);
+    if (!inv || negotiations[NEGOTIATED_DEAL]) return;
+    const { messages, agreed } = seedNegotiation(inv);
+    setNegotiations(n => (n[NEGOTIATED_DEAL] ? n : { ...n, [NEGOTIATED_DEAL]: messages }));
+    setPatches(p => (p[NEGOTIATED_DEAL]?.agreedRate ? p : { ...p, [NEGOTIATED_DEAL]: { ...p[NEGOTIATED_DEAL], agreedRate: agreed } }));
+  }, [all, negotiations]);
 
   const expressInterest = useCallback((id: string) => {
     setInterests(prev => (prev[id] ? prev : { ...prev, [id]: new Date().toISOString() }));

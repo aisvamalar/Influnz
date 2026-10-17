@@ -34,7 +34,7 @@ const ACTION_LOOK: Record<ActionKind, { icon: LucideIcon; tone: Tone }> = {
 const ACTIVITY_LOOK: Record<ActivityKind, { icon: LucideIcon; tone: Tone }> = {
   invite: { icon: Sparkles, tone: 'coral' },
   offer: { icon: MessagesSquare, tone: 'coral' },
-  counter: { icon: Bot, tone: 'violet' },
+  proposal: { icon: Bot, tone: 'violet' },
   signed: { icon: FileText, tone: 'amber' },
   live: { icon: Play, tone: 'blue' },
   paid: { icon: IndianRupee, tone: 'pink' },

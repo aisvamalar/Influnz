@@ -45,7 +45,7 @@ export interface MoneySplit {
   problem: number;
 }
 
-export type ActivityKind = 'invite' | 'offer' | 'counter' | 'signed' | 'paid' | 'live';
+export type ActivityKind = 'invite' | 'offer' | 'proposal' | 'signed' | 'paid' | 'live';
 
 export interface ActivityItem {
   key: string;
@@ -265,10 +265,10 @@ export function useDashboardData() {
     const fromBrand = last.sender === 'brand';
     push({
       key: `neg-${id}`,
-      kind: fromBrand ? 'offer' : 'counter',
+      kind: fromBrand ? 'offer' : 'proposal',
       brand: inv.brand,
-      label: fromBrand ? 'Offer received' : 'Counter sent',
-      title: fromBrand ? `${inv.brand} sent an offer` : last.sender === 'creator_ai' ? 'Your AI agent countered' : 'You sent a counter',
+      label: fromBrand ? 'Offer received' : 'Negotiation',
+      title: fromBrand ? `${inv.brand} sent an offer` : last.sender === 'creator_ai' ? 'Your AI agent negotiated' : 'You proposed a new rate',
       detail: `${inr(last.offer)} · ${inv.brief.title}`,
       to: `/creator/negotiation/${id}`,
       at: at ?? Date.now(),

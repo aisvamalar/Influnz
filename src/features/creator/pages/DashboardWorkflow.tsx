@@ -1,12 +1,14 @@
 /**
- * Campaign workflow: one campaign from invitation to payment, the same six steps the
- * brand sees. Each step reads its state from what the creator actually has (status,
- * negotiation messages, contract, deliverables, payments).
+ * Campaign workflow: one campaign from invitation to payment. Each step reads its state
+ * from what the creator actually has (status, negotiation messages, contract,
+ * deliverables, payments). The Negotiation step only appears when the rate was actually
+ * negotiated; a straight accept goes invitation → contract.
  *
  * Three layouts, picked from the panel's own width:
- * - canvas   (wide)   staggered board like a flow chart, dashed connectors between steps
+ * - canvas   (wide)   flow chart: invitation (and negotiation) on the left, contract over
+ *                     content in the middle, payout on the right, dashed connectors
  * - board    (medium) two or three columns, connectors follow the reading order
- * - timeline (phone)  vertical rail, only the current step is open
+ * - timeline (phone)  vertical rail; the current step is open and any step opens on tap
  * Connectors are drawn in one SVG from the measured step positions, so they stay
  * attached whatever the content height or zoom.
  */
@@ -14,14 +16,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, BadgeCheck, Check, ChevronDown, CircleDashed, Clapperboard, Clock, Clock3, FileText,
-  HandCoins, Maximize2, MessagesSquare, Plus, Sparkles, SquarePlay, Wallet, Workflow, X,
+  HandCoins, Maximize2, MessagesSquare, Plus, SquarePlay, Wallet, Workflow, X,
 } from 'lucide-react';
 import { useCreator } from '../CreatorContext';
 import { dueLabel, inr, shortDate } from '../format';
 import type { Deliverable, DeliverableStatus, Invitation, InvitationStatus, NegotiationMessage } from '../types';
-import { Chip, EmptyNote, ScoreRing, dueTone, type Tone } from './dashboardBits';
+import { Chip, EmptyNote, dueTone, type Tone } from './dashboardBits';
 
-type NodeKey = 'invite' | 'review' | 'negotiate' | 'contract' | 'content' | 'payment';
+type NodeKey = 'invite' | 'negotiate' | 'contract' | 'content' | 'payment';
 type NodeState = 'done' | 'current' | 'next' | 'stopped';
 type Mode = 'canvas' | 'board' | 'timeline';
 type ButtonLook = 'primary' | 'outline';
@@ -49,20 +51,21 @@ const DELIVERABLE: Record<DeliverableStatus, { label: string; tone: 'ok' | 'wait
   approved: { label: 'Approved', tone: 'ok' },
 };
 
-const KEYS: NodeKey[] = ['invite', 'review', 'negotiate', 'contract', 'content', 'payment'];
-
-/** Wide layout mirrors the reference flow chart: negotiation feeds both contract and delivery. */
-const CANVAS_EDGES: Array<{ from: NodeKey; to: NodeKey; color: string; route: 'side' | 'down' }> = [
-  { from: 'invite', to: 'review', color: '#f39a72', route: 'side' },
-  { from: 'review', to: 'negotiate', color: '#a98af0', route: 'side' },
-  { from: 'negotiate', to: 'contract', color: '#f39a72', route: 'side' },
-  { from: 'negotiate', to: 'content', color: '#62a8f0', route: 'down' },
-  { from: 'content', to: 'payment', color: '#a98af0', route: 'side' },
-];
+const KEYS: NodeKey[] = ['invite', 'negotiate', 'contract', 'content', 'payment'];
 
 const NODE_COLOR: Record<NodeKey, string> = {
-  invite: '#f39a72', review: '#a98af0', negotiate: '#f5a35c', contract: '#4cc07f', content: '#62a8f0', payment: '#f07aa6',
+  invite: '#f39a72', negotiate: '#f5a35c', contract: '#4cc07f', content: '#62a8f0', payment: '#f07aa6',
 };
+
+/**
+ * A negotiation happened once someone moved off the brand's first offer. Opening the
+ * chat alone (which shows the brand's opening message) does not count.
+ */
+function wasNegotiated(inv: Invitation, messages: NegotiationMessage[]): boolean {
+  if (inv.status === 'in_negotiation') return true;
+  if (messages.some(m => m.sender === 'creator' || m.sender === 'creator_ai')) return true;
+  return inv.agreedRate !== undefined && inv.agreedRate !== inv.proposedRate;
+}
 
 type CheckItem = { label: string; ok: boolean | 'wait' | 'off' };
 
@@ -105,12 +108,6 @@ function last<T>(list: T[]): T | undefined {
   return list[list.length - 1];
 }
 
-function fitWord(pct: number): string {
-  if (pct >= 90) return 'Great';
-  if (pct >= 75) return 'Good';
-  return 'Fair';
-}
-
 /** "Instagram Reel" ×3 → "3 Reels"; mixed formats → "4 pieces". */
 function deliverableSummary(inv: Invitation): string {
   const specs = inv.brief.deliverableSpecs;
@@ -138,9 +135,7 @@ function duration(from: string, to: string): string {
 }
 
 function nodesFor(inv: Invitation, ctx: {
-  minRate: number;
-  available: boolean;
-  aiAgent: boolean;
+  negotiated: boolean;
   messages: NegotiationMessage[];
   signedBy?: string;
   signedAt?: string;
@@ -152,13 +147,19 @@ function nodesFor(inv: Invitation, ctx: {
   const rate = inv.agreedRate ?? inv.proposedRate;
   const pieces = inv.brief.deliverableSpecs.reduce((n, s) => n + s.count, 0);
 
-  // 1 · Invitation
+  // 1 · Invitation. Accept, negotiate or decline happens here; once a negotiation
+  // starts, that step takes over as the current one.
+  const deciding = step === 0 && !ctx.negotiated;
   const invite: FlowNode = {
     key: 'invite',
     title: 'Campaign invitation',
-    state: step === 0 ? 'current' : 'done',
-    chip: inv.status === 'new' ? { label: 'New', tone: 'coral' } : { label: 'Received', tone: 'green' },
-    summary: `${inv.brand} · ${inr(inv.proposedRate)}`,
+    state: closed ? 'stopped' : deciding ? 'current' : 'done',
+    chip: closed ? { label: inv.status === 'declined' ? 'Declined' : 'Expired', tone: 'grey' }
+      : deciding ? { label: 'New', tone: 'coral' }
+        : step <= 1 ? { label: 'Received', tone: 'green' } : { label: 'Accepted', tone: 'green' },
+    summary: closed
+      ? (inv.status === 'declined' ? 'You declined this invitation' : 'This invitation expired')
+      : deciding ? `${inr(inv.proposedRate)} · accept, negotiate or decline` : `${inv.brand} · ${inr(inv.proposedRate)}`,
     body: (
       <>
         <div className="chd-brandbox">
@@ -169,107 +170,74 @@ function nodesFor(inv: Invitation, ctx: {
           </span>
         </div>
         <ul className="chd-facts">
-          <li><HandCoins size={15} aria-hidden="true" /><span>Offer amount</span><b>{inr(inv.proposedRate)}</b></li>
+          <li><HandCoins size={15} aria-hidden="true" /><span>Offer</span><b>{inr(inv.proposedRate)}</b></li>
           <li><Clapperboard size={15} aria-hidden="true" /><span>Deliverables</span><b>{deliverableSummary(inv)}</b></li>
           <li><Clock3 size={15} aria-hidden="true" /><span>Timeline</span><b>{duration(inv.brief.startDate, inv.brief.endDate)}</b></li>
         </ul>
       </>
     ),
-    action: { label: 'View details', to: `/creator/invitations/${inv.id}` },
+    action: { label: deciding ? 'Review offer' : 'View details', to: `/creator/invitations/${inv.id}` },
   };
 
-  // 2 · Your AI agent checks the invitation against your own rules.
-  const b = inv.matchBreakdown;
-  const checks: CheckItem[] = [
-    { label: 'Rate meets your floor', ok: inv.proposedRate >= ctx.minRate },
-    { label: 'Category match', ok: b.category >= 70 },
-    { label: 'Audience fit', ok: b.audience >= 70 },
-    { label: ctx.available ? 'Availability confirmed' : 'You paused invitations', ok: ctx.available },
-  ];
-  const passed = checks.filter(c => c.ok === true).length;
-  const review: FlowNode = {
-    key: 'review',
-    title: 'Creator AI review',
-    state: 'done',
-    chip: { label: `${inv.matchPct}% fit`, tone: inv.matchPct >= 75 ? 'green' : 'amber' },
-    summary: `${fitWord(inv.matchPct)} match · ${passed} of ${checks.length} checks passed`,
-    body: (
-      <>
-        <div className="chd-match">
-          <ScoreRing value={inv.matchPct} size={62} stroke={5} label={`${inv.matchPct}% match`} />
-          <span className="chd-match__word">{fitWord(inv.matchPct)}<br />Match</span>
-          <Sparkles className="chd-match__spark" size={18} aria-hidden="true" />
-        </div>
-        <Checks items={checks} />
-      </>
-    ),
-  };
-
-  // 3 · Negotiation
-  const brandOffer = last(ctx.messages.filter(m => m.sender === 'brand' && m.offer !== undefined))?.offer;
-  const myOffer = last(ctx.messages.filter(m => (m.sender === 'creator' || m.sender === 'creator_ai') && m.offer !== undefined))?.offer;
+  // 2 · Negotiation, only when the rate was actually negotiated.
+  const offers = ctx.messages.filter(m => m.offer !== undefined && m.sender !== 'system');
+  const firstOffer = offers.find(m => m.sender === 'brand')?.offer ?? inv.proposedRate;
+  const brandOffer = last(offers.filter(m => m.sender === 'brand'))?.offer;
+  const myOffer = last(offers.filter(m => m.sender === 'creator' || m.sender === 'creator_ai'))?.offer;
   const lastSpeaker = last(ctx.messages.filter(m => m.sender !== 'system'))?.sender;
   const chat = <MessagesSquare size={17} strokeWidth={1.8} />;
-  let negotiate: FlowNode;
-  if (closed) {
+  let negotiate: FlowNode | null = null;
+  if (ctx.negotiated && closed) {
     negotiate = {
       key: 'negotiate', title: 'Negotiation', state: 'stopped',
-      chip: { label: inv.status === 'declined' ? 'Declined' : 'Expired', tone: 'grey' },
-      summary: inv.status === 'declined' ? 'You declined this invitation' : 'This invitation expired',
+      chip: { label: 'Ended', tone: 'grey' },
+      summary: 'Nothing was agreed',
       body: (
         <>
-          <Lead icon={chat} round><Chip tone="grey">{inv.status === 'declined' ? 'Declined' : 'Expired'}</Chip></Lead>
-          <p className="chd-note">Nothing was agreed, so no contract or payment follows.</p>
-        </>
-      ),
-    };
-  } else if (step === 0) {
-    negotiate = {
-      key: 'negotiate', title: 'Negotiation', state: 'next',
-      chip: { label: 'Your reply', tone: 'amber' },
-      summary: 'Accept, counter or decline the offer',
-      body: (
-        <>
-          <Lead icon={chat} round><Chip tone="amber">Awaiting your reply</Chip></Lead>
+          <Lead icon={chat} round><Chip tone="grey">No agreement</Chip></Lead>
           <Rows rows={[
-            ['Brand offer', inr(inv.proposedRate)],
-            ['Your minimum', inr(ctx.minRate)],
-            ['AI agent', ctx.aiAgent ? 'Ready' : 'Off'],
+            ['First offer', inr(firstOffer)],
+            ['Your last offer', myOffer ? inr(myOffer) : '—'],
           ]} />
         </>
       ),
-      action: { label: 'Review offer', to: `/creator/invitations/${inv.id}` },
+      action: { label: 'View negotiation', to: `/creator/negotiation/${inv.id}` },
     };
-  } else if (step === 1) {
-    const waiting = lastSpeaker !== 'brand';
+  } else if (ctx.negotiated && step <= 1) {
+    // Your agent matching the brand's latest offer is a recommendation to accept: your call.
+    const recommends = myOffer !== undefined && brandOffer !== undefined && myOffer <= brandOffer;
+    const waiting = lastSpeaker !== 'brand' && !recommends;
     negotiate = {
       key: 'negotiate', title: 'Negotiation', state: 'current',
       chip: waiting ? { label: 'Awaiting brand', tone: 'amber' } : { label: 'Your approval', tone: 'amber' },
-      summary: myOffer ? `Your counter ${inr(myOffer)}` : 'Talking terms with the brand',
+      summary: myOffer ? `Your offer ${inr(myOffer)}` : 'Talking terms with the brand',
       body: (
         <>
           <Lead icon={chat} round><Chip tone="amber">{waiting ? 'Awaiting brand reply' : 'Awaiting your approval'}</Chip></Lead>
           <Rows rows={[
-            ['Current offer', inr(brandOffer ?? inv.proposedRate)],
-            ['Your counter', myOffer ? inr(myOffer) : '—'],
+            ['Brand offer', inr(brandOffer ?? inv.proposedRate)],
+            ['Your offer', myOffer ? inr(myOffer) : '—'],
             ['Brand response', waiting ? 'Pending' : 'Replied'],
           ]} />
         </>
       ),
       action: { label: 'View negotiation', to: `/creator/negotiation/${inv.id}` },
     };
-  } else {
+  } else if (ctx.negotiated) {
+    const gain = rate - firstOffer;
     negotiate = {
       key: 'negotiate', title: 'Negotiation', state: 'done',
       chip: { label: 'Agreed', tone: 'green' },
-      summary: `Agreed at ${inr(rate)}`,
+      summary: gain > 0 ? `Agreed at ${inr(rate)} · +${inr(gain)}` : `Agreed at ${inr(rate)}`,
       body: (
         <>
           <Lead icon={chat} round><Chip tone="green">Terms agreed</Chip></Lead>
           <Rows rows={[
-            ['First offer', inr(inv.proposedRate)],
+            ['First offer', inr(firstOffer)],
             ['Agreed rate', inr(rate)],
-            ['Revisions', `${inv.revisions} included`],
+            gain > 0
+              ? ['Raised by', <span key="gain" className="chd-gain">+{inr(gain)}</span>]
+              : ['Rounds', String(Math.max(1, offers.length - 1))],
           ]} />
         </>
       ),
@@ -277,7 +245,7 @@ function nodesFor(inv: Invitation, ctx: {
     };
   }
 
-  // 4 · Contract
+  // 3 · Contract
   const signed = step >= 3 || Boolean(ctx.signedAt);
   const doc = <FileText size={17} strokeWidth={1.8} />;
   const contractChecks: CheckItem[] = [
@@ -309,7 +277,7 @@ function nodesFor(inv: Invitation, ctx: {
           action: { label: 'View contract', to: `/creator/contract/${inv.id}` },
         };
 
-  // 5 · Content delivery
+  // 4 · Content delivery
   const items = ctx.items;
   const sent = items.filter(d => d.status === 'uploaded' || d.status === 'pending_approval' || d.status === 'approved').length;
   const total = items.length || pieces;
@@ -324,7 +292,9 @@ function nodesFor(inv: Invitation, ctx: {
             return (
               <li key={d.id} className={`is-${look.tone}`}>
                 <span className="chd-pieces__icon" aria-hidden="true">
-                  {look.tone === 'ok' ? <Check size={10} strokeWidth={3.2} /> : look.tone === 'bad' ? <X size={10} strokeWidth={3.2} /> : <Check size={10} strokeWidth={3.2} />}
+                  {look.tone === 'ok' ? <Check size={10} strokeWidth={3.2} />
+                    : look.tone === 'bad' ? <X size={10} strokeWidth={3.2} />
+                      : look.tone === 'wait' ? <Clock size={10} strokeWidth={2.8} /> : <CircleDashed size={12} />}
                 </span>
                 <span className="chd-pieces__name">{d.label}</span>
                 <span className="chd-pieces__state">{look.label}</span>
@@ -333,7 +303,7 @@ function nodesFor(inv: Invitation, ctx: {
           })
         : inv.brief.deliverableSpecs.slice(0, 3).map(s => (
             <li key={s.id} className="is-off">
-              <span className="chd-pieces__icon" aria-hidden="true"><Check size={10} strokeWidth={3.2} /></span>
+              <span className="chd-pieces__icon" aria-hidden="true"><CircleDashed size={12} /></span>
               <span className="chd-pieces__name">{s.count} × {s.format}</span>
             </li>
           ))}
@@ -392,7 +362,7 @@ function nodesFor(inv: Invitation, ctx: {
           ),
         };
 
-  // 6 · Payment. Anything not paid yet is labelled expected.
+  // 5 · Payment. Anything not paid yet is labelled expected.
   const milestones = inv.brief.milestones.filter(m => m.pct > 0);
   const plan = milestones.length ? milestones : [{ name: 'On approval', pct: 100, date: '' }];
   const paid = ctx.paymentStatus === 'paid';
@@ -417,7 +387,7 @@ function nodesFor(inv: Invitation, ctx: {
     action: step >= 3 ? { label: 'View payment', to: '/creator/earnings' } : undefined,
   };
 
-  return [invite, review, negotiate, contract, content, payment];
+  return negotiate ? [invite, negotiate, contract, content, payment] : [invite, contract, content, payment];
 }
 
 function lookFor(node: FlowNode): ButtonLook {
@@ -427,30 +397,38 @@ function lookFor(node: FlowNode): ButtonLook {
 interface Edge { key: string; d: string; color: string; a: [number, number]; b: [number, number] }
 
 export default function DashboardWorkflow({ campaigns, invites }: { campaigns: Invitation[]; invites: Invitation[] }) {
-  const { preferences, negotiations, contracts, deliverables, payments } = useCreator();
+  const { negotiations, contracts, deliverables, payments } = useCreator();
   const all = [...campaigns, ...invites];
   const [picked, setPicked] = useState<string | undefined>(undefined);
   const inv = all.find(i => i.id === picked) ?? all[0];
+  const messages = inv ? negotiations[inv.id] ?? [] : [];
+  const negotiated = Boolean(inv && wasNegotiated(inv, messages));
+  const keys = negotiated ? KEYS : KEYS.filter(k => k !== 'negotiate');
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<Partial<Record<NodeKey, HTMLElement | null>>>({});
   const [mode, setMode] = useState<Mode>('timeline');
   const [edges, setEdges] = useState<Edge[]>([]);
   const [tick, setTick] = useState(0);
+  // Phone timeline: which step is open. null follows the current step; 'none' closes all.
+  const [opened, setOpened] = useState<NodeKey | 'none' | null>(null);
+
+  useEffect(() => { setOpened(null); }, [inv?.id]);
 
   // Pick the layout from the canvas width, and redraw connectors whenever anything resizes.
+  // Five steps need a wider canvas than four before they sit side by side.
   useEffect(() => {
     const el = canvasRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => {
       const w = el.clientWidth;
-      setMode(w >= 760 ? 'canvas' : w >= 470 ? 'board' : 'timeline');
+      setMode(w >= (negotiated ? 840 : 680) ? 'canvas' : w >= 470 ? 'board' : 'timeline');
       setTick(t => t + 1);
     });
     ro.observe(el);
     KEYS.forEach(k => { const n = nodeRefs.current[k]; if (n) ro.observe(n); });
     return () => ro.disconnect();
-  }, [inv?.id]);
+  }, [inv?.id, negotiated]);
 
   const measure = useCallback(() => {
     const el = canvasRef.current;
@@ -463,34 +441,30 @@ export default function DashboardWorkflow({ campaigns, invites }: { campaigns: I
       const r = n.getBoundingClientRect();
       return { l: (r.left - c.left) / zoom, t: (r.top - c.top) / zoom, w: r.width / zoom, h: r.height / zoom };
     };
-    const list = mode === 'canvas'
-      ? CANVAS_EDGES
-      : KEYS.slice(0, -1).map((k, i) => ({ from: k, to: KEYS[i + 1], color: NODE_COLOR[k], route: 'side' as const }));
+    const order = negotiated ? KEYS : KEYS.filter(k => k !== 'negotiate');
     const next: Edge[] = [];
-    list.forEach(e => {
-      const a = box(e.from);
-      const b = box(e.to);
+    order.slice(0, -1).forEach((from, i) => {
+      const to = order[i + 1];
+      const color = NODE_COLOR[from];
+      const a = box(from);
+      const b = box(to);
       if (!a || !b) return;
       const sameRow = b.l >= a.l + a.w - 4 && b.t < a.t + a.h && b.t + b.h > a.t;
-      if (e.route === 'side' && sameRow) {
+      if (sameRow) {
         const x1 = a.l + a.w; const y1 = a.t + Math.min(a.h / 2, 150);
         const x2 = b.l; const y2 = b.t + Math.min(b.h / 2, 150);
         const dx = Math.max(14, (x2 - x1) / 2);
-        next.push({ key: `${e.from}-${e.to}`, color: e.color, a: [x1, y1], b: [x2, y2], d: `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}` });
-      } else if (e.route === 'down' && b.l > a.l + 20) {
-        const x1 = a.l + Math.min(34, a.w / 4); const y1 = a.t + a.h;
-        const x2 = b.l; const y2 = b.t + Math.min(70, b.h / 3);
-        next.push({ key: `${e.from}-${e.to}`, color: e.color, a: [x1, y1], b: [x2, y2], d: `M${x1},${y1} C${x1},${y2} ${x2 - 34},${y2} ${x2},${y2}` });
+        next.push({ key: `${from}-${to}`, color, a: [x1, y1], b: [x2, y2], d: `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}` });
       } else {
-        // Next row: leave from the bottom, arrive at the top.
+        // Next row (or stacked in the same column): leave from the bottom, arrive at the top.
         const x1 = a.l + a.w / 2; const y1 = a.t + a.h;
         const x2 = b.l + b.w / 2; const y2 = b.t;
         const my = (y1 + y2) / 2;
-        next.push({ key: `${e.from}-${e.to}`, color: e.color, a: [x1, y1], b: [x2, y2], d: `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}` });
+        next.push({ key: `${from}-${to}`, color, a: [x1, y1], b: [x2, y2], d: `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}` });
       }
     });
     setEdges(next);
-  }, [mode]);
+  }, [mode, negotiated]);
 
   useLayoutEffect(() => { measure(); }, [measure, tick, inv?.id]);
 
@@ -507,16 +481,16 @@ export default function DashboardWorkflow({ campaigns, invites }: { campaigns: I
 
   const contract = contracts[inv.id];
   const nodes = nodesFor(inv, {
-    minRate: preferences.minRate,
-    available: preferences.availableForCampaigns,
-    aiAgent: preferences.aiNegotiationEnabled,
-    messages: negotiations[inv.id] ?? [],
+    negotiated,
+    messages,
     signedBy: contract?.signedName,
     signedAt: contract?.signedAt,
     items: deliverables[inv.id] ?? [],
     paymentStatus: payments.find(p => p.campaignId === inv.id)?.status,
   });
   const running = campaigns.some(c => c.id === inv.id);
+  const timeline = mode === 'timeline';
+  const openKey = opened === 'none' ? null : opened ?? nodes.find(n => n.state === 'current')?.key ?? null;
 
   return (
     <section className="chd-panel chd-flow" aria-labelledby="chd-flow-title">
@@ -549,7 +523,7 @@ export default function DashboardWorkflow({ campaigns, invites }: { campaigns: I
         </Link>
       </FlowHead>
 
-      <div ref={canvasRef} className={`chd-canvas is-${mode}`}>
+      <div ref={canvasRef} className={`chd-canvas is-${mode} has-${keys.length}`}>
         {edges.length > 0 && (
           <svg className="chd-canvas__wires" aria-hidden="true">
             {edges.map(e => (
@@ -562,27 +536,51 @@ export default function DashboardWorkflow({ campaigns, invites }: { campaigns: I
           </svg>
         )}
 
-        {nodes.map(n => (
-          <article
-            key={n.key}
-            ref={el => { nodeRefs.current[n.key] = el; }}
-            className={`chd-node chd-node--${n.key} is-${n.state}`}
-            aria-current={n.state === 'current' ? 'step' : undefined}
-          >
-            <div className="chd-node__head">
-              <i className="chd-node__dot" aria-hidden="true" />
-              <h3>{n.title}</h3>
-              <span className="chd-node__chip"><Chip tone={n.chip.tone}>{n.chip.label}</Chip></span>
-            </div>
-            <p className="chd-node__summary">{n.summary}</p>
-            <div className="chd-node__body">{n.body}</div>
-            {n.action && (
-              <Link to={n.action.to} className={`chd-pill chd-pill--${lookFor(n)}`}>
-                {n.action.label} <ArrowRight size={15} strokeWidth={2.2} aria-hidden="true" />
-              </Link>
-            )}
-          </article>
-        ))}
+        {nodes.map(n => {
+          const isOpen = !timeline || n.key === openKey;
+          const bodyId = `chd-step-${n.key}`;
+          const head = (
+            <>
+              <span className="chd-node__row">
+                <i className="chd-node__dot" aria-hidden="true" />
+                <span className="chd-node__name">{n.title}</span>
+                <span className="chd-node__chip"><Chip tone={n.chip.tone}>{n.chip.label}</Chip></span>
+                {timeline && <ChevronDown className="chd-node__chev" size={18} strokeWidth={2} aria-hidden="true" />}
+              </span>
+              <span className="chd-node__summary">{n.summary}</span>
+            </>
+          );
+          return (
+            <article
+              key={n.key}
+              ref={el => { nodeRefs.current[n.key] = el; }}
+              className={`chd-node chd-node--${n.key} is-${n.state}${isOpen ? ' is-open' : ''}`}
+              aria-current={n.state === 'current' ? 'step' : undefined}
+            >
+              <h3 className="chd-node__head">
+                {timeline ? (
+                  <button
+                    type="button"
+                    className="chd-node__toggle"
+                    aria-expanded={isOpen}
+                    aria-controls={bodyId}
+                    onClick={() => setOpened(isOpen ? 'none' : n.key)}
+                  >
+                    {head}
+                  </button>
+                ) : head}
+              </h3>
+              <div className="chd-node__more" id={bodyId}>
+                <div className="chd-node__body">{n.body}</div>
+                {n.action && (
+                  <Link to={n.action.to} className={`chd-pill chd-pill--${lookFor(n)}`}>
+                    {n.action.label} <ArrowRight size={15} strokeWidth={2.2} aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -594,7 +592,7 @@ function FlowHead({ children }: { children?: ReactNode }) {
       <span className="chd-flow__mark" aria-hidden="true"><Workflow size={18} strokeWidth={2} /></span>
       <div className="chd-flow__titles">
         <h2 id="chd-flow-title">Campaign workflow</h2>
-        <p>From invitation to payment, checked by your AI agent</p>
+        <p>Every step from invitation to payout</p>
       </div>
       {children && <div className="chd-flow__tools">{children}</div>}
     </div>

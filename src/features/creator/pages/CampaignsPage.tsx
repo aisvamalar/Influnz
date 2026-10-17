@@ -301,7 +301,7 @@ function CampaignTile({ inv, items }: { inv: Invitation; items?: Deliverable[] }
   const signing = inv.status === 'accepted' || inv.status === 'contract_pending';
 
   const primary = signing
-    ? { label: 'Confirm terms', to: `/creator/deal/${inv.id}`, icon: FilePen }
+    ? { label: 'Sign contract', to: `/creator/contract/${inv.id}`, icon: FilePen }
     : inv.status === 'completed'
       ? { label: 'View campaign', to: `/creator/campaigns/${inv.id}`, icon: ArrowRight }
       : { label: revising ? 'Fix and resubmit' : 'Upload / view', to: `/creator/campaigns/${inv.id}`, icon: Upload };
